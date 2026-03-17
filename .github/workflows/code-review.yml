@@ -19,7 +19,7 @@ jobs:
         if: env.HAS_GROQ_KEY != 'true'
         run: echo "GROQ_API_KEY not configured, skipping review" && exit 0
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         if: env.HAS_GROQ_KEY == 'true'
         with:
           fetch-depth: 0
