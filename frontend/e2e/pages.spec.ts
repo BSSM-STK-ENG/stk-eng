@@ -91,14 +91,14 @@ test.describe('Page rendering (authenticated)', () => {
   test('Closing page renders with month input', async ({ page }) => {
     await page.goto('/closing');
     await expect(page.getByText('월마감 관리')).toBeVisible();
-    await expect(page.getByText('마감 대상 월')).toBeVisible();
-    await expect(page.getByText('마감 생성/처리')).toBeVisible();
+    await expect(page.getByText('신규 마감 처리')).toBeVisible();
+    await expect(page.getByRole('button', { name: '마감 처리' })).toBeVisible();
   });
 
   test('Closing page shows stats', async ({ page }) => {
     await page.goto('/closing');
-    await expect(page.getByText('마감 완료')).toBeVisible();
-    await expect(page.getByText('미마감')).toBeVisible();
+    await expect(page.getByText('마감완료').first()).toBeVisible();
+    await expect(page.getByText('미마감').first()).toBeVisible();
   });
 
   test('History page renders', async ({ page }) => {
