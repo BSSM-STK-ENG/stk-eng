@@ -12,6 +12,7 @@ jobs:
   review:
     name: LLM Code Review
     runs-on: ubuntu-latest
+    if: ${{ secrets.GROQ_API_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
