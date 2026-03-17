@@ -1,0 +1,19 @@
+language: ko
+early_access: false
+
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  review_status: true
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - '!**/*.lock'
+    - '!**/package-lock.json'
+    - '!**/pom.xml'
+
+chat:
+  auto_reply: true
