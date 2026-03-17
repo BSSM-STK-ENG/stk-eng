@@ -1,0 +1,60 @@
+name: Code Review (CodeAgora)
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    name: LLM Code Review
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
+    env:
+      HAS_GROQ_KEY: ${{ secrets.GROQ_API_KEY != '' }}
+    steps:
+      - name: Skip if no API key
+        if: env.HAS_GROQ_KEY != 'true'
+        run: echo "GROQ_API_KEY not configured, skipping review" && exit 0
+
+      - uses: actions/checkout@v6
+        if: env.HAS_GROQ_KEY == 'true'
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        if: env.HAS_GROQ_KEY == 'true'
+        with:
+          node-version: 20
+
+      - name: Install CodeAgora
+        if: env.HAS_GROQ_KEY == 'true'
+        run: npm install -g codeagora
+
+      - name: Initialize CodeAgora
+        if: env.HAS_GROQ_KEY == 'true'
+        run: agora init
+
+      - name: Run Review
+        if: env.HAS_GROQ_KEY == 'true'
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git diff "origin/$BASE_REF"...HEAD | agora review --output review-result.md
+
+      - name: Post Review Comment
+        if: env.HAS_GROQ_KEY == 'true' && always() && hashFiles('review-result.md') != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo "## CodeAgora Review"
+            echo ""
+            cat review-result.md
+          } > comment.md
+          gh pr comment "$PR_NUMBER" --body-file comment.md
