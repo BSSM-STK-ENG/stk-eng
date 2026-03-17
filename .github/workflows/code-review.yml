@@ -1,51 +1,24 @@
-name: Code Review (CodeAgora)
+name: CodeAgora Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
   pull-requests: write
+  statuses: write
 
 jobs:
   review:
-    name: LLM Code Review
     runs-on: ubuntu-latest
     if: github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-
-      - uses: actions/setup-node@v6
+      - uses: justn-hyeok/CodeAgora@main
         with:
-          node-version: 20
-
-      - name: Install CodeAgora
-        run: npm install -g codeagora
-
-      - name: Initialize CodeAgora
-        run: agora init
-
-      - name: Run Review
+          github-token: ${{ secrets.GITHUB_TOKEN }}
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          git diff "origin/$BASE_REF"...HEAD | agora review --output review-result.md
-
-      - name: Post Review Comment
-        if: always() && hashFiles('review-result.md') != ''
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          {
-            echo "## :robot: CodeAgora Review"
-            echo ""
-            echo "> 멀티 LLM 코드 리뷰 결과입니다."
-            echo ""
-            cat review-result.md
-          } > comment.md
-          gh pr comment "$PR_NUMBER" --body-file comment.md
