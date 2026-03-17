@@ -10,7 +10,11 @@ import Ledger from './pages/Ledger';
 import Closing from './pages/Closing';
 import History from './pages/History';
 
-function PrivateRoute({ children }) {
+interface PrivateRouteProps {
+  children: React.ReactNode;
+}
+
+function PrivateRoute({ children }: PrivateRouteProps) {
   const token = localStorage.getItem('token');
   return token ? children : <Navigate to="/login" replace />;
 }
@@ -21,7 +25,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        
+
         <Route path="/" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
           <Route index element={<Navigate to="/stock/current" replace />} />
           <Route path="inbound" element={<Inbound />} />

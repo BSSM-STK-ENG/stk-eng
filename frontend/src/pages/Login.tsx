@@ -2,24 +2,25 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
 import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { AuthResponse } from '../types/api';
 
 const Login = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [email, setEmail] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
+    const [error, setError] = useState<string>('');
+    const [loading, setLoading] = useState<boolean>(false);
     const navigate = useNavigate();
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError('');
         setLoading(true);
         try {
-            const response = await api.post('/auth/login', { email, password });
+            const response = await api.post<AuthResponse>('/auth/login', { email, password });
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('email', response.data.email);
             navigate('/');
-        } catch (err) {
+        } catch {
             setError('로그인에 실패했습니다. 이메일 또는 비밀번호를 확인해주세요.');
         } finally {
             setLoading(false);
@@ -52,7 +53,7 @@ const Login = () => {
                             <input
                                 type="email"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                                 className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-slate-700 font-medium"
                                 placeholder="name@company.com"
                                 required
@@ -69,7 +70,7 @@ const Login = () => {
                             <input
                                 type="password"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                                 className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-slate-700 font-medium"
                                 placeholder="••••••••"
                                 required
