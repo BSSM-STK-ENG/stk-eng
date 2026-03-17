@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { Download, Search, RefreshCw, History as HistoryIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { InventoryTransaction } from '../types/api';
+import { downloadExcel } from '../utils/excel';
 
 const PAGE_SIZE = 25;
 
@@ -26,7 +27,16 @@ const History = () => {
     useEffect(() => { fetchHistory(); }, []);
 
     const handleExport = () => {
-        window.open('http://localhost:8080/api/export/history', '_blank');
+        const rows = transactions.map(t => ({
+            '변경일시': new Date(t.createdAt).toLocaleString(),
+            'ID': t.id,
+            '유형': t.transactionType === 'IN' ? '입고' : '출고',
+            '자재코드': t.material.materialCode,
+            '자재명': t.material.materialName,
+            '변경수량': t.transactionType === 'IN' ? t.quantity : -t.quantity,
+            '변경자': t.createdBy?.email ?? 'System',
+        }));
+        downloadExcel(rows, '변경_이력');
     };
 
     const filtered = transactions.filter(t =>
