@@ -1,5 +1,6 @@
 package com.stk.inventory.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -24,6 +25,7 @@ public class MonthlyClosing {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "closed_by_user_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User closedBy;
 
     @Column(name = "closed_at")
