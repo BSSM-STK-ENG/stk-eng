@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { Download, Search, RefreshCw, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MaterialDto } from '../types/api';
+import { downloadExcel } from '../utils/excel';
 
 const PAGE_SIZE = 25;
 
@@ -26,7 +27,14 @@ const CurrentStock = () => {
     useEffect(() => { fetchStock(); }, []);
 
     const handleExport = () => {
-        window.open('http://localhost:8080/api/export/current', '_blank');
+        const rows = materials.map(m => ({
+            '자재코드': m.materialCode,
+            '자재명': m.materialName,
+            '위치': m.location ?? '',
+            '안전재고': m.safeStockQty ?? 0,
+            '현재재고': m.currentStockQty ?? 0,
+        }));
+        downloadExcel(rows, '재고_현황');
     };
 
     const filtered = materials.filter(m =>

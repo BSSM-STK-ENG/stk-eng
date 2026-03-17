@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import api from '../api/axios';
 import { Download, Plus, Search, RefreshCw, Upload, Trash2, X, FileSpreadsheet, ChevronLeft, ChevronRight } from 'lucide-react';
 import { InventoryTransaction } from '../types/api';
+import { downloadExcel } from '../utils/excel';
 
 const PAGE_SIZE = 20;
 
@@ -38,7 +39,16 @@ const Inbound = () => {
     useEffect(() => { fetchTransactions(); }, []);
 
     const handleExport = () => {
-        window.open('http://localhost:8080/api/export/inbound', '_blank');
+        const rows = transactions.map(t => ({
+            '입고날짜': new Date(t.transactionDate).toLocaleDateString(),
+            '자재코드': t.material.materialCode,
+            '자재명': t.material.materialName,
+            '수량': t.quantity,
+            '사업장': t.businessUnit ?? '',
+            '비고': t.note ?? '',
+            '등록자': t.createdBy?.email ?? '',
+        }));
+        downloadExcel(rows, '입고_내역');
     };
 
     const openNew = () => {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { Download, Search, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { InventoryTransaction } from '../types/api';
+import { downloadExcel } from '../utils/excel';
 
 const PAGE_SIZE = 25;
 
@@ -27,7 +28,18 @@ const Ledger = () => {
     useEffect(() => { fetchLedger(); }, []);
 
     const handleExport = () => {
-        window.open('http://localhost:8080/api/export/ledger', '_blank');
+        const rows = transactions.map(t => ({
+            '일자': new Date(t.transactionDate).toLocaleDateString(),
+            '유형': t.transactionType === 'IN' ? '입고' : '출고',
+            '자재코드': t.material.materialCode,
+            '자재명': t.material.materialName,
+            '수량': t.transactionType === 'IN' ? t.quantity : -t.quantity,
+            '사업장': t.businessUnit ?? '',
+            '담당자': t.manager ?? '',
+            '비고': t.note ?? '',
+            '등록자': t.createdBy?.email ?? '',
+        }));
+        downloadExcel(rows, '수불_현황');
     };
 
     const filtered = transactions
