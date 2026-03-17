@@ -1,0 +1,40 @@
+# === Environment & Secrets ===
+.env
+*.env.local
+*.env.*.local
+
+# === Java / Maven ===
+backend/target/
+*.class
+*.jar
+*.war
+*.log
+.mvn/
+
+# === Node / React ===
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env
+
+# === IDE ===
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Docker ===
+postgres_data/
+
+# === Misc ===
+*.swp
+*.swo
+*~
