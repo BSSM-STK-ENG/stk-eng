@@ -15,7 +15,7 @@ jobs:
     name: Build Frontend Image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build
         run: docker build -t stk-frontend:test ./frontend
 
@@ -23,6 +23,6 @@ jobs:
     name: Build Backend Image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build
         run: docker build -t stk-backend:test ./backend
