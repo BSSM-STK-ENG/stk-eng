@@ -2,19 +2,21 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
 import { Mail, Lock, UserPlus, Loader2 } from 'lucide-react';
+import { AuthResponse } from '../types/api';
+import { getErrorMessage } from '../utils/api-error';
 
 const Register = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [passwordConfirm, setPasswordConfirm] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [email, setEmail] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
+    const [passwordConfirm, setPasswordConfirm] = useState<string>('');
+    const [error, setError] = useState<string>('');
+    const [loading, setLoading] = useState<boolean>(false);
     const navigate = useNavigate();
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError('');
-        
+
         if (password !== passwordConfirm) {
             setError('비밀번호가 일치하지 않습니다.');
             return;
@@ -22,12 +24,12 @@ const Register = () => {
 
         setLoading(true);
         try {
-            const response = await api.post('/auth/register', { email, password });
+            const response = await api.post<AuthResponse>('/auth/register', { email, password });
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('email', response.data.email);
             navigate('/');
         } catch (err) {
-            setError(err.response?.data?.message || '회원가입에 실패했습니다.');
+            setError(getErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -59,7 +61,7 @@ const Register = () => {
                             <input
                                 type="email"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                                 className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-slate-700 font-medium"
                                 placeholder="name@company.com"
                                 required
@@ -76,11 +78,11 @@ const Register = () => {
                             <input
                                 type="password"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                                 className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-slate-700 font-medium"
                                 placeholder="••••••••"
                                 required
-                                minLength="6"
+                                minLength={6}
                             />
                         </div>
                     </div>
@@ -94,7 +96,7 @@ const Register = () => {
                             <input
                                 type="password"
                                 value={passwordConfirm}
-                                onChange={(e) => setPasswordConfirm(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswordConfirm(e.target.value)}
                                 className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-slate-700 font-medium"
                                 placeholder="••••••••"
                                 required

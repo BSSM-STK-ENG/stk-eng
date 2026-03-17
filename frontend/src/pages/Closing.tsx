@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { Lock, Unlock, RefreshCw, Calendar, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { MonthlyClosing } from '../types/api';
 
 const Closing = () => {
-    const [closings, setClosings] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [monthInput, setMonthInput] = useState('');
+    const [closings, setClosings] = useState<MonthlyClosing[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [monthInput, setMonthInput] = useState<string>('');
 
     const fetchClosings = async () => {
         setLoading(true);
         try {
             const res = await api.get('/closing');
-            setClosings(res.data.sort((a,b) => b.closingMonth.localeCompare(a.closingMonth)));
+            setClosings((res.data as MonthlyClosing[]).sort((a, b) => b.closingMonth.localeCompare(a.closingMonth)));
         } catch (err) {
             console.error(err);
         } finally {
@@ -24,7 +25,7 @@ const Closing = () => {
         setMonthInput(new Date().toISOString().substring(0, 7));
     }, []);
 
-    const toggleClose = async (month, isClosed) => {
+    const toggleClose = async (month: string, isClosed: boolean) => {
         try {
             if (isClosed) {
                 await api.post(`/closing/${month}/unclose`);
@@ -32,7 +33,7 @@ const Closing = () => {
                 await api.post(`/closing/${month}/close`);
             }
             fetchClosings();
-        } catch (err) {
+        } catch {
             alert('처리 중 오류가 발생했습니다. 이전 월의 마감 상태를 확인해주세요.');
         }
     };
@@ -58,14 +59,14 @@ const Closing = () => {
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">마감 대상 월</p>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
                     <div className="flex-1">
-                        <input 
-                            type="month" 
-                            value={monthInput} 
-                            onChange={(e) => setMonthInput(e.target.value)}
+                        <input
+                            type="month"
+                            value={monthInput}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMonthInput(e.target.value)}
                             className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none text-sm font-medium text-slate-700"
                         />
                     </div>
-                    <button 
+                    <button
                         onClick={() => toggleClose(monthInput, false)}
                         className="flex items-center justify-center px-5 py-2.5 bg-slate-800 text-white text-sm font-bold rounded-xl hover:bg-slate-900 transition-colors shadow-sm"
                     >
@@ -121,11 +122,11 @@ const Closing = () => {
                                         {c.closedBy?.email || '-'}
                                     </td>
                                     <td className="px-4 md:px-5 py-3 whitespace-nowrap text-right">
-                                        <button 
+                                        <button
                                             onClick={() => toggleClose(c.closingMonth, c.status === 'CLOSED')}
                                             className={`inline-flex items-center px-3 py-1.5 text-[11px] font-bold rounded-lg transition-colors shadow-sm ${
-                                                c.status === 'CLOSED' 
-                                                ? 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200' 
+                                                c.status === 'CLOSED'
+                                                ? 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
                                                 : 'bg-red-500 text-white hover:bg-red-600 shadow-red-500/20'
                                             }`}
                                         >
@@ -135,7 +136,7 @@ const Closing = () => {
                                 </tr>
                             ))}
                             {closings.length === 0 && !loading && (
-                                <tr><td colSpan="5" className="px-5 py-16 text-center text-sm text-slate-400 font-medium">등록된 마감 데이터가 없습니다.</td></tr>
+                                <tr><td colSpan={5} className="px-5 py-16 text-center text-sm text-slate-400 font-medium">등록된 마감 데이터가 없습니다.</td></tr>
                             )}
                         </tbody>
                     </table>
