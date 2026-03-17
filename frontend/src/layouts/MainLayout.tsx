@@ -2,10 +2,17 @@ import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { PackageOpen, PackageMinus, Layers, ClipboardList, Lock, History, LogOut, Menu, X, ChevronRight } from 'lucide-react';
 
+interface NavItem {
+    name: string;
+    path: string;
+    icon: React.ReactNode;
+    color: string;
+}
+
 const MainLayout = () => {
     const navigate = useNavigate();
     const userEmail = localStorage.getItem('email');
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -13,7 +20,7 @@ const MainLayout = () => {
         navigate('/login');
     };
 
-    const navItems = [
+    const navItems: NavItem[] = [
         { name: '입고 관리', path: '/inbound', icon: <PackageOpen size={20} />, color: 'blue' },
         { name: '출고 관리', path: '/outbound', icon: <PackageMinus size={20} />, color: 'rose' },
         { name: '현재 재고', path: '/stock/current', icon: <Layers size={20} />, color: 'emerald' },
@@ -22,7 +29,7 @@ const MainLayout = () => {
         { name: '변경 이력', path: '/history', icon: <History size={20} />, color: 'indigo' },
     ];
 
-    const SidebarContent = () => (
+    const renderSidebar = () => (
         <>
             <div className="h-16 flex items-center px-5 border-b border-slate-200/80 shrink-0">
                 <div className="flex items-center gap-2.5">
@@ -37,7 +44,7 @@ const MainLayout = () => {
                     <X size={20} />
                 </button>
             </div>
-            
+
             <div className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
                 <p className="px-3 pb-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">메뉴</p>
                 {navItems.map((item) => (
@@ -45,15 +52,15 @@ const MainLayout = () => {
                         key={item.path}
                         to={item.path}
                         onClick={() => setSidebarOpen(false)}
-                        className={({ isActive }) =>
+                        className={({ isActive }: { isActive: boolean }) =>
                             `group flex items-center px-3 py-2.5 rounded-xl transition-all duration-200 text-[13.5px] ${
-                                isActive 
-                                ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 font-bold shadow-sm ring-1 ring-blue-100' 
+                                isActive
+                                ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 font-bold shadow-sm ring-1 ring-blue-100'
                                 : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium'
                             }`
                         }
                     >
-                        {({ isActive }) => (
+                        {({ isActive }: { isActive: boolean }) => (
                             <>
                                 <span className={`mr-3 transition-colors ${isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'}`}>{item.icon}</span>
                                 {item.name}
@@ -67,7 +74,7 @@ const MainLayout = () => {
             <div className="p-3 border-t border-slate-100 shrink-0">
                 <div className="px-3 py-2 rounded-xl bg-slate-50">
                     <p className="text-xs font-bold text-slate-500 truncate">{userEmail}</p>
-                    <button 
+                    <button
                         onClick={handleLogout}
                         className="mt-1.5 flex items-center text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors"
                     >
@@ -88,12 +95,12 @@ const MainLayout = () => {
 
             {/* Sidebar — Desktop */}
             <div className="hidden lg:flex w-60 bg-white border-r border-slate-200/80 flex-col shrink-0">
-                <SidebarContent />
+                {renderSidebar()}
             </div>
 
             {/* Sidebar — Mobile */}
             <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 flex flex-col shadow-2xl transform transition-transform duration-300 ease-in-out lg:hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                <SidebarContent />
+                {renderSidebar()}
             </div>
 
             {/* Main Content */}
@@ -106,12 +113,12 @@ const MainLayout = () => {
                         </button>
                         <h1 className="text-sm md:text-base font-bold text-slate-700 tracking-tight">재고 관리 시스템</h1>
                     </div>
-                    
+
                     <div className="hidden md:flex items-center gap-3">
                         <span className="text-xs font-semibold text-slate-500 px-2.5 py-1 bg-slate-100 rounded-full">
                             {userEmail}
                         </span>
-                        <button 
+                        <button
                             onClick={handleLogout}
                             className="flex items-center text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors"
                         >

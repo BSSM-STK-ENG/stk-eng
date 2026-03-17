@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { Download, Search, RefreshCw, History as HistoryIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { InventoryTransaction } from '../types/api';
 
 const PAGE_SIZE = 25;
 
 const History = () => {
-    const [transactions, setTransactions] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [page, setPage] = useState(0);
+    const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [searchTerm, setSearchTerm] = useState<string>('');
+    const [page, setPage] = useState<number>(0);
 
     const fetchHistory = async () => {
         setLoading(true);
         try {
             const res = await api.get('/inventory/history');
-            setTransactions(res.data.sort((a,b) => b.id - a.id));
+            setTransactions((res.data as InventoryTransaction[]).sort((a, b) => b.id - a.id));
         } catch (err) {
             console.error(err);
         } finally {
@@ -28,8 +29,8 @@ const History = () => {
         window.open('http://localhost:8080/api/export/history', '_blank');
     };
 
-    const filtered = transactions.filter(t => 
-        t.material.materialName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const filtered = transactions.filter(t =>
+        t.material.materialName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.material.materialCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.id.toString().includes(searchTerm)
     );
@@ -60,7 +61,7 @@ const History = () => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                 <input
                     type="text" value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setSearchTerm(e.target.value); setPage(0); }}
                     placeholder="자재명, 코드, ID 검색..."
                     className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all outline-none text-sm text-slate-700 shadow-sm"
                 />
@@ -105,7 +106,7 @@ const History = () => {
                                 </tr>
                             ))}
                             {paged.length === 0 && !loading && (
-                                <tr><td colSpan="7" className="px-5 py-16 text-center text-sm text-slate-400 font-medium">데이터가 없습니다.</td></tr>
+                                <tr><td colSpan={7} className="px-5 py-16 text-center text-sm text-slate-400 font-medium">데이터가 없습니다.</td></tr>
                             )}
                         </tbody>
                     </table>

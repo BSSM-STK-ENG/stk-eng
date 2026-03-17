@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Download, Search, RefreshCw, Package, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, Search, RefreshCw, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MaterialDto } from '../types/api';
 
 const PAGE_SIZE = 25;
 
 const CurrentStock = () => {
-    const [materials, setMaterials] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [page, setPage] = useState(0);
+    const [materials, setMaterials] = useState<MaterialDto[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [searchTerm, setSearchTerm] = useState<string>('');
+    const [page, setPage] = useState<number>(0);
 
     const fetchStock = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/materials');
+            const res = await api.get<MaterialDto[]>('/materials');
             setMaterials(res.data);
         } catch (err) {
             console.error('Failed to fetch stock', err);
@@ -28,8 +29,8 @@ const CurrentStock = () => {
         window.open('http://localhost:8080/api/export/current', '_blank');
     };
 
-    const filtered = materials.filter(m => 
-        m.materialName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const filtered = materials.filter(m =>
+        m.materialName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         m.materialCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         m.location?.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -37,8 +38,8 @@ const CurrentStock = () => {
     const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
     const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-    const totalQty = filtered.reduce((s, m) => s + (m.currentStockQty || 0), 0);
-    const lowStockCount = filtered.filter(m => m.safeStockQty > 0 && m.currentStockQty <= m.safeStockQty).length;
+    const totalQty = filtered.reduce((s, m) => s + (m.currentStockQty ?? 0), 0);
+    const lowStockCount = filtered.filter(m => (m.safeStockQty ?? 0) > 0 && (m.currentStockQty ?? 0) <= (m.safeStockQty ?? 0)).length;
 
     return (
         <div className="flex flex-col gap-4 md:gap-5">
@@ -69,7 +70,7 @@ const CurrentStock = () => {
                 </div>
                 <div className="bg-white rounded-xl border border-slate-200/80 p-3 shadow-sm">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">재고있음</p>
-                    <p className="text-xl font-extrabold text-blue-600 mt-1">{filtered.filter(m => m.currentStockQty > 0).length}<span className="text-xs font-bold text-slate-400 ml-1">종</span></p>
+                    <p className="text-xl font-extrabold text-blue-600 mt-1">{filtered.filter(m => (m.currentStockQty ?? 0) > 0).length}<span className="text-xs font-bold text-slate-400 ml-1">종</span></p>
                 </div>
                 <div className="bg-white rounded-xl border border-slate-200/80 p-3 shadow-sm">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center">부족 <AlertTriangle size={10} className="ml-1 text-amber-400" /></p>
@@ -82,7 +83,7 @@ const CurrentStock = () => {
                 <input
                     type="text"
                     value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setSearchTerm(e.target.value); setPage(0); }}
                     placeholder="자재명, 코드, 위치 검색..."
                     className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all outline-none text-sm text-slate-700 shadow-sm"
                 />
@@ -102,23 +103,23 @@ const CurrentStock = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                             {paged.map((m) => {
-                                const isLow = m.safeStockQty > 0 && m.currentStockQty <= m.safeStockQty;
+                                const isLow = (m.safeStockQty ?? 0) > 0 && (m.currentStockQty ?? 0) <= (m.safeStockQty ?? 0);
                                 return (
                                     <tr key={m.materialCode} className={`transition-colors ${isLow ? 'bg-amber-50/40 hover:bg-amber-50/60' : 'hover:bg-slate-50/50'}`}>
                                         <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs md:text-sm font-bold text-slate-800">{m.materialCode}</td>
                                         <td className="px-3 md:px-5 py-3 text-xs md:text-sm text-slate-600 max-w-[250px] md:max-w-[400px] truncate">{m.materialName}</td>
                                         <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs text-slate-400 hidden md:table-cell">{m.location || '-'}</td>
-                                        <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs text-right text-slate-400 hidden lg:table-cell">{m.safeStockQty || 0}</td>
+                                        <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs text-right text-slate-400 hidden lg:table-cell">{m.safeStockQty ?? 0}</td>
                                         <td className="px-3 md:px-5 py-3 whitespace-nowrap text-right">
-                                            <span className={`text-sm font-extrabold ${isLow ? 'text-amber-600' : m.currentStockQty > 0 ? 'text-emerald-600' : 'text-slate-300'}`}>
-                                                {m.currentStockQty || 0}
+                                            <span className={`text-sm font-extrabold ${isLow ? 'text-amber-600' : (m.currentStockQty ?? 0) > 0 ? 'text-emerald-600' : 'text-slate-300'}`}>
+                                                {m.currentStockQty ?? 0}
                                             </span>
                                         </td>
                                     </tr>
                                 );
                             })}
                             {paged.length === 0 && !loading && (
-                                <tr><td colSpan="5" className="px-5 py-16 text-center text-sm text-slate-400 font-medium">데이터가 없습니다.</td></tr>
+                                <tr><td colSpan={5} className="px-5 py-16 text-center text-sm text-slate-400 font-medium">데이터가 없습니다.</td></tr>
                             )}
                         </tbody>
                     </table>
