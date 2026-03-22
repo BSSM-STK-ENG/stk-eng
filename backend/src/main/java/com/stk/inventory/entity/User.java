@@ -1,6 +1,7 @@
 package com.stk.inventory.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.stk.inventory.ai.model.ProviderType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -31,6 +32,14 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    @Builder.Default
+    @Column(name = "default_provider", length = 32)
+    private String defaultProvider = ProviderType.OPENAI.value();
+
+    @Builder.Default
+    @Column(name = "default_model", length = 128)
+    private String defaultModel = "gpt-5";
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
