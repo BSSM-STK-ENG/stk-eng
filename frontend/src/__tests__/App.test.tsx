@@ -34,5 +34,6 @@ describe('App', () => {
     render(<App />);
     // Should show the layout (sidebar with STK Inventory text is from MainLayout)
     expect(screen.getAllByText('STK Inventory').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('채팅 패널')).toBeInTheDocument();
   });
 });
