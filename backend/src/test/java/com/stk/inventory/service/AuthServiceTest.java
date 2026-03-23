@@ -1,24 +1,30 @@
 package com.stk.inventory.service;
 
 import com.stk.inventory.dto.AuthRequest;
+import com.stk.inventory.dto.AuthResponse;
+import com.stk.inventory.dto.PasswordSetupRequest;
 import com.stk.inventory.entity.Role;
 import com.stk.inventory.entity.User;
 import com.stk.inventory.repository.UserRepository;
 import com.stk.inventory.security.JwtTokenProvider;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -37,16 +43,17 @@ class AuthServiceTest {
     @Mock
     private JwtTokenProvider tokenProvider;
 
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
-    void registerPersistsDefaultAiPreferences() {
+    void loginIncludesRoleAndPasswordChangeRequired() {
         AuthService authService = new AuthService(userRepository, passwordEncoder, authenticationManager, tokenProvider);
         AuthRequest request = new AuthRequest();
         request.setEmail("test@test.com");
         request.setPassword("password");
-
-        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
-        when(passwordEncoder.encode(request.getPassword())).thenReturn("encoded-password");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         UserDetails principal = new org.springframework.security.core.userdetails.User(
                 request.getEmail(),
@@ -55,15 +62,60 @@ class AuthServiceTest {
         );
         Authentication authentication = mock(Authentication.class);
         when(authentication.getPrincipal()).thenReturn(principal);
+        when(authentication.getName()).thenReturn(request.getEmail());
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
         when(tokenProvider.generateToken(principal)).thenReturn("jwt-token");
+        when(userRepository.findByEmail(request.getEmail())).thenReturn(java.util.Optional.of(User.builder()
+                .email(request.getEmail())
+                .password("encoded-password")
+                .role(Role.SUPER_ADMIN)
+                .passwordChangeRequired(true)
+                .build()));
 
-        authService.register(request);
+        AuthResponse response = authService.login(request);
+
+        assertEquals("jwt-token", response.getToken());
+        assertEquals(request.getEmail(), response.getEmail());
+        assertEquals(Role.SUPER_ADMIN, response.getRole());
+        assertTrue(response.isPasswordChangeRequired());
+    }
+
+    @Test
+    void registerIsForbidden() {
+        AuthService authService = new AuthService(userRepository, passwordEncoder, authenticationManager, tokenProvider);
+        AuthRequest request = new AuthRequest();
+        request.setEmail("test@test.com");
+        request.setPassword("password");
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> authService.register(request));
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+    }
+
+    @Test
+    void completePasswordSetupEncodesPasswordAndClearsFlag() {
+        AuthService authService = new AuthService(userRepository, passwordEncoder, authenticationManager, tokenProvider);
+        PasswordSetupRequest request = new PasswordSetupRequest();
+        request.setNewPassword("NewPass123!");
+
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getName()).thenReturn("test@test.com");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        User user = User.builder()
+                .email("test@test.com")
+                .password("old-encoded")
+                .role(Role.USER)
+                .passwordChangeRequired(true)
+                .build();
+
+        when(userRepository.findByEmail("test@test.com")).thenReturn(java.util.Optional.of(user));
+        when(passwordEncoder.encode("NewPass123!")).thenReturn("new-encoded");
+
+        authService.completePasswordSetup(request);
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
-        assertEquals("openai", captor.getValue().getDefaultProvider());
-        assertEquals("gpt-5", captor.getValue().getDefaultModel());
-        assertEquals(Role.USER, captor.getValue().getRole());
+        assertEquals("new-encoded", captor.getValue().getPassword());
+        assertFalse(captor.getValue().isPasswordChangeRequired());
     }
 }

@@ -8,7 +8,35 @@ export interface AuthRequest {
 export interface AuthResponse {
   token: string;
   email: string;
+  role: Role;
+  passwordChangeRequired: boolean;
   message: string;
+}
+
+export interface PasswordSetupRequest {
+  newPassword: string;
+}
+
+export interface AdminCreateUserRequest {
+  email: string;
+  temporaryPassword?: string;
+  role: Exclude<Role, 'SUPER_ADMIN'>;
+}
+
+export interface AdminCreatedUserResponse {
+  email: string;
+  role: Role;
+  temporaryPassword: string;
+  passwordChangeRequired: boolean;
+  createdAt: string | null;
+}
+
+export interface AdminUserSummary {
+  id: string;
+  email: string;
+  role: Role;
+  passwordChangeRequired: boolean;
+  createdAt: string | null;
 }
 
 export interface MaterialDto {
@@ -66,4 +94,4 @@ export interface User {
 
 export type TransactionType = 'IN' | 'OUT' | 'RETURN' | 'EXCHANGE';
 export type ClosingStatus = 'CLOSED' | 'UNCLOSED';
-export type Role = 'USER' | 'ADMIN';
+export type Role = 'USER' | 'ADMIN' | 'SUPER_ADMIN';

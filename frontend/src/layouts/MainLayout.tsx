@@ -12,8 +12,10 @@ import {
   X,
   ChevronRight,
   MessageCircle,
+  UserPlus,
 } from 'lucide-react';
 import ChatPanel from '../components/chat/ChatPanel';
+import { clearAuthSession, getStoredEmail, getStoredRole } from '../utils/auth-session';
 
 interface NavItem {
   name: string;
@@ -22,7 +24,7 @@ interface NavItem {
   shortName: string;
 }
 
-const navItems: NavItem[] = [
+const baseNavItems: NavItem[] = [
   { name: '입고 관리', path: '/inbound', icon: PackageOpen, shortName: '입고' },
   { name: '출고 관리', path: '/outbound', icon: PackageMinus, shortName: '출고' },
   { name: '현재 재고', path: '/stock/current', icon: Layers, shortName: '재고' },
@@ -44,7 +46,11 @@ const CHAT_WIDTH_BOUNDS = {
 const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const userEmail = localStorage.getItem('email') ?? '';
+  const userEmail = getStoredEmail();
+  const userRole = getStoredRole();
+  const navItems = userRole === 'SUPER_ADMIN'
+    ? [...baseNavItems, { name: '계정 발급', path: '/admin/accounts', icon: UserPlus, shortName: '계정' }]
+    : baseNavItems;
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [chatMobileOpen, setChatMobileOpen] = useState<boolean>(false);
   const [chatCollapsed, setChatCollapsed] = useState<boolean>(() => localStorage.getItem(STORAGE_KEYS.collapsed) === 'true');
@@ -55,8 +61,7 @@ const MainLayout: React.FC = () => {
   const resizeStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('email');
+    clearAuthSession();
     navigate('/login');
   };
 
@@ -165,6 +170,11 @@ const MainLayout: React.FC = () => {
       <div className="shrink-0 border-t border-slate-100 p-3">
         <div className="rounded-xl bg-slate-50 px-3 py-2.5">
           <p className="truncate text-xs font-bold text-slate-500">{userEmail}</p>
+          {userRole === 'SUPER_ADMIN' && (
+            <span className="mt-2 inline-flex rounded-full bg-blue-100 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700">
+              Super Admin
+            </span>
+          )}
           <button
             onClick={handleLogout}
             className="mt-1.5 flex items-center text-xs font-semibold text-slate-400 transition-colors hover:text-red-500"
@@ -263,7 +273,10 @@ const MainLayout: React.FC = () => {
         </button>
 
         <nav className="safe-area-pb fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur-lg lg:hidden">
-          <div className="grid h-16 grid-cols-6">
+          <div
+            className="grid h-16"
+            style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
+          >
             {navItems.map((item) => {
               const isActive =
                 location.pathname === item.path ||
