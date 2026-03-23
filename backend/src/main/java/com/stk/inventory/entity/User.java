@@ -42,6 +42,10 @@ public class User {
     private String defaultModel = "gpt-5";
 
     @Builder.Default
+    @Column(name = "chat_panel_enabled", nullable = false, columnDefinition = "boolean not null default false")
+    private boolean chatPanelEnabled = false;
+
+    @Builder.Default
     @Column(name = "password_change_required", nullable = false, columnDefinition = "boolean not null default false")
     private boolean passwordChangeRequired = false;
 

@@ -17,6 +17,7 @@ import {
 import { DEFAULT_PROVIDER_CATALOG } from './chatDefaults';
 import { useChatWorkspace } from './useChatWorkspace';
 import type {
+  AiPreferences,
   ChatMessage,
   CredentialConnectionTestResponse,
   ProviderCredential,
@@ -31,12 +32,14 @@ interface ChatPanelProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
   width: number;
+  onPreferencesChange?: (next: AiPreferences) => void;
 }
 
 interface SettingsState {
   provider: ProviderType;
   model: string;
   apiKey: string;
+  chatPanelEnabled: boolean;
 }
 
 const QUICK_PROMPTS = [
@@ -269,7 +272,7 @@ function SettingsModal({
   const activeModels = activeProvider.models.length > 0 ? activeProvider.models : getProviderFallback(activeProvider.provider).models;
   const activeCredential = credentials[settings.provider];
   const credentialMeta = getCredentialPresentation(activeCredential);
-  const canSave = Boolean(settings.apiKey.trim() || activeCredential?.hasKey);
+  const canSave = Boolean(settings.apiKey.trim() || activeCredential?.hasKey || settings.chatPanelEnabled === false);
   const isCurrentTestResult = testResult?.provider === settings.provider && testResult?.model === settings.model;
 
   useEffect(() => {
@@ -460,6 +463,32 @@ function SettingsModal({
               </div>
             </div>
 
+            <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">패널 표시</p>
+                  <p className="text-sm font-bold text-slate-800">AI 채팅 패널 표시</p>
+                  <p className="text-xs leading-5 text-slate-500">
+                    필요 없는 사용자는 채팅 패널과 모바일 버튼을 완전히 숨길 수 있습니다.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settings.chatPanelEnabled}
+                  aria-label="AI 채팅 패널 표시"
+                  onClick={() => setSettings({ ...settings, chatPanelEnabled: !settings.chatPanelEnabled })}
+                  className={`chat-focus-ring inline-flex h-8 w-14 items-center rounded-full border px-1 transition ${
+                    settings.chatPanelEnabled
+                      ? 'border-blue-200 bg-blue-600 justify-end'
+                      : 'border-slate-200 bg-slate-300 justify-start'
+                  }`}
+                >
+                  <span className="h-6 w-6 rounded-full bg-white shadow-sm" />
+                </button>
+              </div>
+            </div>
+
             {(error || info || isCurrentTestResult) && (
               <div className="space-y-2">
                 {error && (
@@ -634,6 +663,7 @@ export default function ChatPanel({
   collapsed,
   onToggleCollapse,
   width,
+  onPreferencesChange,
 }: ChatPanelProps) {
   const workspace = useChatWorkspace();
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -645,6 +675,7 @@ export default function ChatPanel({
     provider: workspace.draft.provider,
     model: workspace.draft.model,
     apiKey: '',
+    chatPanelEnabled: workspace.preferences?.chatPanelEnabled ?? false,
   });
 
   const activeCredential = workspace.credentials[workspace.draft.provider];
@@ -696,6 +727,7 @@ export default function ChatPanel({
       provider: workspace.draft.provider,
       model: workspace.draft.model,
       apiKey: '',
+      chatPanelEnabled: workspace.preferences?.chatPanelEnabled ?? false,
     });
   };
 
@@ -716,6 +748,7 @@ export default function ChatPanel({
     if (!saved) {
       return;
     }
+    onPreferencesChange?.(saved);
     updateSettings({ ...settings, apiKey: '' });
     setSettingsOpen(false);
   };

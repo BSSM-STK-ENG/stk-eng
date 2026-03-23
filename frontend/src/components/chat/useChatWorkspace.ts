@@ -31,6 +31,7 @@ type SettingsPayload = {
   provider: ProviderType;
   model: string;
   apiKey: string;
+  chatPanelEnabled: boolean;
 };
 
 type RequestState = {
@@ -162,6 +163,7 @@ export function useChatWorkspace() {
         ? {
             provider: preferenceResponse.provider,
             model: preferenceResponse.model,
+            chatPanelEnabled: preferenceResponse.chatPanelEnabled,
           }
         : null;
       const nextDraft = resolveDraft(nextProviders, nextPreferences);
@@ -226,6 +228,7 @@ export function useChatWorkspace() {
       const savedPreferences = await saveAiPreferences({
         provider: payload.provider,
         model: payload.model,
+        chatPanelEnabled: payload.chatPanelEnabled,
       });
 
       if (savedCredential) {
@@ -238,6 +241,7 @@ export function useChatWorkspace() {
       const nextPreferences = {
         provider: savedPreferences?.provider ?? payload.provider,
         model: savedPreferences?.model ?? payload.model,
+        chatPanelEnabled: savedPreferences?.chatPanelEnabled ?? payload.chatPanelEnabled,
       };
 
       setPreferences(nextPreferences);
