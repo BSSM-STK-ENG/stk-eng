@@ -14,6 +14,7 @@ export interface AuthResponse {
 }
 
 export interface PasswordSetupRequest {
+  currentPassword?: string;
   newPassword: string;
 }
 
@@ -45,6 +46,72 @@ export interface MaterialDto {
   location: string | null;
   safeStockQty: number | null;
   currentStockQty: number | null;
+}
+
+export interface StockTrendPoint {
+  date: string;
+  stockQty: number;
+  inboundQty: number;
+  outboundQty: number;
+}
+
+export interface StockTrendSeries {
+  materialCode: string;
+  materialName: string;
+  location: string | null;
+  safeStockQty: number | null;
+  currentStockQty: number | null;
+  startStockQty: number;
+  endStockQty: number;
+  changeQty: number;
+  minStockQty: number;
+  maxStockQty: number;
+  points: StockTrendPoint[];
+}
+
+export interface StockTrendResponse {
+  fromDate: string;
+  toDate: string;
+  totalDays: number;
+  materialCodes: string[];
+  series: StockTrendSeries[];
+}
+
+export interface InventoryCalendarDay {
+  date: string;
+  inboundQty: number;
+  outboundQty: number;
+  netQty: number;
+  inboundCount: number;
+  outboundCount: number;
+  transactionCount: number;
+}
+
+export interface InventoryCalendarTransaction {
+  id: number;
+  transactionType: TransactionType;
+  transactionLabel: string;
+  materialCode: string;
+  materialName: string;
+  quantity: number;
+  transactionDate: string;
+  businessUnit: string | null;
+  manager: string | null;
+  note: string | null;
+  reference: string | null;
+  createdByEmail: string | null;
+}
+
+export interface InventoryCalendarResponse {
+  month: string;
+  monthStart: string;
+  monthEnd: string;
+  totalInboundQty: number;
+  totalOutboundQty: number;
+  activeDays: number;
+  transactionCount: number;
+  days: InventoryCalendarDay[];
+  transactions: InventoryCalendarTransaction[];
 }
 
 export interface TransactionRequest {
