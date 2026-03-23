@@ -461,26 +461,27 @@ const Outbound = () => {
         materials={materials}
         badgeLabel="빠른 출고 준비"
         itemLabel="출고 자재"
-        title="출고할 자재를 미리 담아두는 빠른 선택 목록"
-        description="현재 재고에서 미리 표시해둔 자재가 여기에 모입니다. 이 목록에서 자재를 누르면 바로 출고 폼으로 연결됩니다."
+        title="출고할 자재를 미리 골라두는 곳"
+        description="현재 재고 화면에서 담아둔 자재가 여기에 모입니다. 여기에서 자재를 고르면 바로 출고 폼으로 이어집니다."
         accent="rose"
         activeMaterialCode={showModal ? materialCode : null}
         onPickMaterial={pickWorklistMaterial}
         selectionHint="자재 칩을 누르면 아래 출고 폼의 자재가 바로 바뀝니다."
+        compact
         actions={[
           { label: '신규 출고 열기', onClick: openNew, tone: 'primary' },
           { label: '작업 바구니 원장 보기', onClick: () => navigate('/stock/ledger?scope=worklist') },
           { label: '입고 페이지로 이동', onClick: () => navigate('/inbound') },
         ]}
         emptyTitle="아직 미리 담아둔 출고 자재가 없습니다."
-        emptyDescription="이 목록은 현재 재고 화면에서 `+` 버튼으로 표시해둔 자재를 모아두는 곳입니다. 자주 출고하는 자재를 미리 담아두면 검색 없이 바로 출고할 수 있습니다."
+        emptyDescription="이 목록은 현재 재고 화면에서 + 버튼으로 담아둔 자재를 모아두는 곳입니다. 자주 출고하는 자재를 먼저 담아두면 검색 없이 바로 출고할 수 있습니다."
         emptySteps={[
           { title: '현재 재고에서 + 버튼 누르기', description: '출고할 자재를 찾은 뒤 자재코드 왼쪽의 + 버튼을 눌러 목록에 담습니다.' },
           { title: '이 화면에서 자재 선택하기', description: '담아둔 자재가 여기 칩으로 나타납니다. 필요한 자재를 바로 누르면 됩니다.' },
           { title: '수량만 입력하고 출고 등록', description: '자재가 이미 선택된 상태라서 수량과 담당자만 입력하면 빠르게 등록할 수 있습니다.' },
         ]}
         emptyActions={[
-          { label: '현재 재고로 이동', onClick: () => navigate('/current-stock'), tone: 'primary' },
+          { label: '현재 재고로 이동', onClick: () => navigate('/stock/current'), tone: 'primary' },
           { label: '그냥 신규 출고 열기', onClick: openNew },
         ]}
       />

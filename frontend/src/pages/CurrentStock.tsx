@@ -190,14 +190,14 @@ const CurrentStock = () => {
 
     return (
         <div className="flex flex-col gap-5 md:gap-6">
-            <section className="overflow-hidden rounded-[32px] border border-white/70 bg-[linear-gradient(140deg,rgba(255,255,255,0.94)_0%,rgba(244,249,255,0.98)_50%,rgba(238,244,255,0.98)_100%)] px-5 py-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] md:px-7">
-                <div className="flex flex-col gap-7 2xl:grid 2xl:grid-cols-[minmax(0,1fr)_280px] 2xl:items-start">
+            <section className="overflow-hidden rounded-[32px] border border-white/70 bg-[linear-gradient(140deg,rgba(255,255,255,0.94)_0%,rgba(244,249,255,0.98)_50%,rgba(238,244,255,0.98)_100%)] px-5 py-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)] md:px-6">
+                <div className="flex flex-col gap-5 xl:grid xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
                     <div className="min-w-0">
                         <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50/90 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700">
                             <Sparkles size={14} />
-                            Inventory Command Center
+                            현재 재고 한눈에 보기
                         </div>
-                        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
                             <span className="rounded-full border border-white/80 bg-white/84 px-3 py-1.5">
                                 총 자재 {filtered.length.toLocaleString()}개
                             </span>
@@ -208,18 +208,18 @@ const CurrentStock = () => {
                                 재고 보유율 {coverageRate}%
                             </span>
                         </div>
-                        <h2 className="mt-5 max-w-[16ch] text-[clamp(2.35rem,4.4vw,4.4rem)] font-black leading-[0.94] tracking-[-0.05em] text-slate-900 [text-wrap:balance]">
-                            현재 재고를 숫자와 흐름으로 동시에 읽는 운영 대시보드
+                        <h2 className="mt-4 max-w-[14ch] text-[clamp(2rem,3.8vw,3.5rem)] font-black leading-[0.96] tracking-[-0.05em] text-slate-900 [text-wrap:balance]">
+                            지금 어떤 자재가 있고 무엇을 먼저 처리해야 하는지 바로 보는 화면
                         </h2>
-                        <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600 md:text-[15px]">
-                            실시간 재고 현황, 부족 리스크, 자재별 변동 추세를 한 화면에서 확인하고 바로 엑셀로 내보낼 수 있습니다.
+                        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 md:text-[15px]">
+                            재고가 부족한 자재, 오늘 처리할 자재, 최근 재고 변화까지 한 번에 보고 바로 입고·출고·원장으로 이어집니다.
                         </p>
                     </div>
 
-                    <div className="rounded-[28px] border border-white/80 bg-white/84 p-4 shadow-[0_18px_42px_rgba(15,23,42,0.06)] 2xl:sticky 2xl:top-6">
+                    <div className="rounded-[24px] border border-white/80 bg-white/84 p-4 shadow-[0_18px_42px_rgba(15,23,42,0.06)] xl:sticky xl:top-6">
                         <div>
-                            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Quick Actions</p>
-                            <p className="mt-2 text-sm font-semibold text-slate-700">재고 점검 직후 가장 많이 쓰는 작업만 모아뒀습니다.</p>
+                            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">바로 할 수 있는 일</p>
+                            <p className="mt-2 text-sm font-semibold text-slate-700">재고를 확인한 직후 가장 많이 누르는 버튼만 남겼습니다.</p>
                         </div>
                         <div className="mt-4 grid gap-2.5">
                             <button
@@ -237,10 +237,10 @@ const CurrentStock = () => {
                                 엑셀 다운로드
                             </button>
                         </div>
-                        <div className="mt-4 rounded-[22px] bg-slate-900 px-4 py-3 text-sm text-white">
-                            <p className="font-semibold">바로 확인 포인트</p>
+                        <div className="mt-4 rounded-[20px] bg-slate-900 px-4 py-3 text-sm text-white">
+                            <p className="font-semibold">먼저 보면 좋은 것</p>
                             <p className="mt-1 text-xs leading-5 text-white/72">
-                                부족 자재와 작업 바구니를 먼저 확인하면 입고·출고로 이어지는 속도가 가장 빠릅니다.
+                                안전재고 이하와 오늘 처리 목록만 먼저 보면 급한 자재를 가장 빠르게 찾을 수 있습니다.
                             </p>
                         </div>
                     </div>
@@ -286,10 +286,11 @@ const CurrentStock = () => {
                 materials={materials}
                 badgeLabel="오늘 처리 목록"
                 itemLabel="작업 자재"
-                title="오늘 바로 처리할 자재를 미리 담아두는 곳"
-                description="표에서 자재코드 왼쪽 + 버튼을 누르면 여기에 모입니다. 담아둔 자재는 입고, 출고, 원장에서 다시 찾지 않고 바로 이어서 쓸 수 있습니다."
+                title="오늘 바로 움직일 자재를 잠깐 모아두는 곳"
+                description="표에서 담기 버튼을 누르면 여기에 모입니다. 여기에 담긴 자재는 입고, 출고, 원장에서 다시 검색하지 않고 바로 이어집니다."
                 accent="blue"
                 selectionHint="여기 담긴 자재는 입고, 출고, 원장에서 바로 이어서 쓸 수 있습니다."
+                compact
                 actions={[
                     { label: '이 자재로 입고하기', onClick: openWorklistInbound, tone: 'primary', disabled: worklistCodes.length === 0 },
                     { label: '이 자재로 출고하기', onClick: openWorklistOutbound, disabled: worklistCodes.length === 0 },
@@ -317,8 +318,8 @@ const CurrentStock = () => {
                             <Search size={13} />
                             자재 목록
                         </div>
-                        <h3 className="mt-3 text-xl font-black tracking-tight text-slate-900 md:text-2xl">자재별 재고를 한 줄씩 바로 읽는 표</h3>
-                        <p className="mt-1 text-sm leading-6 text-slate-500">자재 정보, 재고 상태, 바로 할 작업을 한 줄에서 보고 바로 입고·출고·원장으로 이어집니다.</p>
+                        <h3 className="mt-3 text-xl font-black tracking-tight text-slate-900 md:text-2xl">자재별 재고를 바로 읽는 표</h3>
+                        <p className="mt-1 text-sm leading-6 text-slate-500">왼쪽에서 자재를 고르고, 가운데에서 재고 상태를 확인한 뒤, 오른쪽 버튼으로 바로 다음 작업으로 넘어갑니다.</p>
                     </div>
 
                     <div className="relative max-w-md flex-1 md:max-w-lg">
@@ -398,13 +399,13 @@ const CurrentStock = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="min-w-[980px] w-full divide-y divide-slate-100">
+                    <table className="min-w-[860px] w-full divide-y divide-slate-100">
                         <thead>
                             <tr className="bg-slate-50/85">
-                                <th className="w-[120px] px-4 py-3.5 text-left text-[11px] font-bold tracking-[0.08em] text-slate-500 md:px-6">표시</th>
-                                <th className="min-w-[360px] px-4 py-3.5 text-left text-[11px] font-bold tracking-[0.08em] text-slate-500 md:px-6">자재 정보</th>
-                                <th className="w-[280px] px-4 py-3.5 text-left text-[11px] font-bold tracking-[0.08em] text-slate-500 md:px-6">재고 상태</th>
-                                <th className="w-[280px] px-4 py-3.5 text-left text-[11px] font-bold tracking-[0.08em] text-slate-500 md:px-6">바로 작업</th>
+                                <th className="w-[132px] px-4 py-3.5 text-left text-[11px] font-bold tracking-[0.08em] text-slate-500 md:px-6">선택</th>
+                                <th className="min-w-[320px] px-4 py-3.5 text-left text-[11px] font-bold tracking-[0.08em] text-slate-500 md:px-6">자재 코드 · 이름</th>
+                                <th className="w-[260px] px-4 py-3.5 text-left text-[11px] font-bold tracking-[0.08em] text-slate-500 md:px-6">현재 재고 · 기준</th>
+                                <th className="w-[228px] px-4 py-3.5 text-left text-[11px] font-bold tracking-[0.08em] text-slate-500 md:px-6">다음 작업</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -438,7 +439,7 @@ const CurrentStock = () => {
                                                 <button
                                                     type="button"
                                                     onClick={() => setWorklistCodes(toggleMaterialWorklistCode(m.materialCode))}
-                                                    className={`chat-focus-ring flex h-8 w-8 items-center justify-center rounded-full border transition ${
+                                                    className={`chat-focus-ring inline-flex min-h-9 items-center justify-center gap-1 rounded-full border px-3 transition ${
                                                         worklistCodeSet.has(m.materialCode)
                                                             ? 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100'
                                                             : 'border-slate-200 bg-white text-slate-300 hover:border-slate-300 hover:text-slate-500'
@@ -447,6 +448,9 @@ const CurrentStock = () => {
                                                     title={worklistCodeSet.has(m.materialCode) ? '작업 바구니에서 제거' : '작업 바구니에 추가'}
                                                 >
                                                     {worklistCodeSet.has(m.materialCode) ? <Check size={14} /> : <Plus size={14} />}
+                                                    <span className="text-[11px] font-bold">
+                                                        {worklistCodeSet.has(m.materialCode) ? '담김' : '담기'}
+                                                    </span>
                                                 </button>
                                             </div>
                                         </td>
@@ -482,52 +486,53 @@ const CurrentStock = () => {
                                             </div>
                                         </td>
                                         <td className="px-4 py-4 align-top md:px-6">
-                                            <div className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_12px_28px_rgba(15,23,42,0.04)]">
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${stockStateTone}`}>
-                                                        {stockStateLabel}
-                                                    </span>
+                                            <div className="rounded-[22px] border border-slate-200 bg-white px-4 py-3.5 shadow-[0_12px_28px_rgba(15,23,42,0.04)]">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <p className="text-[11px] font-bold tracking-[0.08em] text-slate-400">상태</p>
+                                                        <span className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${stockStateTone}`}>
+                                                            {stockStateLabel}
+                                                        </span>
+                                                    </div>
                                                     <div className="text-right">
                                                         <p className="text-[11px] font-semibold text-slate-400">현재 재고</p>
-                                                        <p className={`text-2xl font-black tracking-tight ${isLow ? 'text-amber-600' : currentStock > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                                        <p className={`mt-1 text-2xl font-black tracking-tight ${isLow ? 'text-amber-600' : currentStock > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
                                                             {currentStock}
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-                                                    <div className="rounded-2xl bg-slate-50 px-3 py-2">
-                                                        <p className="font-semibold text-slate-400">안전재고</p>
-                                                        <p className="mt-1 text-sm font-bold text-slate-700">{safeStock}</p>
-                                                    </div>
-                                                    <div className="rounded-2xl bg-slate-50 px-3 py-2">
-                                                        <p className="font-semibold text-slate-400">보관 위치</p>
-                                                        <p className="mt-1 text-sm font-bold text-slate-700">{formatLocation(m.location)}</p>
-                                                    </div>
+                                                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                                                    <span className="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-600">
+                                                        기준 안전재고 {safeStock}
+                                                    </span>
+                                                    <span className="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-600">
+                                                        보관 위치 {formatLocation(m.location)}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-4 py-4 align-top md:px-6">
-                                            <div className="flex flex-wrap gap-2">
+                                            <div className="grid max-w-[220px] grid-cols-2 gap-2">
                                                 <button
                                                     type="button"
                                                     onClick={() => openQuickAction(`/inbound?action=new&material=${encodeURIComponent(m.materialCode)}`)}
-                                                    className="chat-focus-ring inline-flex min-h-11 min-w-[78px] items-center justify-center whitespace-nowrap rounded-full border border-blue-100 bg-blue-50 px-4 text-sm font-bold text-blue-700 transition hover:bg-blue-100"
+                                                    className="chat-focus-ring inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-2xl border border-blue-100 bg-blue-50 px-3 text-sm font-bold text-blue-700 transition hover:bg-blue-100"
                                                 >
-                                                    입고
+                                                    입고 등록
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => openQuickAction(`/outbound?action=new&material=${encodeURIComponent(m.materialCode)}`)}
-                                                    className="chat-focus-ring inline-flex min-h-11 min-w-[78px] items-center justify-center whitespace-nowrap rounded-full border border-rose-100 bg-rose-50 px-4 text-sm font-bold text-rose-700 transition hover:bg-rose-100"
+                                                    className="chat-focus-ring inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-2xl border border-rose-100 bg-rose-50 px-3 text-sm font-bold text-rose-700 transition hover:bg-rose-100"
                                                 >
-                                                    출고
+                                                    출고 등록
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => openQuickAction(`/stock/ledger?material=${encodeURIComponent(m.materialCode)}`)}
-                                                    className="chat-focus-ring inline-flex min-h-11 min-w-[78px] items-center justify-center whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                                                    className="chat-focus-ring col-span-2 inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
                                                 >
-                                                    원장
+                                                    이 자재 거래 보기
                                                 </button>
                                             </div>
                                         </td>
