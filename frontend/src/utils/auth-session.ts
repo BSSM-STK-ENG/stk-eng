@@ -7,6 +7,8 @@ const AUTH_KEYS = {
   passwordChangeRequired: 'passwordChangeRequired',
 } as const;
 
+export const INITIAL_ISSUED_PASSWORD = '1234';
+
 export function saveAuthSession(auth: AuthResponse) {
   localStorage.setItem(AUTH_KEYS.token, auth.token);
   localStorage.setItem(AUTH_KEYS.email, auth.email);

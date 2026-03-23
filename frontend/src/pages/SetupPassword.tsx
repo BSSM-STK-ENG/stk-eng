@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, KeyRound, Loader2, Lock } from 'lucide-react';
 import api from '../api/axios';
-import { completePasswordSetup, getDefaultRouteForRole, getStoredEmail, getStoredRole } from '../utils/auth-session';
+import { completePasswordSetup, getDefaultRouteForRole, getStoredEmail, getStoredRole, INITIAL_ISSUED_PASSWORD } from '../utils/auth-session';
 import { getErrorMessage } from '../utils/api-error';
 
 const SetupPassword = () => {
@@ -45,10 +45,10 @@ const SetupPassword = () => {
             <KeyRound size={22} />
           </div>
           <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            비밀번호 설정
+            초기 비밀번호 변경
           </h1>
           <p className="mt-2 text-sm font-medium text-slate-500">
-            첫 로그인입니다. 앞으로 사용할 비밀번호를 설정하세요.
+            첫 로그인입니다. 초기 비밀번호 {INITIAL_ISSUED_PASSWORD} 대신 앞으로 사용할 비밀번호를 설정하세요.
           </p>
           <p className="mt-3 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-left text-xs leading-5 text-slate-500">
             로그인 계정: <span className="font-semibold text-slate-700">{getStoredEmail()}</span>
@@ -63,34 +63,40 @@ const SetupPassword = () => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">새 비밀번호</label>
+            <label htmlFor="setup-new-password" className="mb-2 block text-sm font-semibold text-slate-700">새 비밀번호</label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                 <Lock className="text-slate-400" size={18} />
               </div>
               <input
+                id="setup-new-password"
+                name="newPassword"
                 type="password"
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 font-medium text-slate-700 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
-                placeholder="8자 이상 입력"
+                placeholder="새 비밀번호 8자 이상"
+                autoComplete="new-password"
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">새 비밀번호 확인</label>
+            <label htmlFor="setup-confirm-password" className="mb-2 block text-sm font-semibold text-slate-700">새 비밀번호 확인</label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                 <Lock className="text-slate-400" size={18} />
               </div>
               <input
+                id="setup-confirm-password"
+                name="confirmPassword"
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 font-medium text-slate-700 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
-                placeholder="한 번 더 입력"
+                placeholder="새 비밀번호 다시 입력"
+                autoComplete="new-password"
                 required
               />
             </div>

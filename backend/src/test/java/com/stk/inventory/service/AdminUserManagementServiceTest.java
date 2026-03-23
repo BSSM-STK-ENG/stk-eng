@@ -44,7 +44,7 @@ class AdminUserManagementServiceTest {
                 .password("encoded")
                 .build()));
         when(userRepository.existsByEmail("issued@test.com")).thenReturn(false);
-        when(passwordEncoder.encode("TempPass123!")).thenReturn("encoded-temp-password");
+        when(passwordEncoder.encode(AdminUserManagementService.INITIAL_ISSUED_PASSWORD)).thenReturn("encoded-temp-password");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
             user.setId(UUID.randomUUID());
@@ -53,7 +53,6 @@ class AdminUserManagementServiceTest {
 
         AdminCreateUserRequest request = new AdminCreateUserRequest();
         request.setEmail("issued@test.com");
-        request.setTemporaryPassword("TempPass123!");
         request.setRole(Role.ADMIN);
 
         var response = service.createUser(request);
@@ -61,10 +60,12 @@ class AdminUserManagementServiceTest {
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
         assertEquals(Role.ADMIN, captor.getValue().getRole());
+        assertFalse(captor.getValue().isChatPanelEnabled());
         assertTrue(captor.getValue().isPasswordChangeRequired());
         assertEquals("issued@test.com", response.getEmail());
         assertEquals(Role.ADMIN, response.getRole());
         assertTrue(response.isPasswordChangeRequired());
+        assertEquals(AdminUserManagementService.INITIAL_ISSUED_PASSWORD, response.getTemporaryPassword());
     }
 
     @Test

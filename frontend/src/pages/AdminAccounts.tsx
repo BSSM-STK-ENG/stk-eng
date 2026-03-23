@@ -1,14 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { BadgeCheck, KeyRound, Loader2, RefreshCw, Shield, UserPlus } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { BadgeCheck, CheckCheck, Copy, KeyRound, Loader2, RefreshCw, Shield, UserPlus, X } from 'lucide-react';
 import api from '../api/axios';
 import { AdminCreateUserRequest, AdminCreatedUserResponse, AdminUserSummary } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
+import { INITIAL_ISSUED_PASSWORD } from '../utils/auth-session';
 
 const ROLE_OPTIONS: Array<AdminCreateUserRequest['role']> = ['USER', 'ADMIN'];
-
-function createTemporaryPassword() {
-  return `Temp${Math.random().toString(36).slice(2, 10)}!`;
-}
 
 function formatDateTime(value: string | null) {
   if (!value) {
@@ -24,16 +21,42 @@ function formatDateTime(value: string | null) {
 }
 
 const AdminAccounts = () => {
+  const emailInputRef = useRef<HTMLInputElement | null>(null);
   const [users, setUsers] = useState<AdminUserSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState<AdminCreatedUserResponse | null>(null);
+  const [copiedField, setCopiedField] = useState<'email' | 'credentials' | null>(null);
   const [form, setForm] = useState<AdminCreateUserRequest>({
     email: '',
     role: 'USER',
-    temporaryPassword: createTemporaryPassword(),
   });
+
+  const copyText = async (text: string, field: 'email' | 'credentials') => {
+    const fallbackCopy = () => {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    };
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        fallbackCopy();
+      }
+      setCopiedField(field);
+      window.setTimeout(() => setCopiedField((current) => (current === field ? null : current)), 1800);
+    } catch {
+      setError('클립보드 복사에 실패했습니다. 브라우저 권한을 확인해주세요.');
+    }
+  };
 
   const stats = useMemo(() => ({
     total: users.length,
@@ -67,12 +90,6 @@ const AdminAccounts = () => {
     setError('');
     setSuccess(null);
 
-    const temporaryPassword = form.temporaryPassword ?? '';
-    if (temporaryPassword.trim().length < 8) {
-      setError('임시 비밀번호는 8자 이상이어야 합니다.');
-      return;
-    }
-
     setSubmitting(true);
     try {
       const response = await api.post<AdminCreatedUserResponse>('/admin/users', form);
@@ -80,9 +97,10 @@ const AdminAccounts = () => {
       setForm({
         email: '',
         role: form.role,
-        temporaryPassword: createTemporaryPassword(),
       });
+      setCopiedField(null);
       await loadUsers();
+      window.setTimeout(() => emailInputRef.current?.focus(), 0);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -138,7 +156,7 @@ const AdminAccounts = () => {
             <div>
               <h3 className="text-lg font-bold text-slate-900">새 계정 발급</h3>
               <p className="mt-1 text-sm leading-6 text-slate-500">
-                이메일, 권한, 임시 비밀번호만 정하면 바로 발급됩니다.
+                이메일과 권한만 정하면 바로 발급됩니다.
               </p>
             </div>
           </div>
@@ -151,15 +169,52 @@ const AdminAccounts = () => {
 
           {success && (
             <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
-              <div className="flex items-center gap-2 font-bold">
-                <BadgeCheck size={16} />
-                계정 발급 완료
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 font-bold">
+                    <BadgeCheck size={16} />
+                    계정 발급 완료
+                  </div>
+                  <p className="mt-2">이메일: <span className="font-semibold">{success.email}</span></p>
+                  <p className="mt-1">초기 비밀번호: <span className="font-semibold">{success.temporaryPassword}</span></p>
+                  <p className="mt-2 text-xs text-emerald-700">
+                    발급받은 사용자는 {INITIAL_ISSUED_PASSWORD}로 로그인한 뒤 첫 화면에서 비밀번호를 직접 변경해야 합니다.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSuccess(null)}
+                  className="rounded-xl p-2 text-emerald-500 transition hover:bg-emerald-100"
+                  aria-label="발급 완료 카드 닫기"
+                >
+                  <X size={16} />
+                </button>
               </div>
-              <p className="mt-2">이메일: <span className="font-semibold">{success.email}</span></p>
-              <p className="mt-1">임시 비밀번호: <span className="font-semibold">{success.temporaryPassword}</span></p>
-              <p className="mt-2 text-xs text-emerald-700">
-                사용자는 첫 로그인 후 비밀번호를 직접 변경해야 합니다.
-              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void copyText(success.email, 'email')}
+                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
+                >
+                  {copiedField === 'email' ? <CheckCheck size={14} /> : <Copy size={14} />}
+                  {copiedField === 'email' ? '이메일 복사 완료' : '이메일 복사'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void copyText(`이메일: ${success.email}\n초기 비밀번호: ${success.temporaryPassword}`, 'credentials')}
+                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
+                >
+                  {copiedField === 'credentials' ? <CheckCheck size={14} /> : <Copy size={14} />}
+                  {copiedField === 'credentials' ? '자격 정보 복사 완료' : '로그인 정보 복사'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => emailInputRef.current?.focus()}
+                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
+                >
+                  다음 계정 계속 발급
+                </button>
+              </div>
             </div>
           )}
 
@@ -167,6 +222,7 @@ const AdminAccounts = () => {
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-700">이메일</label>
               <input
+                ref={emailInputRef}
                 type="email"
                 value={form.email}
                 onChange={(event) => handleChange('email', event.target.value)}
@@ -199,28 +255,18 @@ const AdminAccounts = () => {
               </div>
             </div>
 
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <label className="block text-sm font-semibold text-slate-700">임시 비밀번호</label>
-                <button
-                  type="button"
-                  onClick={() => handleChange('temporaryPassword', createTemporaryPassword())}
-                  className="text-xs font-bold text-blue-600 transition hover:text-blue-800"
-                >
-                  새로 생성
-                </button>
-              </div>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
-                  <KeyRound size={16} />
+            <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm">
+                  <KeyRound size={18} />
                 </div>
-                <input
-                  type="text"
-                  value={form.temporaryPassword}
-                  onChange={(event) => handleChange('temporaryPassword', event.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-400"
-                  required
-                />
+                <div>
+                  <p className="text-sm font-bold text-slate-700">초기 비밀번호는 고정입니다.</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    발급되는 모든 계정은 <span className="font-semibold text-slate-700">{INITIAL_ISSUED_PASSWORD}</span> 로 시작합니다.
+                    첫 로그인 후에는 바로 새 비밀번호를 설정해야 합니다.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -262,9 +308,14 @@ const AdminAccounts = () => {
                     <span>상태</span>
                     <span>생성일</span>
                   </div>
-                  <div className="divide-y divide-slate-100">
-                    {users.map((user) => (
-                      <div key={user.id} className="grid grid-cols-[minmax(0,1.3fr)_140px_140px_140px] gap-3 px-5 py-4 text-sm text-slate-600">
+                    <div className="divide-y divide-slate-100">
+                      {users.map((user) => (
+                        <div
+                          key={user.id}
+                          className={`grid grid-cols-[minmax(0,1.3fr)_140px_140px_140px] gap-3 px-5 py-4 text-sm text-slate-600 transition ${
+                            success?.email === user.email ? 'bg-emerald-50/70' : ''
+                          }`}
+                        >
                         <div className="min-w-0">
                           <p className="truncate font-semibold text-slate-800">{user.email}</p>
                         </div>

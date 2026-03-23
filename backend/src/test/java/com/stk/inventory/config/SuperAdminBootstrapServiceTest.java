@@ -10,7 +10,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -36,7 +35,8 @@ class SuperAdminBootstrapServiceTest {
         verify(userRepository).save(any(User.class));
         verify(userRepository).save(argThat(user ->
                 user.getRole() == Role.SUPER_ADMIN
-                        && user.isPasswordChangeRequired()
+                        && !user.isChatPanelEnabled()
+                        && !user.isPasswordChangeRequired()
                         && "superadmin@test.com".equals(user.getEmail())
         ));
     }
