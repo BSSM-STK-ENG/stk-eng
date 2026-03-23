@@ -41,6 +41,10 @@ public class User {
     @Column(name = "default_model", length = 128)
     private String defaultModel = "gpt-5";
 
+    @Builder.Default
+    @Column(name = "password_change_required", nullable = false, columnDefinition = "boolean not null default false")
+    private boolean passwordChangeRequired = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

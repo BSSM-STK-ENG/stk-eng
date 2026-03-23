@@ -33,12 +33,12 @@ describe('Login', () => {
   it('renders title and description', () => {
     renderLogin();
     expect(screen.getByText('STK Inventory')).toBeInTheDocument();
-    expect(screen.getByText('재고 관리 시스템에 오신 것을 환영합니다.')).toBeInTheDocument();
+    expect(screen.getByText('슈퍼 어드민이 발급한 계정으로 로그인하세요.')).toBeInTheDocument();
   });
 
-  it('has link to register page', () => {
+  it('shows admin-issued account guidance', () => {
     renderLogin();
-    expect(screen.getByText('회원가입')).toHaveAttribute('href', '/register');
+    expect(screen.getByText('계정은 슈퍼 어드민이 발급합니다.')).toBeInTheDocument();
   });
 
   it('updates input values on change', async () => {
@@ -57,7 +57,13 @@ describe('Login', () => {
 
   it('stores token and email on successful login', async () => {
     mockedPost.mockResolvedValueOnce({
-      data: { token: 'test-token', email: 'test@test.com', message: 'success' },
+      data: {
+        token: 'test-token',
+        email: 'test@test.com',
+        role: 'USER',
+        passwordChangeRequired: true,
+        message: 'success',
+      },
       status: 200,
       statusText: 'OK',
       headers: {},
@@ -74,6 +80,8 @@ describe('Login', () => {
     await waitFor(() => {
       expect(localStorage.getItem('token')).toBe('test-token');
       expect(localStorage.getItem('email')).toBe('test@test.com');
+      expect(localStorage.getItem('role')).toBe('USER');
+      expect(localStorage.getItem('passwordChangeRequired')).toBe('true');
     });
   });
 
