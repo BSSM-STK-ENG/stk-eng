@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Check, Sparkles, X } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, Sparkles, X } from 'lucide-react';
 import type { MaterialDto } from '../../types/api';
 import {
   clearMaterialWorklist,
@@ -91,6 +91,7 @@ const MaterialWorklistPanel: React.FC<MaterialWorklistPanelProps> = ({
   compact = false,
 }) => {
   const [worklistCodes, setWorklistCodes] = useState<string[]>(() => getMaterialWorklistCodes());
+  const [showGuide, setShowGuide] = useState<boolean>(false);
   const palette = getAccentClasses(accent);
 
   useEffect(() => subscribeMaterialWorklist(setWorklistCodes), []);
@@ -125,6 +126,10 @@ const MaterialWorklistPanel: React.FC<MaterialWorklistPanelProps> = ({
     );
   };
 
+  const countLabel = resolvedItems.length > 0
+    ? `${itemLabel} ${resolvedItems.length}개`
+    : `${itemLabel} 없음`;
+
   return (
     <section className={`overflow-hidden rounded-[28px] border p-4 shadow-[0_18px_42px_rgba(15,23,42,0.06)] ${palette.shell} ${compact ? 'sm:p-4' : 'sm:p-5'}`}>
       <div className={`flex flex-col gap-4 ${compact ? 'lg:flex-row lg:items-start lg:justify-between' : 'xl:flex-row xl:items-start xl:justify-between'}`}>
@@ -145,7 +150,7 @@ const MaterialWorklistPanel: React.FC<MaterialWorklistPanelProps> = ({
 
         <div className="flex flex-wrap items-center gap-2">
           <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${palette.helper}`}>
-            담아둔 {itemLabel} {resolvedItems.length}개
+            {resolvedItems.length > 0 ? `담아둔 ${countLabel}` : `선택한 ${countLabel}`}
           </span>
           {resolvedItems.length > 0 && (
             <button
@@ -210,24 +215,44 @@ const MaterialWorklistPanel: React.FC<MaterialWorklistPanelProps> = ({
           )}
         </>
       ) : (
-        <div className="mt-4 rounded-[22px] border border-dashed border-slate-200 bg-white/78 px-4 py-4 sm:px-5">
+        <div className={`mt-4 rounded-[22px] border border-dashed border-slate-200 bg-white/78 ${compact ? 'px-4 py-4' : 'px-4 py-4 sm:px-5'}`}>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-2xl">
                 <p className="text-base font-black text-slate-800">{emptyTitle}</p>
                 <p className="mt-1.5 text-sm leading-6 text-slate-500">{emptyDescription}</p>
+                {emptySteps.length > 0 && (
+                  <div className="mt-3 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-500">
+                    {compact ? '필요하면 아래에서 사용법을 펼쳐 보세요.' : `사용법은 ${emptySteps.length}단계로 끝납니다.`}
+                  </div>
+                )}
               </div>
-              {emptyActions.length > 0 && (
+              {(emptyActions.length > 0 || emptySteps.length > 0) && (
                 <div className="flex flex-wrap gap-2">
                   {emptyActions.map(renderActionButton)}
+                  {emptySteps.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowGuide((current) => !current)}
+                      className="chat-focus-ring inline-flex min-h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                    >
+                      {showGuide ? '사용법 접기' : '사용법 보기'}
+                      <ChevronDown size={15} className={`transition-transform ${showGuide ? 'rotate-180' : ''}`} />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
 
-            {emptySteps.length > 0 && (
-              <div className="grid gap-3 md:grid-cols-3">
+            {emptySteps.length > 0 && showGuide && (
+              <div className={`grid gap-3 ${compact ? 'sm:grid-cols-1' : 'md:grid-cols-3'}`}>
                 {emptySteps.map((step, index) => (
-                  <div key={step.title} className="rounded-[20px] border border-slate-200 bg-white px-4 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                  <div
+                    key={step.title}
+                    className={`rounded-[20px] border border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.04)] ${
+                      compact ? 'px-4 py-3.5' : 'px-4 py-4'
+                    }`}
+                  >
                     <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-black ${palette.badge}`}>
                       {index + 1}
                     </div>
