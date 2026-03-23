@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2, ShieldCheck } from 'lucide-react';
 import { AuthResponse } from '../types/api';
+import { getErrorMessage } from '../utils/api-error';
+import { getDefaultRouteForRole, saveAuthSession } from '../utils/auth-session';
 
 const Login = () => {
     const [email, setEmail] = useState<string>('');
@@ -17,11 +19,11 @@ const Login = () => {
         setLoading(true);
         try {
             const response = await api.post<AuthResponse>('/auth/login', { email, password });
-            localStorage.setItem('token', response.data.token);
-            localStorage.setItem('email', response.data.email);
-            navigate('/');
-        } catch {
-            setError('로그인에 실패했습니다. 이메일 또는 비밀번호를 확인해주세요.');
+            saveAuthSession(response.data);
+            navigate(response.data.passwordChangeRequired ? '/setup-password' : getDefaultRouteForRole(response.data.role));
+        } catch (err) {
+            const message = getErrorMessage(err);
+            setError(/^\d+$/.test(message) ? '로그인에 실패했습니다. 이메일 또는 비밀번호를 확인해주세요.' : message);
         } finally {
             setLoading(false);
         }
@@ -34,7 +36,7 @@ const Login = () => {
                     <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
                         STK Inventory
                     </h1>
-                    <p className="text-slate-500 font-medium">재고 관리 시스템에 오신 것을 환영합니다.</p>
+                    <p className="text-slate-500 font-medium">슈퍼 어드민이 발급한 계정으로 로그인하세요.</p>
                 </div>
 
                 {error && (
@@ -91,8 +93,18 @@ const Login = () => {
                     </button>
                 </form>
 
-                <div className="mt-8 text-center text-sm font-medium text-slate-600">
-                    계정이 없으신가요? <Link to="/register" className="text-indigo-600 hover:text-indigo-800 transition-colors ml-1 font-bold">회원가입</Link>
+                <div className="mt-8 rounded-2xl border border-blue-100 bg-blue-50/75 p-4 text-left text-sm text-slate-600">
+                    <div className="flex items-start gap-3">
+                        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm">
+                            <ShieldCheck size={18} />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-slate-700">계정은 슈퍼 어드민이 발급합니다.</p>
+                            <p className="mt-1 text-xs leading-5 text-slate-500">
+                                발급받은 임시 비밀번호로 로그인하면 첫 화면에서 원하는 비밀번호로 바로 변경할 수 있습니다.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

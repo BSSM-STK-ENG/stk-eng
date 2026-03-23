@@ -1,0 +1,66 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { BrowserRouter } from 'react-router-dom';
+import SetupPassword from '../SetupPassword';
+import api from '../../api/axios';
+
+vi.mock('../../api/axios', () => ({
+  default: { post: vi.fn(), get: vi.fn(), delete: vi.fn() },
+}));
+
+const mockedPost = vi.mocked(api.post);
+
+const renderSetupPassword = () =>
+  render(
+    <BrowserRouter>
+      <SetupPassword />
+    </BrowserRouter>
+  );
+
+describe('SetupPassword', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    localStorage.setItem('token', 'test-token');
+    localStorage.setItem('role', 'USER');
+    localStorage.setItem('passwordChangeRequired', 'true');
+  });
+
+  it('shows error for mismatched passwords', async () => {
+    renderSetupPassword();
+    const user = userEvent.setup();
+
+    const inputs = screen.getAllByPlaceholderText(/입력/);
+    await user.type(inputs[0]!, 'password123');
+    await user.type(inputs[1]!, 'password321');
+    await user.click(screen.getByText('비밀번호 저장'));
+
+    await waitFor(() => {
+      expect(screen.getByText('비밀번호가 일치하지 않습니다.')).toBeInTheDocument();
+    });
+  });
+
+  it('clears password change flag after successful submit', async () => {
+    mockedPost.mockResolvedValueOnce({
+      data: {},
+      status: 204,
+      statusText: 'No Content',
+      headers: {},
+      config: {} as never,
+    });
+
+    renderSetupPassword();
+    const user = userEvent.setup();
+
+    const inputs = screen.getAllByPlaceholderText(/입력/);
+    await user.type(inputs[0]!, 'password123');
+    await user.type(inputs[1]!, 'password123');
+    await user.click(screen.getByText('비밀번호 저장'));
+
+    await waitFor(() => {
+      expect(mockedPost).toHaveBeenCalledWith('/auth/change-password', { newPassword: 'password123' });
+      expect(localStorage.getItem('passwordChangeRequired')).toBe('false');
+    });
+  });
+});
