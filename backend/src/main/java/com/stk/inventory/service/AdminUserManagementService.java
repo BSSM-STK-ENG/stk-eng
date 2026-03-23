@@ -13,18 +13,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.security.SecureRandom;
 import java.util.List;
 
 @Service
 public class AdminUserManagementService {
 
-    private static final String TEMP_PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
-    private static final int TEMP_PASSWORD_LENGTH = 14;
+    public static final String INITIAL_ISSUED_PASSWORD = "1234";
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final SecureRandom secureRandom = new SecureRandom();
 
     public AdminUserManagementService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -48,10 +45,6 @@ public class AdminUserManagementService {
         requireSuperAdmin();
 
         String email = normalizeRequired(request.getEmail(), "이메일을 입력해주세요.");
-        String temporaryPassword = resolveTemporaryPassword(request.getTemporaryPassword());
-        if (temporaryPassword.length() < 8) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "임시 비밀번호는 8자 이상이어야 합니다.");
-        }
 
         Role role = request.getRole() == null ? Role.USER : request.getRole();
         if (role == Role.SUPER_ADMIN) {
@@ -63,15 +56,16 @@ public class AdminUserManagementService {
 
         User savedUser = userRepository.save(User.builder()
                 .email(email)
-                .password(passwordEncoder.encode(temporaryPassword))
+                .password(passwordEncoder.encode(INITIAL_ISSUED_PASSWORD))
                 .role(role)
+                .chatPanelEnabled(false)
                 .passwordChangeRequired(true)
                 .build());
 
         return AdminCreatedUserResponse.builder()
                 .email(savedUser.getEmail())
                 .role(savedUser.getRole())
-                .temporaryPassword(temporaryPassword)
+                .temporaryPassword(INITIAL_ISSUED_PASSWORD)
                 .passwordChangeRequired(savedUser.isPasswordChangeRequired())
                 .createdAt(savedUser.getCreatedAt())
                 .build();
@@ -98,18 +92,5 @@ public class AdminUserManagementService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
         }
         return value.trim();
-    }
-
-    private String resolveTemporaryPassword(String requestedPassword) {
-        if (requestedPassword != null && !requestedPassword.trim().isEmpty()) {
-            return requestedPassword.trim();
-        }
-
-        StringBuilder passwordBuilder = new StringBuilder(TEMP_PASSWORD_LENGTH);
-        for (int index = 0; index < TEMP_PASSWORD_LENGTH; index++) {
-            int charIndex = secureRandom.nextInt(TEMP_PASSWORD_ALPHABET.length());
-            passwordBuilder.append(TEMP_PASSWORD_ALPHABET.charAt(charIndex));
-        }
-        return passwordBuilder.toString();
     }
 }

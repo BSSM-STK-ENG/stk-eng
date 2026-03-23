@@ -8,10 +8,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
+@Order(1)
 public class SuperAdminBootstrapService implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(SuperAdminBootstrapService.class);
@@ -43,17 +45,26 @@ public class SuperAdminBootstrapService implements ApplicationRunner {
         }
 
         userRepository.findByEmail(email.trim()).ifPresentOrElse(existingUser -> {
+            boolean updated = false;
             if (existingUser.getRole() != Role.SUPER_ADMIN) {
                 existingUser.setRole(Role.SUPER_ADMIN);
+                updated = true;
+            }
+            if (existingUser.isPasswordChangeRequired()) {
+                existingUser.setPasswordChangeRequired(false);
+                updated = true;
+            }
+            if (updated) {
                 userRepository.save(existingUser);
-                log.info("Promoted configured super admin account: {}", existingUser.getEmail());
+                log.info("Ensured configured super admin account is ready: {}", existingUser.getEmail());
             }
         }, () -> {
             userRepository.save(User.builder()
                     .email(email.trim())
                     .password(passwordEncoder.encode(password))
                     .role(Role.SUPER_ADMIN)
-                    .passwordChangeRequired(true)
+                    .chatPanelEnabled(false)
+                    .passwordChangeRequired(false)
                     .build());
             log.info("Bootstrapped super admin account: {}", email.trim());
         });
