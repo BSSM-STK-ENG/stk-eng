@@ -47,6 +47,8 @@ const CHAT_WIDTH_BOUNDS = {
   max: 520,
 };
 
+const CHAT_COLLAPSED_WIDTH = 64;
+
 function getChatVisibilityStorageKey(email: string) {
   return `${STORAGE_KEYS.visibilityPrefix}:${email || 'anonymous'}`;
 }
@@ -362,7 +364,7 @@ const MainLayout: React.FC = () => {
                   onCloseMobile={() => setChatMobileOpen(false)}
                   collapsed={chatCollapsed}
                   onToggleCollapse={() => setChatCollapsed((current) => !current)}
-                  width={chatCollapsed ? 76 : chatWidth}
+                  width={chatCollapsed ? CHAT_COLLAPSED_WIDTH : chatWidth}
                   onPreferencesChange={handleChatPreferencesChange}
                 />
               </>

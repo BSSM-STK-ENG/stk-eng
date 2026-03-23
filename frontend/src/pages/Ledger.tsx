@@ -417,10 +417,11 @@ const Ledger: React.FC = () => {
         materials={ledgerMaterials}
         badgeLabel="빠른 조회"
         itemLabel="조회 자재"
-        title="원장에서 자주 보는 자재만 모아보는 빠른 선택 목록"
-        description="현재 재고에서 미리 표시해둔 자재만 따로 묶어서, 거래 흐름을 빠르게 확인할 수 있습니다."
+        title="원장에서 자주 보는 자재만 따로 모아보는 곳"
+        description="현재 재고 화면에서 담아둔 자재만 따로 묶어서, 거래 흐름을 더 빨리 확인할 수 있습니다."
         accent="slate"
         selectionHint="이 목록을 기준으로 원장 거래를 바로 좁혀볼 수 있습니다."
+        compact
         actions={[
           {
             label: worklistScopeEnabled ? '전체 자재 보기' : '작업 바구니 기준으로 보기',
@@ -432,14 +433,14 @@ const Ledger: React.FC = () => {
           { label: '출고 페이지로 이동', onClick: () => navigate('/outbound'), disabled: worklistCodes.length === 0 },
         ]}
         emptyTitle="아직 원장에서 묶어볼 자재를 고르지 않았습니다."
-        emptyDescription="이 목록은 현재 재고에서 `+` 버튼으로 표시해둔 자재를 모아두는 곳입니다. 자주 확인하는 자재를 먼저 담아두면 원장에서 바로 좁혀볼 수 있습니다."
+        emptyDescription="이 목록은 현재 재고에서 + 버튼으로 담아둔 자재를 모아두는 곳입니다. 자주 확인하는 자재를 먼저 담아두면 원장에서 바로 좁혀볼 수 있습니다."
         emptySteps={[
           { title: '현재 재고에서 + 버튼 누르기', description: '원장에서 따로 보고 싶은 자재를 현재 재고 화면에서 먼저 표시해둡니다.' },
           { title: '원장에서 이 목록 기준으로 보기', description: '담아둔 자재만 필터링해서 같은 업무 묶음의 거래 흐름을 빠르게 모아봅니다.' },
           { title: '입고·출고 페이지로 바로 이동', description: '같은 목록을 입고나 출고 화면에서도 그대로 이어서 사용할 수 있습니다.' },
         ]}
         emptyActions={[
-          { label: '현재 재고로 이동', onClick: () => navigate('/current-stock'), tone: 'primary' },
+          { label: '현재 재고로 이동', onClick: () => navigate('/stock/current'), tone: 'primary' },
         ]}
       />
 
