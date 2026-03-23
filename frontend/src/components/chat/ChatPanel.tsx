@@ -789,7 +789,7 @@ export default function ChatPanel({
                 <Bot size={18} />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-500">AI Chat</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-500">AI 질의</p>
                 <h2 className="truncate text-lg font-black text-slate-900">재고 질의</h2>
               </div>
             </div>
@@ -848,7 +848,7 @@ export default function ChatPanel({
       <div className="flex min-h-0 flex-1 flex-col px-4 py-4">
         <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] border border-blue-100 bg-white shadow-[0_10px_32px_rgba(15,23,42,0.05)]">
           <div className="border-b border-slate-100 px-4 py-3">
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Conversation</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">현재 대화</p>
             <h3 className="mt-1 text-sm font-black text-slate-900">
               {workspace.runtimeSessionId ? '현재 대화' : '새 대화'}
             </h3>
@@ -918,21 +918,22 @@ export default function ChatPanel({
   );
 
   const renderCollapsedRail = () => (
-    <div className="flex h-full flex-col items-center justify-between gap-4 px-3 py-4">
-      <button
-        type="button"
-        onClick={onToggleCollapse}
-        className="chat-focus-ring flex h-12 w-12 items-center justify-center rounded-[20px] bg-blue-600 text-white shadow-[0_14px_34px_rgba(37,99,235,0.24)]"
-        aria-label="채팅 패널 펼치기"
-      >
-        <MessageCircle size={18} />
-      </button>
+    <div className="flex h-full items-start justify-center px-1.5 py-4">
+      <div className="flex flex-col items-center gap-3 rounded-[24px] border border-blue-100/80 bg-white/88 px-2 py-2.5 shadow-[0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur">
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="chat-focus-ring flex h-10 w-10 items-center justify-center rounded-[16px] bg-blue-600 text-white shadow-[0_14px_34px_rgba(37,99,235,0.24)]"
+          aria-label="채팅 패널 펼치기"
+        >
+          <MessageCircle size={16} />
+        </button>
 
-      <div className="flex flex-col items-center gap-2">
-        <span className={`h-2.5 w-2.5 rounded-full ${hasActiveKey ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-        <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400 [writing-mode:vertical-rl]">
-          AI
-        </span>
+        <div className="flex flex-col items-center gap-1">
+          <span className={`h-2.5 w-2.5 rounded-full ${hasActiveKey ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+          <span className="text-[10px] font-black tracking-[0.08em] text-slate-500">AI</span>
+          <span className="text-[10px] font-semibold text-slate-400">열기</span>
+        </div>
       </div>
     </div>
   );
@@ -940,7 +941,11 @@ export default function ChatPanel({
   return (
     <>
       <aside
-        className="hidden min-h-0 flex-col border-l border-slate-200/80 bg-white/96 shadow-[0_24px_60px_rgba(15,23,42,0.08)] transition-[width] duration-200 ease-out lg:flex"
+        className={`hidden min-h-0 flex-col transition-[width] duration-200 ease-out lg:flex ${
+          collapsed
+            ? 'bg-transparent shadow-none'
+            : 'border-l border-slate-200/80 bg-white/96 shadow-[0_24px_60px_rgba(15,23,42,0.08)]'
+        }`}
         style={{ width }}
         aria-label="채팅 패널"
       >
