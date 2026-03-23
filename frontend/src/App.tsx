@@ -10,6 +10,7 @@ import Closing from './pages/Closing';
 import History from './pages/History';
 import SetupPassword from './pages/SetupPassword';
 import AdminAccounts from './pages/AdminAccounts';
+import ChangePassword from './pages/ChangePassword';
 import { getDefaultRouteForRole, getStoredRole, getStoredToken, requiresPasswordSetup } from './utils/auth-session';
 
 interface PrivateRouteProps {
@@ -64,6 +65,7 @@ function App() {
           <Route path="stock/ledger" element={<Ledger />} />
           <Route path="closing" element={<Closing />} />
           <Route path="history" element={<History />} />
+          <Route path="account/password" element={<ChangePassword />} />
           <Route path="admin/accounts" element={<SuperAdminRoute><AdminAccounts /></SuperAdminRoute>} />
         </Route>
       </Routes>

@@ -118,4 +118,57 @@ class AuthServiceTest {
         assertEquals("new-encoded", captor.getValue().getPassword());
         assertFalse(captor.getValue().isPasswordChangeRequired());
     }
+
+    @Test
+    void changePasswordRequiresCurrentPasswordForActiveAccount() {
+        AuthService authService = new AuthService(userRepository, passwordEncoder, authenticationManager, tokenProvider);
+        PasswordSetupRequest request = new PasswordSetupRequest();
+        request.setNewPassword("NewPass123!");
+
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getName()).thenReturn("test@test.com");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        User user = User.builder()
+                .email("test@test.com")
+                .password("old-encoded")
+                .role(Role.USER)
+                .passwordChangeRequired(false)
+                .build();
+
+        when(userRepository.findByEmail("test@test.com")).thenReturn(java.util.Optional.of(user));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> authService.completePasswordSetup(request));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
+
+    @Test
+    void changePasswordUpdatesActiveAccountWhenCurrentPasswordMatches() {
+        AuthService authService = new AuthService(userRepository, passwordEncoder, authenticationManager, tokenProvider);
+        PasswordSetupRequest request = new PasswordSetupRequest();
+        request.setCurrentPassword("CurrentPass123!");
+        request.setNewPassword("NewPass123!");
+
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getName()).thenReturn("test@test.com");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        User user = User.builder()
+                .email("test@test.com")
+                .password("old-encoded")
+                .role(Role.USER)
+                .passwordChangeRequired(false)
+                .build();
+
+        when(userRepository.findByEmail("test@test.com")).thenReturn(java.util.Optional.of(user));
+        when(passwordEncoder.matches("CurrentPass123!", "old-encoded")).thenReturn(true);
+        when(passwordEncoder.matches("NewPass123!", "old-encoded")).thenReturn(false);
+        when(passwordEncoder.encode("NewPass123!")).thenReturn("new-encoded");
+
+        authService.completePasswordSetup(request);
+
+        verify(userRepository).save(argThat(saved ->
+                "new-encoded".equals(saved.getPassword()) && !saved.isPasswordChangeRequired()
+        ));
+    }
 }

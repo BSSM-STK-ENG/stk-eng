@@ -10,6 +10,7 @@ import com.stk.inventory.ai.service.ProviderCredentialService;
 import com.stk.inventory.entity.Role;
 import com.stk.inventory.entity.User;
 import com.stk.inventory.security.JwtAuthenticationFilter;
+import com.stk.inventory.security.PasswordChangeRequiredFilter;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +57,9 @@ class AiControllerTest {
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @MockBean
+    private PasswordChangeRequiredFilter passwordChangeRequiredFilter;
+
     @Test
     void returnsProviders() throws Exception {
         Mockito.when(providerCatalogService.getProviders()).thenReturn(List.of(
@@ -71,19 +75,20 @@ class AiControllerTest {
     @Test
     void returnsPreferences() throws Exception {
         Mockito.when(aiPreferencesService.getPreferences()).thenReturn(
-                new AiPreferencesResponse("openai", "gpt-5")
+                new AiPreferencesResponse("openai", "gpt-5", true)
         );
 
         mockMvc.perform(get("/api/ai/preferences"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.provider").value("openai"))
-                .andExpect(jsonPath("$.model").value("gpt-5"));
+                .andExpect(jsonPath("$.model").value("gpt-5"))
+                .andExpect(jsonPath("$.chatPanelEnabled").value(true));
     }
 
     @Test
     void updatesPreferences() throws Exception {
         Mockito.when(aiPreferencesService.updatePreferences(any(UpdateAiPreferencesRequest.class))).thenReturn(
-                new AiPreferencesResponse("google", "gemini-2.5-pro")
+                new AiPreferencesResponse("google", "gemini-2.5-pro", false)
         );
 
         mockMvc.perform(put("/api/ai/preferences")
@@ -91,12 +96,14 @@ class AiControllerTest {
                         .content("""
                                 {
                                   "provider": "google",
-                                  "model": "gemini-2.5-pro"
+                                  "model": "gemini-2.5-pro",
+                                  "chatPanelEnabled": false
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.provider").value("google"))
-                .andExpect(jsonPath("$.model").value("gemini-2.5-pro"));
+                .andExpect(jsonPath("$.model").value("gemini-2.5-pro"))
+                .andExpect(jsonPath("$.chatPanelEnabled").value(false));
     }
 
     @Test

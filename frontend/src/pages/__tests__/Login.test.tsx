@@ -39,6 +39,7 @@ describe('Login', () => {
   it('shows admin-issued account guidance', () => {
     renderLogin();
     expect(screen.getByText('계정은 슈퍼 어드민이 발급합니다.')).toBeInTheDocument();
+    expect(screen.getByText('1234')).toBeInTheDocument();
   });
 
   it('updates input values on change', async () => {

@@ -4,7 +4,7 @@ import api from '../api/axios';
 import { Mail, Lock, ArrowRight, Loader2, ShieldCheck } from 'lucide-react';
 import { AuthResponse } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
-import { getDefaultRouteForRole, saveAuthSession } from '../utils/auth-session';
+import { getDefaultRouteForRole, INITIAL_ISSUED_PASSWORD, saveAuthSession } from '../utils/auth-session';
 
 const Login = () => {
     const [email, setEmail] = useState<string>('');
@@ -47,34 +47,40 @@ const Login = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">이메일</label>
+                        <label htmlFor="login-email" className="block text-sm font-semibold text-slate-700 mb-2">이메일</label>
                         <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <Mail className="text-slate-400" size={18} />
                             </div>
                             <input
+                                id="login-email"
+                                name="email"
                                 type="email"
                                 value={email}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                                 className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-slate-700 font-medium"
                                 placeholder="name@company.com"
+                                autoComplete="username"
                                 required
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">비밀번호</label>
+                        <label htmlFor="login-password" className="block text-sm font-semibold text-slate-700 mb-2">비밀번호</label>
                         <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <Lock className="text-slate-400" size={18} />
                             </div>
                             <input
+                                id="login-password"
+                                name="password"
                                 type="password"
                                 value={password}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                                 className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-slate-700 font-medium"
                                 placeholder="••••••••"
+                                autoComplete="current-password"
                                 required
                             />
                         </div>
@@ -101,7 +107,7 @@ const Login = () => {
                         <div>
                             <p className="font-semibold text-slate-700">계정은 슈퍼 어드민이 발급합니다.</p>
                             <p className="mt-1 text-xs leading-5 text-slate-500">
-                                발급받은 임시 비밀번호로 로그인하면 첫 화면에서 원하는 비밀번호로 바로 변경할 수 있습니다.
+                                발급 계정의 초기 비밀번호는 <span className="font-semibold text-slate-700">{INITIAL_ISSUED_PASSWORD}</span> 입니다. 첫 로그인 후에는 원하는 비밀번호로 바로 변경해야 합니다.
                             </p>
                         </div>
                     </div>

@@ -38,6 +38,7 @@ export interface ProviderCredential {
 export interface AiPreferences {
   provider: ProviderType;
   model: string;
+  chatPanelEnabled: boolean;
 }
 
 export interface ToolTrace {
@@ -105,6 +106,7 @@ export interface UpdateCredentialRequest {
 export interface UpdateAiPreferencesRequest {
   provider: ProviderType;
   model: string;
+  chatPanelEnabled?: boolean;
 }
 
 export interface CredentialConnectionTestResponse {

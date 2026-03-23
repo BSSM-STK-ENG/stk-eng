@@ -53,6 +53,7 @@ class AiPreferencesServiceTest {
 
         assertEquals("anthropic", response.provider());
         assertEquals("claude-3-5-haiku-latest", response.model());
+        assertEquals(false, response.chatPanelEnabled());
     }
 
     @Test
@@ -78,6 +79,7 @@ class AiPreferencesServiceTest {
 
         assertEquals("openai", response.provider());
         assertEquals("gpt-5", response.model());
+        assertEquals(false, response.chatPanelEnabled());
     }
 
     @Test
@@ -95,14 +97,16 @@ class AiPreferencesServiceTest {
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AiPreferencesService service = new AiPreferencesService(currentUserService, userRepository, providerCatalogService);
-        AiPreferencesResponse response = service.updatePreferences(new UpdateAiPreferencesRequest("google", "gemini-2.5-pro"));
+        AiPreferencesResponse response = service.updatePreferences(new UpdateAiPreferencesRequest("google", "gemini-2.5-pro", false));
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
         assertEquals("google", captor.getValue().getDefaultProvider());
         assertEquals("gemini-2.5-pro", captor.getValue().getDefaultModel());
+        assertEquals(false, captor.getValue().isChatPanelEnabled());
         assertEquals("google", response.provider());
         assertEquals("gemini-2.5-pro", response.model());
+        assertEquals(false, response.chatPanelEnabled());
     }
 
     @Test
@@ -120,7 +124,7 @@ class AiPreferencesServiceTest {
 
         org.springframework.web.server.ResponseStatusException ex = assertThrows(
                 org.springframework.web.server.ResponseStatusException.class,
-                () -> service.updatePreferences(new UpdateAiPreferencesRequest("openai", "not-supported"))
+                () -> service.updatePreferences(new UpdateAiPreferencesRequest("openai", "not-supported", true))
         );
 
         assertEquals(BAD_REQUEST, ex.getStatusCode());
