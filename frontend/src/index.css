@@ -6,14 +6,33 @@
   --surface: rgba(255, 255, 255, 0.9);
   --surface-strong: rgba(255, 255, 255, 0.97);
   --surface-muted: rgba(248, 250, 252, 0.92);
+  --surface-elevated: rgba(255, 255, 255, 0.98);
   --border-soft: rgba(148, 163, 184, 0.16);
   --shadow-soft: 0 14px 36px rgba(15, 23, 42, 0.08);
+  --shadow-panel-strong: 0 26px 60px rgba(15, 23, 42, 0.12);
   --chat-width-default: 400px;
   --chat-width-min: 340px;
   --chat-width-max: 520px;
   --radius-panel: 24px;
   --radius-card: 20px;
   --radius-pill: 999px;
+  --trend-panel-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(244, 249, 255, 0.98) 44%, rgba(239, 246, 255, 0.98) 100%);
+  --trend-grid: rgba(148, 163, 184, 0.15);
+  --trend-axis: rgba(51, 65, 85, 0.6);
+  --trend-focus: rgba(15, 23, 42, 0.12);
+  --trend-line-1: #2563eb;
+  --trend-line-2: #0891b2;
+  --trend-line-3: #7c3aed;
+  --trend-line-4: #ea580c;
+  --trend-line-1-soft: rgba(37, 99, 235, 0.16);
+  --trend-line-2-soft: rgba(8, 145, 178, 0.16);
+  --trend-line-3-soft: rgba(124, 58, 237, 0.16);
+  --trend-line-4-soft: rgba(234, 88, 12, 0.16);
+  --calendar-surface: linear-gradient(145deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 249, 255, 0.98) 46%, rgba(238, 246, 255, 0.98) 100%);
+  --calendar-day-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  --calendar-day-selected: linear-gradient(145deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.96) 100%);
+  --calendar-day-inbound: rgba(37, 99, 235, 0.14);
+  --calendar-day-outbound: rgba(234, 88, 12, 0.14);
 }
 
 html,

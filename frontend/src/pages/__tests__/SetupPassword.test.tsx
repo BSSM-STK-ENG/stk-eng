@@ -31,9 +31,8 @@ describe('SetupPassword', () => {
     renderSetupPassword();
     const user = userEvent.setup();
 
-    const inputs = screen.getAllByPlaceholderText(/입력/);
-    await user.type(inputs[0]!, 'password123');
-    await user.type(inputs[1]!, 'password321');
+    await user.type(screen.getByPlaceholderText('새 비밀번호 8자 이상'), 'password123');
+    await user.type(screen.getByPlaceholderText('새 비밀번호 다시 입력'), 'password321');
     await user.click(screen.getByText('비밀번호 저장'));
 
     await waitFor(() => {
@@ -53,9 +52,8 @@ describe('SetupPassword', () => {
     renderSetupPassword();
     const user = userEvent.setup();
 
-    const inputs = screen.getAllByPlaceholderText(/입력/);
-    await user.type(inputs[0]!, 'password123');
-    await user.type(inputs[1]!, 'password123');
+    await user.type(screen.getByPlaceholderText('새 비밀번호 8자 이상'), 'password123');
+    await user.type(screen.getByPlaceholderText('새 비밀번호 다시 입력'), 'password123');
     await user.click(screen.getByText('비밀번호 저장'));
 
     await waitFor(() => {

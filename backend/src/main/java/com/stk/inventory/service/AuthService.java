@@ -62,6 +62,7 @@ public class AuthService {
         if (newPassword == null || newPassword.trim().length() < 8) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "비밀번호는 8자 이상이어야 합니다.");
         }
+        newPassword = newPassword.trim();
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {
@@ -72,10 +73,20 @@ public class AuthService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
 
         if (!user.isPasswordChangeRequired()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "초기 비밀번호 변경이 필요하지 않은 계정입니다.");
+            String currentPassword = request.getCurrentPassword();
+            if (currentPassword == null || currentPassword.isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "현재 비밀번호를 입력해주세요.");
+            }
+            if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "현재 비밀번호가 올바르지 않습니다.");
+            }
         }
 
-        user.setPassword(passwordEncoder.encode(newPassword.trim()));
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "현재 비밀번호와 다른 비밀번호를 입력해주세요.");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
         user.setPasswordChangeRequired(false);
         userRepository.save(user);
     }

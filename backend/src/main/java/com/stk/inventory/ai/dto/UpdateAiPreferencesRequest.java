@@ -6,6 +6,7 @@ public record UpdateAiPreferencesRequest(
         @NotBlank(message = "provider is required")
         String provider,
         @NotBlank(message = "model is required")
-        String model
+        String model,
+        Boolean chatPanelEnabled
 ) {
 }

@@ -49,10 +49,12 @@ describe('useChatWorkspace', () => {
     apiMocks.getAiPreferences.mockResolvedValue({
       provider: 'openai',
       model: 'gpt-5',
+      chatPanelEnabled: true,
     });
     apiMocks.saveAiPreferences.mockResolvedValue({
       provider: 'google',
       model: 'gemini-2.5-flash',
+      chatPanelEnabled: false,
     });
     apiMocks.saveChatCredential.mockImplementation(async (provider: string) => ({
       provider,
@@ -82,6 +84,7 @@ describe('useChatWorkspace', () => {
 
     expect(result.current.preferences?.provider).toBe('openai');
     expect(result.current.preferences?.model).toBe('gpt-5');
+    expect(result.current.preferences?.chatPanelEnabled).toBe(true);
   });
 
   it('reuses the runtime session until conversation reset', async () => {
@@ -180,6 +183,7 @@ describe('useChatWorkspace', () => {
         provider: 'google',
         model: 'gemini-2.5-flash',
         apiKey: 'gm-test-123456',
+        chatPanelEnabled: false,
       });
     });
 
@@ -190,9 +194,11 @@ describe('useChatWorkspace', () => {
     expect(apiMocks.saveAiPreferences).toHaveBeenCalledWith({
       provider: 'google',
       model: 'gemini-2.5-flash',
+      chatPanelEnabled: false,
     });
     expect(result.current.preferences?.provider).toBe('google');
     expect(result.current.preferences?.model).toBe('gemini-2.5-flash');
+    expect(result.current.preferences?.chatPanelEnabled).toBe(false);
   });
 
   it('tests credential connectivity and exposes the success message', async () => {
@@ -207,6 +213,7 @@ describe('useChatWorkspace', () => {
         provider: 'openai',
         model: 'gpt-5',
         apiKey: 'sk-test-1234567890',
+        chatPanelEnabled: true,
       });
     });
 
