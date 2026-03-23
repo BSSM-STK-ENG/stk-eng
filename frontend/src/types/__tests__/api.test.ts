@@ -21,8 +21,15 @@ describe('API type definitions', () => {
   });
 
   it('AuthResponse has correct shape', () => {
-    const res: AuthResponse = { token: 'jwt-token', email: 'test@test.com', message: 'success' };
+    const res: AuthResponse = {
+      token: 'jwt-token',
+      email: 'test@test.com',
+      role: 'ADMIN',
+      passwordChangeRequired: true,
+      message: 'success',
+    };
     expect(res.token).toBe('jwt-token');
+    expect(res.passwordChangeRequired).toBe(true);
   });
 
   it('MaterialDto supports nullable fields', () => {
@@ -95,8 +102,8 @@ describe('API type definitions', () => {
   });
 
   it('Role union is correct', () => {
-    const roles: Role[] = ['USER', 'ADMIN'];
-    expect(roles).toHaveLength(2);
+    const roles: Role[] = ['USER', 'ADMIN', 'SUPER_ADMIN'];
+    expect(roles).toHaveLength(3);
   });
 
   // Suppress unused import warnings — TransactionRequest and Material are used as type annotations above

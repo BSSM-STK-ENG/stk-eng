@@ -2,16 +2,18 @@ package com.stk.inventory.service;
 
 import com.stk.inventory.dto.AuthRequest;
 import com.stk.inventory.dto.AuthResponse;
-import com.stk.inventory.entity.Role;
+import com.stk.inventory.dto.PasswordSetupRequest;
 import com.stk.inventory.entity.User;
 import com.stk.inventory.repository.UserRepository;
 import com.stk.inventory.security.JwtTokenProvider;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AuthService {
@@ -30,18 +32,7 @@ public class AuthService {
     }
 
     public AuthResponse register(AuthRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email already in use");
-        }
-
-        User user = User.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.USER)
-                .build();
-        userRepository.save(user);
-
-        return login(request);
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "공개 회원가입은 비활성화되었습니다. 슈퍼 어드민에게 계정 발급을 요청하세요.");
     }
 
     public AuthResponse login(AuthRequest request) {
@@ -54,11 +45,38 @@ public class AuthService {
         String jwt = tokenProvider.generateToken(
                 (org.springframework.security.core.userdetails.UserDetails) authentication.getPrincipal()
         );
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
 
         AuthResponse response = new AuthResponse();
         response.setToken(jwt);
-        response.setEmail(request.getEmail());
+        response.setEmail(user.getEmail());
+        response.setRole(user.getRole());
+        response.setPasswordChangeRequired(user.isPasswordChangeRequired());
         response.setMessage("Success");
         return response;
+    }
+
+    public void completePasswordSetup(PasswordSetupRequest request) {
+        String newPassword = request.getNewPassword();
+        if (newPassword == null || newPassword.trim().length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "비밀번호는 8자 이상이어야 합니다.");
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+
+        if (!user.isPasswordChangeRequired()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "초기 비밀번호 변경이 필요하지 않은 계정입니다.");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword.trim()));
+        user.setPasswordChangeRequired(false);
+        userRepository.save(user);
     }
 }
