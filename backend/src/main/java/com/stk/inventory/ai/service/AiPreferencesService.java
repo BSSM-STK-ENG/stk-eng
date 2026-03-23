@@ -48,6 +48,9 @@ public class AiPreferencesService {
 
         user.setDefaultProvider(providerType.value());
         user.setDefaultModel(model);
+        if (request.chatPanelEnabled() != null) {
+            user.setChatPanelEnabled(request.chatPanelEnabled());
+        }
         return toResponse(userRepository.save(user));
     }
 
@@ -71,7 +74,7 @@ public class AiPreferencesService {
             defaultModel = providerCatalogService.getDefaultModel(providerType).id();
         }
 
-        return new AiPreferencesResponse(defaultProvider, defaultModel);
+        return new AiPreferencesResponse(defaultProvider, defaultModel, user.isChatPanelEnabled());
     }
 
     private ProviderType resolveProviderType(String provider) {

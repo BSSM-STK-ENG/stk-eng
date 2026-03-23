@@ -43,6 +43,7 @@ function createWorkspace(messages: ChatMessage[] = []) {
     preferences: {
       provider: 'openai',
       model: 'gpt-5',
+      chatPanelEnabled: true,
     },
     draft: {
       provider: 'openai',
@@ -72,7 +73,7 @@ function createWorkspace(messages: ChatMessage[] = []) {
     }),
     stopResponse: vi.fn(),
     resetConversation: vi.fn(),
-    applySettings: vi.fn().mockResolvedValue({ provider: 'openai', model: 'gpt-5' }),
+    applySettings: vi.fn().mockResolvedValue({ provider: 'openai', model: 'gpt-5', chatPanelEnabled: true }),
     removeCredential: vi.fn().mockResolvedValue(undefined),
     clearNotices: vi.fn(),
     refreshMetadata: vi.fn(),
