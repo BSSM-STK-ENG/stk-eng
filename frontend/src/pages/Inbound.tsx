@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -8,22 +8,22 @@ import {
   ChevronRight,
   Download,
   FileSpreadsheet,
+  PencilLine,
   Plus,
   RefreshCw,
-  Search,
-  Trash2,
+  RotateCcw,
   Upload,
   X,
 } from 'lucide-react';
 import api from '../api/axios';
+import AdminSearchField from '../components/common/AdminSearchField';
 import MaterialLookupField, { buildMaterialLookupLabel } from '../components/inventory/MaterialLookupField';
-import MaterialWorklistPanel from '../components/inventory/MaterialWorklistPanel';
-import type { InventoryTransaction, MaterialDto } from '../types/api';
+import type { InventoryTransaction, MasterDataItem, MaterialDto } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
+import { formatAppDateTime } from '../utils/date-format';
 import { downloadCsv, downloadExcel } from '../utils/excel';
-import { formatBusinessUnit, formatLocation, sanitizeBusinessUnit } from '../utils/inventory-display';
+import { formatBusinessUnit, sanitizeBusinessUnit } from '../utils/inventory-display';
 import { registerRecentMaterialCode } from '../utils/material-preferences';
-import { getMaterialWorklistCodes, subscribeMaterialWorklist } from '../utils/material-worklist';
 
 const PAGE_SIZE = 20;
 
@@ -33,11 +33,11 @@ type Notice = {
 };
 
 const Inbound = () => {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const consumedPrefillKeyRef = useRef<string | null>(null);
   const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
   const [materials, setMaterials] = useState<MaterialDto[]>([]);
+  const [businessUnits, setBusinessUnits] = useState<MasterDataItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>(() => searchParams.get('q') ?? '');
   const [dayFilter, setDayFilter] = useState<string>(() => searchParams.get('day') ?? '');
@@ -45,16 +45,15 @@ const Inbound = () => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [page, setPage] = useState<number>(0);
   const [notice, setNotice] = useState<Notice | null>(null);
-  const quantityInputRef = useRef<HTMLInputElement | null>(null);
-  const [worklistCodes, setWorklistCodes] = useState<string[]>(() => getMaterialWorklistCodes());
+  const [editingTransaction, setEditingTransaction] = useState<InventoryTransaction | null>(null);
 
   const [materialCode, setMaterialCode] = useState<string>('');
   const [materialQuery, setMaterialQuery] = useState<string>('');
   const [quantity, setQuantity] = useState<string>('');
   const [businessUnit, setBusinessUnit] = useState<string>('');
   const [note, setNote] = useState<string>('');
-  const [keepContextAfterSave, setKeepContextAfterSave] = useState<boolean>(false);
   const [submitLoading, setSubmitLoading] = useState<boolean>(false);
+  const [locationDraft, setLocationDraft] = useState<string>('');
 
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
@@ -64,9 +63,10 @@ const Inbound = () => {
   const fetchPageData = async () => {
     setLoading(true);
     try {
-      const [ledgerResponse, materialsResponse] = await Promise.all([
+      const [ledgerResponse, materialsResponse, businessUnitResponse] = await Promise.all([
         api.get<InventoryTransaction[]>('/inventory/ledger'),
         api.get<MaterialDto[]>('/materials'),
+        api.get<MasterDataItem[]>('/master-data/business-units'),
       ]);
       setTransactions(
         ledgerResponse.data
@@ -74,6 +74,7 @@ const Inbound = () => {
           .sort((left, right) => right.id - left.id),
       );
       setMaterials(materialsResponse.data);
+      setBusinessUnits(businessUnitResponse.data);
     } catch (error) {
       setNotice({ tone: 'error', message: `데이터를 불러오지 못했습니다. ${getErrorMessage(error)}` });
     } finally {
@@ -84,8 +85,6 @@ const Inbound = () => {
   useEffect(() => {
     void fetchPageData();
   }, []);
-
-  useEffect(() => subscribeMaterialWorklist(setWorklistCodes), []);
 
   useEffect(() => {
     setSearchTerm(searchParams.get('q') ?? '');
@@ -115,9 +114,11 @@ const Inbound = () => {
 
     setMaterialCode(matchedMaterial.materialCode);
     setMaterialQuery(buildMaterialLookupLabel(matchedMaterial));
+    setLocationDraft(matchedMaterial.location ?? '');
     setBusinessUnit('');
     setQuantity('');
     setNote('');
+    setEditingTransaction(null);
     setShowModal(true);
   }, [materials, searchParams]);
 
@@ -128,6 +129,7 @@ const Inbound = () => {
       [
         transaction.material.materialName,
         transaction.material.materialCode,
+        transaction.material.description,
         sanitizeBusinessUnit(transaction.businessUnit),
         transaction.note,
       ]
@@ -137,25 +139,16 @@ const Inbound = () => {
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const businessUnitSuggestions = useMemo(
-    () =>
-      Array.from(new Set(
-        transactions
-          .map((transaction) => sanitizeBusinessUnit(transaction.businessUnit))
-          .filter((value): value is string => Boolean(value)),
-      ))
-        .sort((left, right) => left.localeCompare(right, 'ko-KR'))
-        .slice(0, 6),
-    [transactions],
-  );
   const businessUnitOptions = useMemo(
     () =>
       Array.from(new Set(
-        transactions
-          .map((transaction) => sanitizeBusinessUnit(transaction.businessUnit))
+        [
+          ...businessUnits.map((item) => item.name),
+          ...transactions.map((transaction) => sanitizeBusinessUnit(transaction.businessUnit)),
+        ]
           .filter((value): value is string => Boolean(value)),
       )).sort((left, right) => left.localeCompare(right, 'ko-KR')),
-    [transactions],
+    [businessUnits, transactions],
   );
 
   const resolvedMaterial = useMemo(
@@ -167,7 +160,16 @@ const Inbound = () => {
   );
   const parsedQuantity = Number.parseInt(quantity, 10);
   const safeQuantity = Number.isFinite(parsedQuantity) ? parsedQuantity : 0;
-  const projectedQuantity = (resolvedMaterial?.currentStockQty ?? 0) + safeQuantity;
+  const editableBaseStock = (resolvedMaterial?.currentStockQty ?? 0) - (
+    editingTransaction && editingTransaction.material.materialCode === resolvedMaterial?.materialCode
+      ? editingTransaction.quantity
+      : 0
+  );
+  const projectedQuantity = editableBaseStock + safeQuantity;
+
+  useEffect(() => {
+    setLocationDraft(resolvedMaterial?.location ?? '');
+  }, [resolvedMaterial?.materialCode, resolvedMaterial?.location]);
 
   const resetForm = () => {
     setMaterialCode('');
@@ -175,7 +177,8 @@ const Inbound = () => {
     setQuantity('');
     setBusinessUnit('');
     setNote('');
-    setKeepContextAfterSave(false);
+    setLocationDraft('');
+    setEditingTransaction(null);
   };
 
   const closeModal = () => {
@@ -192,9 +195,23 @@ const Inbound = () => {
   const openRepeatInbound = (transaction: InventoryTransaction) => {
     setMaterialCode(transaction.material.materialCode);
     setMaterialQuery(buildMaterialLookupLabel(transaction.material));
+    setLocationDraft(transaction.material.location ?? '');
     setBusinessUnit(sanitizeBusinessUnit(transaction.businessUnit) ?? '');
     setQuantity('');
     setNote('');
+    setEditingTransaction(null);
+    setNotice(null);
+    setShowModal(true);
+  };
+
+  const openEditInbound = (transaction: InventoryTransaction) => {
+    setEditingTransaction(transaction);
+    setMaterialCode(transaction.material.materialCode);
+    setMaterialQuery(buildMaterialLookupLabel(transaction.material));
+    setLocationDraft(transaction.material.location ?? '');
+    setBusinessUnit(sanitizeBusinessUnit(transaction.businessUnit) ?? '');
+    setQuantity(String(transaction.quantity));
+    setNote(transaction.note ?? '');
     setNotice(null);
     setShowModal(true);
   };
@@ -240,21 +257,12 @@ const Inbound = () => {
     syncSearchParams(searchTerm, dayFilter, nextValue);
   };
 
-  const pickWorklistMaterial = (material: MaterialDto) => {
-    setMaterialCode(material.materialCode);
-    setMaterialQuery(buildMaterialLookupLabel(material));
-    setQuantity('');
-    setNote('');
-    setNotice(null);
-    setShowModal(true);
-    window.setTimeout(() => quantityInputRef.current?.focus(), 0);
-  };
-
   const handleExport = () => {
     const rows = filtered.map((transaction) => ({
-      입고날짜: new Date(transaction.transactionDate).toLocaleDateString(),
+      입고일시: formatAppDateTime(transaction.transactionDate),
       자재코드: transaction.material.materialCode,
       자재명: transaction.material.materialName,
+      자재설명: transaction.material.description ?? '',
       수량: transaction.quantity,
       사업장: sanitizeBusinessUnit(transaction.businessUnit) ?? '',
       비고: transaction.note ?? '',
@@ -286,36 +294,44 @@ const Inbound = () => {
     }
 
     const normalizedBusinessUnit = businessUnit.trim();
-    if (normalizedBusinessUnit && !sanitizeBusinessUnit(normalizedBusinessUnit)) {
-      setNotice({ tone: 'error', message: '사업장 값이 올바르지 않습니다. 짧은 코드나 사업장명만 입력해주세요.' });
+    if (!normalizedBusinessUnit) {
+      setNotice({ tone: 'error', message: '사업장을 선택해주세요.' });
       return;
     }
 
     setSubmitLoading(true);
     try {
       const selectedMaterial = resolvedMaterial;
-      const normalizedSavedBusinessUnit = sanitizeBusinessUnit(normalizedBusinessUnit) ?? '';
-      await api.post('/inventory/inbound', {
+      const normalizedLocation = locationDraft.trim() || null;
+      if ((selectedMaterial.location ?? null) !== normalizedLocation) {
+        await api.put('/materials', {
+          materialCode: selectedMaterial.materialCode,
+          materialName: selectedMaterial.materialName,
+          description: selectedMaterial.description,
+          location: normalizedLocation,
+          safeStockQty: selectedMaterial.safeStockQty ?? 0,
+          currentStockQty: selectedMaterial.currentStockQty ?? 0,
+        });
+      }
+      const payload = {
         materialCode: selectedMaterial.materialCode,
         quantity: parsedQuantity,
-        businessUnit: normalizedSavedBusinessUnit || undefined,
+        businessUnit: normalizedBusinessUnit,
         note: note.trim() || undefined,
-      });
+      };
+      if (editingTransaction) {
+        await api.put(`/inventory/${editingTransaction.id}`, payload);
+      } else {
+        await api.post('/inventory/inbound', payload);
+      }
       registerRecentMaterialCode(selectedMaterial.materialCode);
       await fetchPageData();
-      if (keepContextAfterSave) {
-        setMaterialCode(selectedMaterial.materialCode);
-        setMaterialQuery(buildMaterialLookupLabel(selectedMaterial));
-        setBusinessUnit(normalizedSavedBusinessUnit);
-        setQuantity('');
-        setNote('');
-        window.setTimeout(() => quantityInputRef.current?.focus(), 0);
-      } else {
-        closeModal();
-      }
+      closeModal();
       setNotice({
         tone: 'success',
-        message: `${selectedMaterial.materialName} 입고를 등록했습니다. 예상 재고 ${projectedQuantity.toLocaleString()} EA${keepContextAfterSave ? ' · 같은 자재로 계속 입력할 수 있습니다.' : ''}`,
+        message: editingTransaction
+          ? `${selectedMaterial.materialName} 입고 내역을 수정했습니다.`
+          : `${selectedMaterial.materialName} 입고를 등록했습니다. 예상 재고 ${projectedQuantity.toLocaleString()} EA`,
       });
     } catch (error) {
       setNotice({ tone: 'error', message: `입고 등록에 실패했습니다. ${getErrorMessage(error)}` });
@@ -324,17 +340,17 @@ const Inbound = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('이 입고 내역을 삭제하시겠습니까?')) {
+  const handleRevert = async (id: number) => {
+    if (!window.confirm('이 입고 내역을 되돌리시겠습니까? 되돌리면 해당 수량이 재고에서 다시 빠집니다.')) {
       return;
     }
     setNotice(null);
     try {
-      await api.delete(`/inventory/${id}`);
+      await api.post(`/inventory/${id}/revert`);
       await fetchPageData();
-      setNotice({ tone: 'success', message: '입고 내역을 삭제했습니다.' });
+      setNotice({ tone: 'success', message: '입고 내역을 되돌렸습니다.' });
     } catch (error) {
-      setNotice({ tone: 'error', message: `삭제에 실패했습니다. ${getErrorMessage(error)}` });
+      setNotice({ tone: 'error', message: `되돌리기에 실패했습니다. ${getErrorMessage(error)}` });
     }
   };
 
@@ -380,43 +396,46 @@ const Inbound = () => {
   };
 
   return (
-    <div className="flex flex-col gap-4 md:gap-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="admin-page">
+      <section className="admin-header">
+      <div className="admin-header-row">
         <div>
-          <h2 className="text-xl font-extrabold tracking-tight text-slate-800 md:text-2xl">입고 관리</h2>
-          <p className="mt-0.5 text-xs font-medium text-slate-400 md:text-sm">자재를 검색해서 빠르게 고르고, 입고 후 예상 재고까지 바로 확인합니다.</p>
+          <p className="admin-kicker">입고</p>
+          <h2 className="admin-page-title">입고 관리</h2>
+          <p className="admin-page-description">등록된 사업장을 선택해 입고 내역을 조회하고 등록합니다.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="admin-toolbar">
           <button
             onClick={() => void fetchPageData()}
-            className="inline-flex items-center rounded-lg border border-slate-200 bg-white p-2 text-slate-500 shadow-sm transition-colors hover:bg-slate-50"
+            className="admin-btn"
             title="새로고침"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           </button>
           <button
             onClick={handleExport}
-            className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-sm transition-colors hover:bg-slate-50"
+            className="admin-btn"
           >
             <Download size={14} className="mr-1.5" />
             다운로드
           </button>
           <button
             onClick={() => setShowUploadModal(true)}
-            className="inline-flex items-center rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition-colors hover:bg-emerald-600"
+            className="admin-btn"
           >
             <Upload size={14} className="mr-1.5" />
             일괄 업로드
           </button>
           <button
             onClick={openNew}
-            className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm shadow-blue-600/20 transition-colors hover:bg-blue-700"
+            className="admin-btn admin-btn-primary"
           >
             <Plus size={14} className="mr-1.5" />
             신규 입고
           </button>
         </div>
       </div>
+      </section>
 
       {notice && (
         <div className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm font-medium ${
@@ -429,45 +448,12 @@ const Inbound = () => {
         </div>
       )}
 
-      <MaterialWorklistPanel
-        materials={materials}
-        badgeLabel="빠른 입고 준비"
-        itemLabel="입고 자재"
-        title="입고할 자재를 미리 골라두는 곳"
-        description="현재 재고 화면에서 담아둔 자재가 여기에 모입니다. 여기에서 자재를 고르면 바로 입고 폼으로 이어집니다."
-        accent="blue"
-        activeMaterialCode={showModal ? materialCode : null}
-        onPickMaterial={pickWorklistMaterial}
-        selectionHint="자재 칩을 누르면 아래 입고 폼의 자재가 바로 바뀝니다."
-        compact
-        actions={[
-          { label: '신규 입고 열기', onClick: openNew, tone: 'primary' },
-          { label: '작업 바구니 원장 보기', onClick: () => navigate('/stock/ledger?scope=worklist') },
-          { label: '출고 페이지로 이동', onClick: () => navigate('/outbound') },
-        ]}
-        emptyTitle="아직 미리 담아둔 입고 자재가 없습니다."
-        emptyDescription="이 목록은 현재 재고 화면에서 + 버튼으로 담아둔 자재를 모아두는 곳입니다. 자주 쓰는 자재를 먼저 담아두면 검색 없이 바로 입고할 수 있습니다."
-        emptySteps={[
-          { title: '현재 재고에서 + 버튼 누르기', description: '입고할 자재를 찾은 뒤 자재코드 왼쪽의 + 버튼을 눌러 목록에 담습니다.' },
-          { title: '이 화면에서 자재 선택하기', description: '담아둔 자재가 여기 칩으로 나타납니다. 필요한 자재를 바로 누르면 됩니다.' },
-          { title: '수량만 입력하고 입고 등록', description: '자재가 이미 선택된 상태라서 수량과 사업장만 입력하면 빠르게 등록할 수 있습니다.' },
-        ]}
-        emptyActions={[
-          { label: '현재 재고로 이동', onClick: () => navigate('/stock/current'), tone: 'primary' },
-          { label: '그냥 신규 입고 열기', onClick: openNew },
-        ]}
+      <AdminSearchField
+        value={searchTerm}
+        onChange={handleSearchChange}
+        placeholder="자재명, 코드, 설명, 사업장, 비고 검색"
+        wrapperClassName="max-w-md"
       />
-
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(event) => handleSearchChange(event.target.value)}
-          placeholder="자재명, 코드, 사업장, 비고 검색..."
-          className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm text-slate-700 shadow-sm outline-none transition-all focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
-        />
-      </div>
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
         <select
@@ -490,94 +476,78 @@ const Inbound = () => {
             className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none"
           />
         </label>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              const today = new Date();
-              const todayKey = `${today.getFullYear()}-${`${today.getMonth() + 1}`.padStart(2, '0')}-${`${today.getDate()}`.padStart(2, '0')}`;
-              handleDayFilterChange(todayKey);
-            }}
-            className="chat-focus-ring min-h-10 rounded-full border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
-          >
-            오늘
-          </button>
-          <button
-            type="button"
-            onClick={handleResetFilters}
-            className="chat-focus-ring min-h-10 rounded-full border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
-          >
-            필터 초기화
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleResetFilters}
+          className="chat-focus-ring min-h-10 rounded-full border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+        >
+          필터 초기화
+        </button>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-100">
-            <thead>
-              <tr className="bg-slate-50/80">
-                <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 md:px-5">입고 날짜</th>
-                <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 md:px-5">자재코드</th>
-                <th className="hidden px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 md:table-cell md:px-5">자재명</th>
-                <th className="hidden px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 lg:table-cell lg:px-5">사업장</th>
-                <th className="px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-slate-400 md:px-5">수량</th>
-                <th className="hidden px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 xl:table-cell xl:px-5">비고</th>
-                <th className="w-28 px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400 md:px-5">액션</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {paged.map((transaction) => (
-                <tr key={transaction.id} className="group transition-colors hover:bg-blue-50/30">
-                  <td className="whitespace-nowrap px-3 py-3 text-xs font-medium text-slate-500 md:px-5 md:text-sm">
-                    {new Date(transaction.transactionDate).toLocaleDateString()}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-xs font-bold text-slate-800 md:px-5 md:text-sm">
-                    <div>
-                      <p>{transaction.material.materialCode}</p>
-                      <p className="mt-1 text-[11px] font-medium text-slate-500 md:hidden">{transaction.material.materialName}</p>
-                      <p className="mt-1 text-[11px] font-medium text-slate-400 lg:hidden">{formatBusinessUnit(transaction.businessUnit)}</p>
-                    </div>
-                  </td>
-                  <td className="hidden max-w-[300px] truncate px-3 py-3 text-xs text-slate-600 md:table-cell md:px-5 md:text-sm">{transaction.material.materialName}</td>
-                  <td className="hidden whitespace-nowrap px-3 py-3 text-xs text-slate-500 lg:table-cell lg:px-5">{formatBusinessUnit(transaction.businessUnit)}</td>
-                  <td className="whitespace-nowrap px-3 py-3 text-right text-xs font-extrabold text-blue-600 md:px-5 md:text-sm">+{transaction.quantity}</td>
-                  <td className="hidden whitespace-nowrap px-3 py-3 text-xs text-slate-400 xl:table-cell xl:px-5">{transaction.note || '-'}</td>
-                  <td className="whitespace-nowrap px-3 py-3 text-center md:px-5">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => openRepeatInbound(transaction)}
-                        className="rounded p-1 text-slate-300 transition-colors hover:bg-blue-50 hover:text-blue-600"
-                        title="같은 자재 다시 입고"
-                      >
-                        <Plus size={14} />
-                      </button>
-                      <button onClick={() => void handleDelete(transaction.id)} className="rounded p-1 text-slate-300 transition-colors hover:bg-red-50 hover:text-red-500" title="삭제">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {paged.length === 0 && !loading && (
-                <tr>
-                  <td colSpan={7} className="px-5 py-16 text-center text-sm font-medium text-slate-400">
-                    <div className="flex flex-col items-center gap-3">
-                      <p>현재 조건에 맞는 입고 내역이 없습니다.</p>
-                      <button
-                        type="button"
-                        onClick={handleResetFilters}
-                        className="chat-focus-ring inline-flex min-h-10 items-center rounded-full border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
-                      >
-                        필터 초기화
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="divide-y divide-slate-100">
+          {paged.map((transaction) => (
+            <article key={transaction.id} className="grid gap-4 px-4 py-4 md:grid-cols-[minmax(0,1.4fr)_120px_140px_220px] md:px-5">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-900">{transaction.material.materialName}</p>
+                <p className="mt-1 text-xs text-slate-500">{transaction.material.materialCode}</p>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                  <span>{formatAppDateTime(transaction.transactionDate)}</span>
+                  <span>{formatBusinessUnit(transaction.businessUnit)}</span>
+                  <span>{transaction.note || '비고 없음'}</span>
+                </div>
+              </div>
+              <div className="rounded-lg bg-slate-50 px-3 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">수량</p>
+                <p className="mt-1 text-lg font-semibold text-blue-600">+{transaction.quantity} EA</p>
+              </div>
+              <div className="rounded-lg bg-slate-50 px-3 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">등록자</p>
+                <p className="mt-1 text-sm font-medium text-slate-700">{transaction.createdBy?.name ?? transaction.createdBy?.email ?? '-'}</p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={() => openEditInbound(transaction)}
+                  className="admin-btn inline-flex min-h-10 justify-center whitespace-nowrap px-3 text-sm text-slate-600"
+                >
+                  <PencilLine size={14} />
+                  수정
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openRepeatInbound(transaction)}
+                  className="admin-btn inline-flex min-h-10 justify-center whitespace-nowrap px-3 text-sm text-slate-600"
+                >
+                  <Plus size={14} />
+                  다시 등록
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleRevert(transaction.id)}
+                  className="admin-btn inline-flex min-h-10 justify-center whitespace-nowrap px-3 text-sm text-slate-600"
+                >
+                  <RotateCcw size={14} />
+                  되돌리기
+                </button>
+              </div>
+            </article>
+          ))}
+          {paged.length === 0 && !loading && (
+            <div className="px-5 py-16 text-center text-sm font-medium text-slate-400">
+              <div className="flex flex-col items-center gap-3">
+                <p>현재 조건에 맞는 입고 내역이 없습니다.</p>
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="chat-focus-ring inline-flex min-h-10 items-center rounded-full border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                >
+                  필터 초기화
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {totalPages > 1 && (
@@ -598,138 +568,116 @@ const Inbound = () => {
       </div>
 
       {showModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" onClick={closeModal}>
-          <div className="w-full max-w-2xl rounded-[28px] bg-white p-6 shadow-2xl ring-1 ring-black/5" onClick={(event) => event.stopPropagation()}>
-            <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-[720px] rounded-[24px] bg-white p-6 shadow-2xl ring-1 ring-black/5">
+            <div className="mb-6 flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-xl font-extrabold text-slate-800">신규 입고 등록</h3>
-                <p className="mt-1 text-sm leading-6 text-slate-500">자재명이나 코드로 먼저 찾고, 예상 재고를 확인한 뒤 저장하세요.</p>
+                <h3 className="text-lg font-bold text-slate-900">{editingTransaction ? '입고 내역 수정' : '신규 입고 등록'}</h3>
+                <p className="mt-1 text-sm text-slate-500">자재, 수량, 사업장, 위치를 확인한 뒤 저장합니다.</p>
               </div>
               <button onClick={closeModal} className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100">
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {worklistCodes.length > 0 && (
-                <MaterialWorklistPanel
-                  materials={materials}
-                  badgeLabel="빠른 입고 선택"
-                  itemLabel="입고 자재"
-                  title="미리 담아둔 자재에서 바로 선택"
-                  description="위에서 자재를 찾지 않고, 여기 칩만 눌러 입고할 자재를 바로 바꿀 수 있습니다."
-                  accent="blue"
-                  activeMaterialCode={materialCode}
-                  onPickMaterial={pickWorklistMaterial}
-                  selectionHint="칩을 누르면 아래 자재 선택이 즉시 바뀝니다."
-                  compact
-                />
-              )}
-
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500">자재 검색</label>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">자재</label>
                 <MaterialLookupField
                   materials={materials}
                   accent="blue"
                   inputValue={materialQuery}
                   selectedCode={materialCode}
                   onInputValueChange={setMaterialQuery}
-                  onSelectionChange={(material) => setMaterialCode(material?.materialCode ?? '')}
+                  onSelectionChange={(material) => {
+                    setMaterialCode(material?.materialCode ?? '');
+                    setLocationDraft(material?.location ?? '');
+                  }}
                 />
               </div>
 
               {resolvedMaterial && (
-                <div className="rounded-[22px] border border-blue-100 bg-blue-50/60 px-4 py-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <p className="text-sm font-black text-slate-900">{resolvedMaterial.materialName}</p>
-                      <p className="mt-1 text-xs text-slate-500">{resolvedMaterial.materialCode} · 위치 {formatLocation(resolvedMaterial.location)}</p>
+                      <p className="text-sm font-semibold text-slate-900">{resolvedMaterial.materialName}</p>
+                      <p className="mt-1 text-sm text-slate-500">{resolvedMaterial.materialCode}</p>
+                      {resolvedMaterial.description && (
+                        <p className="mt-2 text-sm text-slate-400">{resolvedMaterial.description}</p>
+                      )}
                     </div>
-                    <span className="inline-flex rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-blue-700">선택 완료</span>
+                    <span className="inline-flex rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-700">선택됨</span>
                   </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-2xl bg-white px-3 py-3">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">현재 재고</p>
-                      <p className="mt-1.5 text-lg font-black text-slate-900">{(resolvedMaterial.currentStockQty ?? 0).toLocaleString()} EA</p>
-                    </div>
-                    <div className="rounded-2xl bg-white px-3 py-3">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">안전 재고</p>
-                      <p className="mt-1.5 text-lg font-black text-slate-900">{(resolvedMaterial.safeStockQty ?? 0).toLocaleString()} EA</p>
-                    </div>
-                    <div className="rounded-2xl bg-white px-3 py-3">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">입고 후 예상</p>
-                      <p className="mt-1.5 text-lg font-black text-blue-700">{projectedQuantity.toLocaleString()} EA</p>
-                    </div>
+                  <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                    <span className="font-medium text-slate-600">현재 재고 <strong className="ml-1 text-slate-900">{editableBaseStock.toLocaleString()} EA</strong></span>
+                    <span className="font-medium text-slate-600">안전 재고 <strong className="ml-1 text-slate-900">{(resolvedMaterial.safeStockQty ?? 0).toLocaleString()} EA</strong></span>
+                    <span className="font-medium text-slate-600">입고 후 예상 <strong className="ml-1 text-slate-900">{projectedQuantity.toLocaleString()} EA</strong></span>
                   </div>
                 </div>
               )}
 
-              <div className="grid gap-5 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500">수량</label>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">보관 위치</label>
                   <input
-                    ref={quantityInputRef}
+                    type="text"
+                    value={locationDraft}
+                    onChange={(event) => setLocationDraft(event.target.value)}
+                    className="min-h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                    placeholder="예: QA-T1 선반 A"
+                    maxLength={120}
+                  />
+                  <p className="mt-2 text-xs text-slate-400">필요하면 여기서 자재 위치를 함께 수정합니다.</p>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">수량</label>
+                  <input
                     type="number"
                     required
                     min="1"
                     value={quantity}
                     onChange={(event) => setQuantity(event.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 px-3 py-3 text-sm font-medium outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                    className="min-h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
                     placeholder="예: 24"
                   />
                 </div>
 
-                <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500">사업장</label>
-                  <input
-                    type="text"
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">사업장</label>
+                  <select
+                    required
                     value={businessUnit}
                     onChange={(event) => setBusinessUnit(event.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 px-3 py-3 text-sm font-medium outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
-                    placeholder="예: QA-T1"
-                  />
-                  {businessUnitSuggestions.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {businessUnitSuggestions.map((unit) => (
-                        <button
-                          key={unit}
-                          type="button"
-                          onClick={() => setBusinessUnit(unit)}
-                          className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-semibold text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                        >
-                          {unit}
-                        </button>
-                      ))}
-                    </div>
+                    className="admin-select min-h-11 rounded-xl"
+                  >
+                    <option value="">사업장을 선택하세요</option>
+                    {businessUnits.map((item) => (
+                      <option key={item.id} value={item.name}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                  {businessUnits.length === 0 && (
+                    <p className="mt-2 text-sm text-amber-600">등록된 사업장이 없습니다. 먼저 기준 정보에서 사업장을 등록해주세요.</p>
                   )}
                 </div>
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500">비고</label>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">비고</label>
                 <textarea
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
                   rows={3}
-                  className="w-full rounded-2xl border border-slate-200 px-3 py-3 text-sm font-medium outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
                   placeholder="필요한 메모가 있으면 남겨주세요."
                 />
               </div>
 
-              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm font-medium text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={keepContextAfterSave}
-                  onChange={(event) => setKeepContextAfterSave(event.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                저장 후 같은 자재·사업장으로 계속 입력
-              </label>
-
               <div className="flex justify-end gap-2.5 border-t border-slate-100 pt-4">
-                <button type="button" onClick={closeModal} className="rounded-xl px-4 py-2 text-sm font-bold text-slate-500 transition-colors hover:bg-slate-50">취소</button>
-                <button type="submit" disabled={submitLoading} className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-sm shadow-blue-600/20 transition-colors hover:bg-blue-700 disabled:opacity-50">
-                  {submitLoading ? '처리 중...' : '입고 등록'}
+                <button type="button" onClick={closeModal} className="min-h-11 rounded-xl px-4 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50">취소</button>
+                <button type="submit" disabled={submitLoading || businessUnits.length === 0} className="min-h-11 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+                  {submitLoading ? '처리 중...' : editingTransaction ? '수정 저장' : '입고 등록'}
                 </button>
               </div>
             </form>
@@ -739,8 +687,8 @@ const Inbound = () => {
       )}
 
       {showUploadModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" onClick={() => setShowUploadModal(false)}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5" onClick={(event) => event.stopPropagation()}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="flex items-center text-lg font-extrabold text-slate-800">
                 <FileSpreadsheet size={20} className="mr-2 text-emerald-500" />
@@ -751,7 +699,7 @@ const Inbound = () => {
               </button>
             </div>
             <p className="mb-4 text-xs leading-relaxed text-slate-400">
-              엑셀(.xlsx) 또는 CSV(.csv) 파일을 업로드하세요. 헤더에는 <b>자재코드</b>, <b>자재명</b>, <b>수량</b> 컬럼이 포함되어야 합니다.
+              엑셀(.xlsx) 또는 CSV(.csv) 파일을 업로드하세요. 헤더에는 <b>자재코드</b>, <b>자재명</b>, <b>수량</b>, <b>사업장</b> 컬럼이 포함되어야 하며 사업장은 등록된 값만 사용할 수 있습니다.
             </p>
             <div className="mb-4 flex flex-wrap gap-2">
               <button

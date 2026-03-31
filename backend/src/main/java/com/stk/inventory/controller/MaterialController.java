@@ -26,4 +26,15 @@ public class MaterialController {
     public ResponseEntity<MaterialDto> createMaterial(@RequestBody MaterialDto materialDto) {
         return ResponseEntity.ok(materialService.createMaterial(materialDto));
     }
+
+    @PutMapping
+    public ResponseEntity<MaterialDto> updateMaterial(@RequestBody MaterialDto materialDto) {
+        return ResponseEntity.ok(materialService.updateMaterial(materialDto.getMaterialCode(), materialDto));
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteMaterial(@RequestParam String materialCode) {
+        materialService.deleteMaterial(materialCode);
+        return ResponseEntity.noContent().build();
+    }
 }

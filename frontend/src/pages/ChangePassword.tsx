@@ -46,27 +46,25 @@ const ChangePassword = () => {
 
   return (
     <div className="mx-auto max-w-2xl px-1 pb-6">
-      <section className="rounded-[28px] border border-blue-100 bg-gradient-to-br from-white via-blue-50/60 to-indigo-50/70 p-6 shadow-sm md:p-8">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="max-w-xl">
-            <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-700">
-              Account Security
-            </span>
-            <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900">비밀번호 변경</h2>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">계정 설정</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">비밀번호 변경</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
               현재 비밀번호를 확인한 뒤 새 비밀번호로 교체합니다. 변경 후에는 새 비밀번호로 로그인하세요.
             </p>
           </div>
-          <div className="rounded-2xl border border-white bg-white/85 px-4 py-3 text-xs text-slate-500 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
             로그인 계정
             <p className="mt-1 font-semibold text-slate-700">{getStoredEmail()}</p>
           </div>
         </div>
       </section>
 
-      <section className="mt-6 rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
         <div className="mb-6 flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
             <KeyRound size={20} />
           </div>
           <div>
@@ -85,7 +83,7 @@ const ChangePassword = () => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label htmlFor="change-current-password" className="mb-2 block text-sm font-semibold text-slate-700">현재 비밀번호</label>
+            <label htmlFor="change-current-password" className="mb-2 block text-sm font-medium text-slate-700">현재 비밀번호</label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                 <Lock className="text-slate-400" size={18} />
@@ -96,7 +94,7 @@ const ChangePassword = () => {
                 type="password"
                 value={currentPassword}
                 onChange={(event) => setCurrentPassword(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 font-medium text-slate-700 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-slate-700 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="현재 비밀번호 입력"
                 autoComplete="current-password"
               />
@@ -104,7 +102,7 @@ const ChangePassword = () => {
           </div>
 
           <div>
-            <label htmlFor="change-new-password" className="mb-2 block text-sm font-semibold text-slate-700">새 비밀번호</label>
+            <label htmlFor="change-new-password" className="mb-2 block text-sm font-medium text-slate-700">새 비밀번호</label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                 <Lock className="text-slate-400" size={18} />
@@ -115,7 +113,7 @@ const ChangePassword = () => {
                 type="password"
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 font-medium text-slate-700 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-slate-700 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="새 비밀번호 8자 이상"
                 autoComplete="new-password"
               />
@@ -123,7 +121,7 @@ const ChangePassword = () => {
           </div>
 
           <div>
-            <label htmlFor="change-confirm-password" className="mb-2 block text-sm font-semibold text-slate-700">새 비밀번호 확인</label>
+            <label htmlFor="change-confirm-password" className="mb-2 block text-sm font-medium text-slate-700">새 비밀번호 확인</label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                 <Lock className="text-slate-400" size={18} />
@@ -134,7 +132,7 @@ const ChangePassword = () => {
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 font-medium text-slate-700 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-slate-700 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="새 비밀번호 다시 입력"
                 autoComplete="new-password"
               />
@@ -144,7 +142,7 @@ const ChangePassword = () => {
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3.5 text-sm font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            className="flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
           >
             {loading ? (
               <Loader2 className="animate-spin" size={20} />

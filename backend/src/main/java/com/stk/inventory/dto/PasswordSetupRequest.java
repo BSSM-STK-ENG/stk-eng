@@ -7,6 +7,8 @@ import lombok.Data;
 public class PasswordSetupRequest {
     private String currentPassword;
 
+    private String name;
+
     @NotBlank(message = "새 비밀번호를 입력해주세요.")
     private String newPassword;
 }

@@ -49,6 +49,24 @@ public class InventoryTransaction {
     @JoinColumn(name = "created_by_user_id")
     private User createdBy;
 
+    @Column(name = "reverted", nullable = false)
+    @Builder.Default
+    private boolean reverted = false;
+
+    @Column(name = "system_generated", nullable = false)
+    @Builder.Default
+    private boolean systemGenerated = false;
+
+    @Column(name = "reversal_of_transaction_id")
+    private Long reversalOfTransactionId;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "reverted_by_user_id")
+    private User revertedBy;
+
+    @Column(name = "reverted_at")
+    private LocalDateTime revertedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

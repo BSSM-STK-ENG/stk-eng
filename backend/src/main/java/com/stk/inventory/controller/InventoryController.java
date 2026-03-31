@@ -49,7 +49,7 @@ public class InventoryController {
 
     @GetMapping("/history")
     public ResponseEntity<List<InventoryTransaction>> getHistory() {
-        return ResponseEntity.ok(inventoryService.getTransactions());
+        return ResponseEntity.ok(inventoryService.getHistoryTransactions());
     }
 
     @GetMapping("/calendar")
@@ -78,6 +78,12 @@ public class InventoryController {
     public ResponseEntity<Map<String, String>> deleteTransaction(@PathVariable Long id) {
         inventoryService.deleteTransaction(id);
         return ResponseEntity.ok(Map.of("message", "Deleted successfully"));
+    }
+
+    @PostMapping("/{id}/revert")
+    public ResponseEntity<Map<String, String>> revertTransaction(@PathVariable Long id) {
+        inventoryService.revertTransaction(id);
+        return ResponseEntity.ok(Map.of("message", "되돌리기가 완료되었습니다."));
     }
 
     @PutMapping("/{id}")

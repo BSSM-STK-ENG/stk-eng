@@ -8,10 +8,6 @@ vi.mock('../../api/axios', () => ({
   default: { get: vi.fn(), post: vi.fn(), delete: vi.fn() },
 }));
 
-vi.mock('../../components/ledger/InventoryCalendarBoard', () => ({
-  default: () => <div>calendar mock</div>,
-}));
-
 vi.mock('../../components/inventory/MaterialWorklistPanel', () => ({
   default: () => <div>worklist mock</div>,
 }));
@@ -97,7 +93,7 @@ describe('Ledger', () => {
     renderLedger('/ledger?material=admin@stk.com');
 
     await waitFor(() => {
-      expect(screen.getByText('관리자 등록 자재')).toBeInTheDocument();
+      expect(screen.getAllByText('관리자 등록 자재').length).toBeGreaterThan(0);
     });
 
     expect(screen.getByDisplayValue('admin@stk.com')).toBeInTheDocument();
@@ -112,7 +108,13 @@ describe('Ledger', () => {
       expect(screen.getByText('지금 보고 있는 조건')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/"MAT-001"를 찾고 있고/)).toBeInTheDocument();
-    expect(screen.getByText(/부산항에서/)).toBeInTheDocument();
+    expect(
+      screen.getByText((_, element) =>
+        element?.tagName === 'P'
+        && element.textContent?.includes('"MAT-001"')
+        && element.textContent.includes('2026. 3. 24.')
+        && element.textContent.includes('부산항'),
+      ),
+    ).toBeInTheDocument();
   });
 });

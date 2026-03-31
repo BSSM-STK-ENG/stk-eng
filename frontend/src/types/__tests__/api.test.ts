@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import type {
   AuthRequest,
   AuthResponse,
+  RegisterRequest,
+  RegisterResponse,
   MaterialDto,
   TransactionRequest,
   InventoryTransaction,
@@ -23,19 +25,32 @@ describe('API type definitions', () => {
   it('AuthResponse has correct shape', () => {
     const res: AuthResponse = {
       token: 'jwt-token',
+      name: '홍길동',
       email: 'test@test.com',
       role: 'ADMIN',
+      permissionPreset: 'MANAGER',
+      pagePermissions: ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY', 'INBOUND', 'OUTBOUND', 'CLOSING', 'MASTER_DATA'],
       passwordChangeRequired: true,
       message: 'success',
     };
     expect(res.token).toBe('jwt-token');
     expect(res.passwordChangeRequired).toBe(true);
+    expect(res.pagePermissions).toContain('MASTER_DATA');
+  });
+
+  it('Register request and response have correct shape', () => {
+    const req: RegisterRequest = { name: '신규사용자', email: 'new@test.com', password: 'Password123!' };
+    const res: RegisterResponse = { email: 'new@test.com', message: '인증 메일을 보냈습니다.' };
+    expect(req.name).toBe('신규사용자');
+    expect(req.email).toBe('new@test.com');
+    expect(res.message).toContain('인증 메일');
   });
 
   it('MaterialDto supports nullable fields', () => {
     const material: MaterialDto = {
       materialCode: 'BG001',
       materialName: 'Test Material',
+      description: null,
       location: null,
       safeStockQty: null,
       currentStockQty: null,
@@ -49,6 +64,7 @@ describe('API type definitions', () => {
     const material: MaterialDto = {
       materialCode: 'BG001',
       materialName: 'Test Material',
+      description: '설명',
       location: 'A-1-1',
       safeStockQty: 100,
       currentStockQty: 250,
@@ -58,7 +74,7 @@ describe('API type definitions', () => {
   });
 
   it('User.id is string (UUID)', () => {
-    const user: User = { id: '550e8400-e29b-41d4-a716-446655440000', email: 'admin@test.com', role: 'ADMIN' };
+    const user: User = { id: '550e8400-e29b-41d4-a716-446655440000', name: '관리자', email: 'admin@test.com', role: 'ADMIN' };
     expect(typeof user.id).toBe('string');
   });
 
@@ -66,7 +82,7 @@ describe('API type definitions', () => {
     const tx: InventoryTransaction = {
       id: 1,
       transactionType: 'IN',
-      material: { materialCode: 'BG001', materialName: 'Test', location: null, safeStockQty: null, currentStockQty: null },
+      material: { materialCode: 'BG001', materialName: 'Test', description: null, location: null, safeStockQty: null, currentStockQty: null },
       quantity: 100,
       transactionDate: '2024-01-01T00:00:00',
       businessUnit: null,
@@ -111,6 +127,7 @@ describe('API type definitions', () => {
     const req: TransactionRequest = { materialCode: 'BG001', quantity: 10 };
     expect(req.businessUnit).toBeUndefined();
     expect(req.manager).toBeUndefined();
+    expect(req.managerUserId).toBeUndefined();
     expect(req.note).toBeUndefined();
     expect(req.reference).toBeUndefined();
     expect(req.transactionDate).toBeUndefined();
@@ -120,6 +137,7 @@ describe('API type definitions', () => {
     const mat: Material = {
       materialCode: 'X001',
       materialName: 'Widget',
+      description: '설명',
       location: 'B-2-3',
       safeStockQty: 50,
       currentStockQty: 120,
