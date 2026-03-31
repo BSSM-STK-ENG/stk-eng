@@ -18,6 +18,7 @@ import {
   Shield,
 } from 'lucide-react';
 import ChatPanel from '../components/chat/ChatPanel';
+import { useChatWorkspace } from '../components/chat/useChatWorkspace';
 import type { PagePermissionKey } from '../types/api';
 import { clearAuthSession, getStoredEmail, getStoredName, getStoredRole, hasStoredPagePermission } from '../utils/auth-session';
 import { getAiPreferences, saveAiPreferences } from '../api/chat';
@@ -71,6 +72,7 @@ function getChatVisibilityStorageKey(email: string) {
 const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const chatWorkspace = useChatWorkspace();
   const userName = getStoredName();
   const userEmail = getStoredEmail();
   const userRole = getStoredRole();
@@ -398,6 +400,7 @@ const MainLayout: React.FC = () => {
                 </div>
 
                 <ChatPanel
+                  workspace={chatWorkspace}
                   mobileOpen={chatMobileOpen}
                   onCloseMobile={() => setChatMobileOpen(false)}
                   collapsed={chatCollapsed}

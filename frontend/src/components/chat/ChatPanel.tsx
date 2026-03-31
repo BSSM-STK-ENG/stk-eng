@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { DEFAULT_PROVIDER_CATALOG } from './chatDefaults';
 import { useChatWorkspace } from './useChatWorkspace';
+import type { ChatWorkspaceState } from './useChatWorkspace';
 import type {
   AiPreferences,
   ChatMessage,
@@ -33,7 +34,12 @@ interface ChatPanelProps {
   onToggleCollapse: () => void;
   width: number;
   onPreferencesChange?: (next: AiPreferences) => void;
+  workspace?: ChatWorkspaceState;
 }
+
+type ChatPanelViewProps = ChatPanelProps & {
+  workspace: ChatWorkspaceState;
+};
 
 interface SettingsState {
   provider: ProviderType;
@@ -657,20 +663,19 @@ function Composer({
   );
 }
 
-export default function ChatPanel({
+function ChatPanelView({
   mobileOpen,
   onCloseMobile,
   collapsed,
   onToggleCollapse,
   width,
   onPreferencesChange,
-}: ChatPanelProps) {
-  const workspace = useChatWorkspace();
+  workspace,
+}: ChatPanelViewProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [connectionFeedback, setConnectionFeedback] = useState<CredentialConnectionTestResponse | null>(null);
   const [settings, setSettings] = useState<SettingsState>({
     provider: workspace.draft.provider,
     model: workspace.draft.model,
@@ -687,7 +692,6 @@ export default function ChatPanel({
   const hasActiveKey = Boolean(activeCredential?.hasKey);
 
   const updateSettings = (next: SettingsState) => {
-    setConnectionFeedback(null);
     workspace.clearNotices();
     setSettings(next);
   };
@@ -739,8 +743,7 @@ export default function ChatPanel({
   };
 
   const handleTestCredential = async () => {
-    const result = await workspace.testCredential(settings);
-    setConnectionFeedback(result);
+    await workspace.testCredential(settings);
   };
 
   const handleSaveSettings = async () => {
@@ -904,7 +907,7 @@ export default function ChatPanel({
         settings={settings}
         setSettings={updateSettings}
         credentials={workspace.credentials}
-        testResult={connectionFeedback}
+        testResult={workspace.credentialTestResult}
         onSave={() => void handleSaveSettings()}
         onTest={() => void handleTestCredential()}
         onDelete={() => void handleDeleteCredential()}
@@ -968,4 +971,17 @@ export default function ChatPanel({
 
     </>
   );
+}
+
+function ChatPanelWithWorkspace(props: ChatPanelProps) {
+  const workspace = useChatWorkspace();
+  return <ChatPanelView {...props} workspace={workspace} />;
+}
+
+export default function ChatPanel(props: ChatPanelProps) {
+  if (props.workspace) {
+    return <ChatPanelView {...props} workspace={props.workspace} />;
+  }
+
+  return <ChatPanelWithWorkspace {...props} />;
 }
