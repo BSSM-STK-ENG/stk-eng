@@ -523,7 +523,7 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50/90 px-3 py-1 text-xs font-bold text-blue-700">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
               <LineChart size={14} />
               최근 재고 변화
             </div>
@@ -655,7 +655,7 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
                   type="button"
                   onClick={handleAddSelectedToWorklist}
                   disabled={!selectedCodes.length || allSelectedCodesQueued}
-                  className="chat-focus-ring inline-flex min-h-10 items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="chat-focus-ring inline-flex min-h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   <Check size={14} />
                   {allSelectedCodesQueued ? '이 자재들은 이미 오늘 처리 목록에 있습니다' : `이 자재 ${selectedCodes.length}개를 오늘 처리 목록에 담기`}
@@ -704,13 +704,13 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
                           onClick={() => handleToggleMaterial(material.materialCode)}
                           className={`chat-focus-ring flex w-full items-start gap-3 rounded-2xl border px-3 py-3 text-left transition ${
                             checked
-                              ? 'border-blue-200 bg-blue-50/70'
+                              ? 'border-slate-900 bg-slate-50'
                               : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                           }`}
                         >
                           <span
                             className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
-                              checked ? 'border-blue-500 bg-blue-600 text-white' : 'border-slate-300 bg-white text-transparent'
+                              checked ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white text-transparent'
                             }`}
                           >
                             <Check size={13} />
@@ -765,7 +765,7 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
             accentClassName={totalPeriodChange >= 0 ? 'text-emerald-600' : 'text-amber-600'}
           />
           <MetricCard
-            eyebrow="부족 위험 자재"
+            eyebrow="안전재고 이하 자재"
             value={`${safetyRiskCount} 종`}
             note={safetyRiskCount > 0 ? '안전재고보다 적은 자재가 있어 우선 확인이 필요합니다.' : '선택 자재는 모두 안전재고보다 충분합니다.'}
             accentClassName={safetyRiskCount > 0 ? 'text-amber-600' : 'text-slate-900'}
@@ -805,7 +805,7 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
             <div className="mt-5 min-h-[420px]">
               {(loading || loadingMaterials) && (
                 <div className="flex h-[420px] flex-col items-center justify-center rounded-[24px] border border-dashed border-slate-200 bg-slate-50/80 text-slate-500">
-                  <LoaderCircle size={28} className="animate-spin text-blue-500" />
+                  <LoaderCircle size={28} className="animate-spin text-slate-500" />
                   <p className="mt-4 text-sm font-semibold">재고 변동 흐름을 계산하고 있습니다.</p>
                   <p className="mt-1 text-xs text-slate-400">일별 재고 수량과 입출고량을 함께 정리하는 중입니다.</p>
                 </div>

@@ -127,9 +127,9 @@ function resolveTagClasses(transactionType: TransactionType) {
     case 'OUT':
       return 'bg-amber-100 text-amber-700';
     case 'RETURN':
-      return 'bg-emerald-100 text-emerald-700';
+      return 'bg-blue-100 text-blue-700';
     case 'EXCHANGE':
-      return 'bg-violet-100 text-violet-700';
+      return 'bg-amber-100 text-amber-700';
     default:
       return 'bg-slate-100 text-slate-700';
   }
@@ -348,7 +348,7 @@ function SelectedDayDetailBody({
                   transaction.transactionType === 'OUT'
                     ? 'text-amber-600'
                     : transaction.transactionType === 'EXCHANGE'
-                      ? 'text-violet-600'
+                      ? 'text-amber-600'
                       : 'text-blue-700'
                 }`}>
                   {transaction.transactionType === 'OUT' ? '-' : transaction.transactionType === 'EXCHANGE' ? '±' : '+'}
@@ -610,7 +610,7 @@ const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-sky-50/90 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-700">
               <CalendarDays size={14} />
               Operational Calendar
             </div>
@@ -626,12 +626,12 @@ const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
                 출고 {formatCompactNumber(filteredDays.reduce((sum, day) => sum + day.outboundQty, 0))} EA
               </span>
               {normalizedBusinessUnitFilter && (
-                <span className="rounded-full border border-sky-100 bg-sky-50/90 px-3 py-1.5 text-xs font-semibold text-sky-700">
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">
                   사업장 {formatBusinessUnit(normalizedBusinessUnitFilter)}
                 </span>
               )}
               {normalizedMonthQuery && (
-                <span className="rounded-full border border-violet-100 bg-violet-50/90 px-3 py-1.5 text-xs font-semibold text-violet-700">
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">
                   검색어 {monthSearchTerm}
                 </span>
               )}
@@ -781,7 +781,7 @@ const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
 
             {(loading && !calendarData) && (
               <div className="mt-5 flex min-h-[560px] flex-col items-center justify-center rounded-[24px] border border-dashed border-slate-200 bg-slate-50/80 text-slate-500">
-                <LoaderCircle size={28} className="animate-spin text-sky-500" />
+                <LoaderCircle size={28} className="animate-spin text-slate-500" />
                 <p className="mt-4 text-sm font-semibold">월간 캘린더를 불러오는 중입니다.</p>
               </div>
             )}
@@ -838,7 +838,7 @@ const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
                           </span>
                           {isCurrentDay && (
                             <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${
-                              isSelected ? 'bg-white/16 text-white' : 'bg-sky-100 text-sky-700'
+                              isSelected ? 'bg-white/16 text-white' : 'bg-slate-100 text-slate-700'
                             }`}>
                               Today
                             </span>
