@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 import api from '../api/axios';
 import AdminSearchField from '../components/common/AdminSearchField';
-import MaterialLookupField, { buildMaterialLookupLabel } from '../components/inventory/MaterialLookupField';
+import MaterialLookupField from '../components/inventory/MaterialLookupField';
+import { buildMaterialLookupLabel } from '../components/inventory/material-lookup-utils';
 import type { InventoryTransaction, MasterDataItem, MaterialDto, UserOption } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
 import { formatAppDateTime } from '../utils/date-format';
@@ -452,7 +453,7 @@ const Outbound = () => {
       </section>
 
       {notice && (
-        <div className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm font-medium ${
+        <div className={`flex items-start gap-3 rounded-xl border px-3.5 py-2.5 text-sm font-medium ${
           notice.tone === 'success'
             ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
             : 'border-rose-200 bg-rose-50 text-rose-700'
@@ -469,11 +470,11 @@ const Outbound = () => {
         wrapperClassName="max-w-md"
       />
 
-      <div className="flex flex-col gap-3 md:flex-row md:items-center">
+      <div className="flex flex-col gap-2.5 md:flex-row md:items-center">
         <select
           value={businessUnitFilter}
           onChange={(event) => handleBusinessUnitFilterChange(event.target.value)}
-          className="chat-focus-ring min-h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-500/20"
+          className="chat-focus-ring h-10 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-500/20"
         >
           <option value="ALL">전체 사업장</option>
           {businessUnitOptions.map((unit) => (
@@ -482,7 +483,7 @@ const Outbound = () => {
             </option>
           ))}
         </select>
-        <label className="chat-focus-ring flex min-h-11 items-center rounded-2xl border border-slate-200 bg-white px-4 transition focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-rose-500/20">
+        <label className="chat-focus-ring flex h-10 items-center rounded-lg border border-slate-200 bg-white px-3.5 transition focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-rose-500/20">
           <input
             type="date"
             value={dayFilter}
@@ -493,8 +494,9 @@ const Outbound = () => {
         <button
           type="button"
           onClick={handleResetFilters}
-          className="chat-focus-ring min-h-10 rounded-full border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+          className="chat-focus-ring h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
         >
+          <RotateCcw size={13} className="mr-1.5" />
           필터 초기화
         </button>
       </div>
@@ -525,7 +527,7 @@ const Outbound = () => {
                 <button
                   type="button"
                   onClick={() => openEditOutbound(transaction)}
-                  className="admin-btn inline-flex min-h-10 justify-center whitespace-nowrap px-3 text-sm text-slate-600"
+                className="admin-btn inline-flex h-9 justify-center whitespace-nowrap px-3 text-sm text-slate-600"
                 >
                   <PencilLine size={14} />
                   수정
@@ -533,7 +535,7 @@ const Outbound = () => {
                 <button
                   type="button"
                   onClick={() => openRepeatOutbound(transaction)}
-                  className="admin-btn inline-flex min-h-10 justify-center whitespace-nowrap px-3 text-sm text-slate-600"
+                className="admin-btn inline-flex h-9 justify-center whitespace-nowrap px-3 text-sm text-slate-600"
                 >
                   <Plus size={14} />
                   다시 등록
@@ -541,7 +543,7 @@ const Outbound = () => {
                 <button
                   type="button"
                   onClick={() => void handleRevert(transaction.id)}
-                  className="admin-btn inline-flex min-h-10 justify-center whitespace-nowrap px-3 text-sm text-slate-600"
+                className="admin-btn inline-flex h-9 justify-center whitespace-nowrap px-3 text-sm text-slate-600"
                 >
                   <RotateCcw size={14} />
                   되돌리기
@@ -556,8 +558,9 @@ const Outbound = () => {
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className="chat-focus-ring inline-flex min-h-10 items-center rounded-full border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                  className="chat-focus-ring inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
                 >
+                  <RotateCcw size={13} className="mr-1.5" />
                   필터 초기화
                 </button>
               </div>
@@ -584,13 +587,13 @@ const Outbound = () => {
 
       {showModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-[720px] rounded-[24px] bg-white p-6 shadow-2xl ring-1 ring-black/5">
-            <div className="mb-6 flex items-start justify-between gap-4">
+          <div className="w-full max-w-[680px] rounded-[20px] bg-white p-5 shadow-2xl ring-1 ring-black/5">
+            <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">{editingTransaction ? '출고 내역 수정' : '신규 출고 등록'}</h3>
                 <p className="mt-1 text-sm text-slate-500">자재, 수량, 사업장, 담당자를 확인한 뒤 저장합니다.</p>
               </div>
-              <button onClick={closeModal} className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100">
+              <button onClick={closeModal} className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100">
                 <X size={18} />
               </button>
             </div>
@@ -609,7 +612,7 @@ const Outbound = () => {
               </div>
 
               {resolvedMaterial && (
-                <div className={`rounded-2xl border px-4 py-3.5 ${
+                <div className={`rounded-xl border px-3.5 py-3 ${
                   insufficientStock ? 'border-rose-200 bg-rose-50/70' : 'border-slate-200 bg-slate-50'
                 }`}>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -620,13 +623,13 @@ const Outbound = () => {
                         <p className="mt-2 text-sm text-slate-400">{resolvedMaterial.description}</p>
                       )}
                     </div>
-                    <span className={`inline-flex min-w-[96px] shrink-0 self-start justify-center whitespace-nowrap rounded-full px-3 py-1 text-sm font-semibold ${
+                    <span className={`inline-flex min-w-[88px] shrink-0 self-start justify-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${
                       insufficientStock ? 'bg-white text-rose-700' : 'bg-white text-slate-700'
                     }`}>
                       {insufficientStock ? '재고 부족' : '출고 가능'}
                     </span>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                  <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 text-sm">
                     <span className="font-medium text-slate-600">현재 재고 <strong className="ml-1 text-slate-900">{editableAvailableStock.toLocaleString()} EA</strong></span>
                     <span className="font-medium text-slate-600">출고 요청 <strong className="ml-1 text-rose-600">{safeQuantity.toLocaleString()} EA</strong></span>
                     <span className="font-medium text-slate-600">출고 후 예상 <strong className={insufficientStock ? 'ml-1 text-rose-600' : 'ml-1 text-slate-900'}>{remainingAfterDispatch.toLocaleString()} EA</strong></span>
@@ -646,7 +649,7 @@ const Outbound = () => {
                     min="1"
                     value={quantity}
                     onChange={(event) => setQuantity(event.target.value)}
-                    className="min-h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm text-slate-700 outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-500/30"
+                    className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700 outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-500/30"
                     placeholder="예: 12"
                   />
                 </div>
@@ -657,7 +660,7 @@ const Outbound = () => {
                     required
                     value={businessUnit}
                     onChange={(event) => setBusinessUnit(event.target.value)}
-                    className="admin-select min-h-11 rounded-xl"
+                    className="admin-select h-10 rounded-lg"
                   >
                     <option value="">사업장을 선택하세요</option>
                     {businessUnits.map((item) => (
@@ -679,7 +682,7 @@ const Outbound = () => {
                     required
                     value={managerUserId}
                     onChange={(event) => setManagerUserId(event.target.value)}
-                    className="admin-select min-h-11 rounded-xl"
+                    className="admin-select h-10 rounded-lg"
                   >
                     <option value="">담당자를 선택하세요</option>
                     {userOptions.map((item) => (
@@ -699,15 +702,19 @@ const Outbound = () => {
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
                     rows={3}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-700 outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-500/30"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-500/30"
                     placeholder="필요한 메모가 있으면 남겨주세요."
                   />
                 </div>
               </div>
 
               <div className="flex justify-end gap-2.5 border-t border-slate-100 pt-4">
-                <button type="button" onClick={closeModal} className="min-h-11 rounded-xl px-4 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50">취소</button>
-                <button type="submit" disabled={submitLoading || insufficientStock || businessUnits.length === 0 || userOptions.length === 0} className="min-h-11 rounded-xl bg-rose-500 px-5 text-sm font-semibold text-white shadow-sm shadow-rose-500/20 transition-colors hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-50">
+                <button type="button" onClick={closeModal} className="inline-flex h-9 items-center rounded-lg px-3.5 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50">
+                  <X size={14} className="mr-1.5" />
+                  취소
+                </button>
+                <button type="submit" disabled={submitLoading || insufficientStock || businessUnits.length === 0 || userOptions.length === 0} className="h-9 rounded-lg bg-rose-500 px-4 text-sm font-semibold text-white shadow-sm shadow-rose-500/20 transition-colors hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-50">
+                  <CheckCircle2 size={14} className="mr-1.5" />
                   {submitLoading ? '처리 중...' : editingTransaction ? '수정 저장' : '출고 등록'}
                 </button>
               </div>
@@ -719,7 +726,7 @@ const Outbound = () => {
 
       {showUploadModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5">
+          <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-2xl ring-1 ring-black/5">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="flex items-center text-lg font-extrabold text-slate-800">
                 <FileSpreadsheet size={20} className="mr-2 text-emerald-500" />
@@ -734,7 +741,7 @@ const Outbound = () => {
               <button
                 type="button"
                 onClick={handleOutboundTemplateDownload}
-                className="chat-focus-ring inline-flex min-h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                className="chat-focus-ring inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
               >
                 <Download size={14} />
                 샘플 양식 다운로드
@@ -785,8 +792,12 @@ const Outbound = () => {
                 {uploadFile && <p className="mt-2 text-xs font-bold text-emerald-600">{uploadFile.name}</p>}
               </div>
               <div className="flex justify-end gap-2.5 border-t border-slate-100 pt-3">
-                <button type="button" onClick={() => setShowUploadModal(false)} className="rounded-xl px-4 py-2 text-sm font-bold text-slate-500 transition-colors hover:bg-slate-50">취소</button>
-                <button type="submit" disabled={uploadLoading || !uploadFile} className="rounded-xl bg-emerald-500 px-5 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-500/20 transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40">
+                <button type="button" onClick={() => setShowUploadModal(false)} className="inline-flex h-9 items-center rounded-lg px-3.5 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50">
+                  <X size={14} className="mr-1.5" />
+                  취소
+                </button>
+                <button type="submit" disabled={uploadLoading || !uploadFile} className="h-9 rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-white shadow-sm shadow-emerald-500/20 transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40">
+                  <Upload size={14} className="mr-1.5" />
                   {uploadLoading ? '업로드 중...' : '업로드'}
                 </button>
               </div>
