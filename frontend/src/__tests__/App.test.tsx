@@ -4,28 +4,60 @@ import App from '../App';
 import api from '../api/axios';
 
 vi.mock('../api/axios', () => ({
-  default: { post: vi.fn(), get: vi.fn(), delete: vi.fn() },
+  default: { post: vi.fn(), get: vi.fn(), put: vi.fn(), delete: vi.fn() },
 }));
 
 const mockedGet = vi.mocked(api.get);
+
+const setSession = (options: {
+  email: string;
+  role: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+  passwordChangeRequired?: boolean;
+  pagePermissions?: string[];
+  permissionPreset?: string;
+}) => {
+  localStorage.setItem('token', 'test-token');
+  localStorage.setItem('email', options.email);
+  localStorage.setItem('role', options.role);
+  localStorage.setItem('passwordChangeRequired', String(options.passwordChangeRequired ?? false));
+  if (options.permissionPreset) {
+    localStorage.setItem('permissionPreset', options.permissionPreset);
+  }
+  if (options.pagePermissions) {
+    localStorage.setItem('pagePermissions', JSON.stringify(options.pagePermissions));
+  }
+};
 
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear();
     window.history.pushState({}, '', '/login');
-    mockedGet.mockResolvedValue({ data: [], status: 200, statusText: 'OK', headers: {}, config: {} as never });
+    mockedGet.mockImplementation(async (url) => ({
+      data:
+        url === '/ai/preferences'
+          ? {
+              provider: 'openai',
+              model: 'gpt-5',
+              chatPanelEnabled: false,
+            }
+          : [],
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: {} as never,
+    }));
   });
 
   it('renders login page at /login', () => {
     render(<App />);
-    expect(screen.getByText('STK Inventory')).toBeInTheDocument();
+    expect(screen.getByText('STK-ENG')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('name@company.com')).toBeInTheDocument();
   });
 
-  it('redirects /register to login', () => {
+  it('renders register page at /register', () => {
     window.history.pushState({}, '', '/register');
     render(<App />);
-    expect(screen.getByPlaceholderText('name@company.com')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '회원가입' })).toBeInTheDocument();
   });
 
   it('redirects to /login when not authenticated', () => {
@@ -36,39 +68,53 @@ describe('App', () => {
   });
 
   it('renders protected route when authenticated', async () => {
-    localStorage.setItem('token', 'test-token');
-    localStorage.setItem('email', 'test@test.com');
-    localStorage.setItem('role', 'USER');
-    localStorage.setItem('passwordChangeRequired', 'false');
-    window.history.pushState({}, '', '/stock/current');
+    setSession({
+      email: 'test@test.com',
+      role: 'USER',
+      pagePermissions: ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY'],
+      permissionPreset: 'VIEWER',
+    });
+    window.history.pushState({}, '', '/dashboard');
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getAllByText('STK Inventory').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('STK-ENG').length).toBeGreaterThan(0);
     });
+    expect(screen.getByRole('heading', { name: '재고 현황' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'AI 패널 켜기' })).toBeInTheDocument();
     expect(screen.queryByLabelText('채팅 패널')).not.toBeInTheDocument();
   });
 
   it('redirects authenticated users who must change password', () => {
-    localStorage.setItem('token', 'test-token');
-    localStorage.setItem('email', 'test@test.com');
-    localStorage.setItem('role', 'USER');
-    localStorage.setItem('passwordChangeRequired', 'true');
+    setSession({
+      email: 'test@test.com',
+      role: 'USER',
+      passwordChangeRequired: true,
+      pagePermissions: ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY'],
+      permissionPreset: 'VIEWER',
+    });
     window.history.pushState({}, '', '/stock/current');
     render(<App />);
     expect(screen.getByText('초기 비밀번호 변경')).toBeInTheDocument();
   });
 
   it('renders super admin account page for super admin users', async () => {
-    localStorage.setItem('token', 'test-token');
-    localStorage.setItem('email', 'superadmin@test.com');
-    localStorage.setItem('role', 'SUPER_ADMIN');
-    localStorage.setItem('passwordChangeRequired', 'false');
+    setSession({
+      email: 'superadmin@test.com',
+      role: 'SUPER_ADMIN',
+      pagePermissions: ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY', 'INBOUND', 'OUTBOUND', 'CLOSING', 'MASTER_DATA', 'ADMIN_ACCOUNTS'],
+      permissionPreset: 'SUPER_ADMIN',
+    });
     mockedGet.mockImplementation(async (url) => ({
       data:
         url === '/admin/users'
           ? []
+          : url === '/admin/users/permission-options'
+            ? {
+                roleProfiles: [],
+                pages: [],
+                presets: [],
+              }
           : url === '/ai/preferences'
             ? {
                 provider: 'openai',
@@ -83,27 +129,82 @@ describe('App', () => {
     }));
     window.history.pushState({}, '', '/admin/accounts');
     render(<App />);
-    expect(screen.getByText('계정 발급 센터')).toBeInTheDocument();
+    expect(screen.getAllByText('사용자 관리').length).toBeGreaterThan(0);
     await waitFor(() => {
-      expect(screen.getByText('아직 발급된 계정이 없습니다.')).toBeInTheDocument();
+      expect(screen.getByText('아직 등록된 사용자가 없습니다.')).toBeInTheDocument();
     });
   });
 
   it('renders password change page for authenticated users', () => {
-    localStorage.setItem('token', 'test-token');
-    localStorage.setItem('email', 'user@test.com');
-    localStorage.setItem('role', 'USER');
-    localStorage.setItem('passwordChangeRequired', 'false');
+    setSession({
+      email: 'user@test.com',
+      role: 'USER',
+      pagePermissions: ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY'],
+      permissionPreset: 'VIEWER',
+    });
     window.history.pushState({}, '', '/account/password');
     render(<App />);
     expect(screen.getByRole('heading', { name: '비밀번호 변경' })).toBeInTheDocument();
   });
 
+  it('renders master data page when the account has that page permission', async () => {
+    setSession({
+      email: 'admin@test.com',
+      role: 'ADMIN',
+      pagePermissions: ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY', 'INBOUND', 'OUTBOUND', 'CLOSING', 'MASTER_DATA'],
+      permissionPreset: 'MANAGER',
+    });
+    window.history.pushState({}, '', '/master-data');
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('heading', { name: '사업장 관리' }).length).toBeGreaterThan(0);
+    });
+    expect(screen.getAllByText('사업장 관리').length).toBeGreaterThan(0);
+  });
+
+  it('redirects general users away from write pages', async () => {
+    setSession({
+      email: 'user@test.com',
+      role: 'USER',
+      pagePermissions: ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY'],
+      permissionPreset: 'VIEWER',
+    });
+    window.history.pushState({}, '', '/inbound');
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: '재고 현황' })).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('heading', { name: '입고 관리' })).not.toBeInTheDocument();
+  });
+
+  it('redirects admins away from super admin page', async () => {
+    setSession({
+      email: 'admin@test.com',
+      role: 'ADMIN',
+      pagePermissions: ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY', 'INBOUND', 'OUTBOUND'],
+      permissionPreset: 'OPERATOR',
+    });
+    window.history.pushState({}, '', '/admin/accounts');
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: '재고 현황' })).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('heading', { name: '사용자 관리' })).not.toBeInTheDocument();
+  });
+
   it('hides the chat panel when account preferences disable it', async () => {
-    localStorage.setItem('token', 'test-token');
-    localStorage.setItem('email', 'user@test.com');
-    localStorage.setItem('role', 'USER');
-    localStorage.setItem('passwordChangeRequired', 'false');
+    setSession({
+      email: 'user@test.com',
+      role: 'USER',
+      pagePermissions: ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY'],
+      permissionPreset: 'VIEWER',
+    });
     mockedGet.mockImplementation(async (url) => ({
       data:
         url === '/ai/preferences'
@@ -126,5 +227,37 @@ describe('App', () => {
       expect(screen.queryByLabelText('채팅 패널')).not.toBeInTheDocument();
     });
     expect(screen.getByRole('button', { name: 'AI 패널 켜기' })).toBeInTheDocument();
+  });
+
+  it('clears selected materials when opening another page', async () => {
+    setSession({
+      email: 'user@test.com',
+      role: 'USER',
+      pagePermissions: ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY'],
+      permissionPreset: 'VIEWER',
+    });
+    localStorage.setItem('stk-material-worklist:user@test.com', JSON.stringify(['MAT-001', 'MAT-002']));
+    mockedGet.mockImplementation(async (url) => ({
+      data:
+        url === '/ai/preferences'
+          ? {
+              provider: 'openai',
+              model: 'gpt-5',
+              chatPanelEnabled: false,
+            }
+          : [],
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: {} as never,
+    }));
+    window.history.pushState({}, '', '/dashboard');
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: '재고 현황' })).toBeInTheDocument();
+    });
+    expect(localStorage.getItem('stk-material-worklist:user@test.com')).toBe(JSON.stringify([]));
   });
 });

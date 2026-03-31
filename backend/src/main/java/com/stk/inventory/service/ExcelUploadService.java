@@ -74,7 +74,7 @@ public class ExcelUploadService {
 
                 String reference = refIdx != -1 && cols.length > refIdx ? cols[refIdx] : "";
                 String note = noteIdx != -1 && cols.length > noteIdx ? cols[noteIdx] : "";
-                String manager = managerIdx != -1 && cols.length > managerIdx ? cols[managerIdx] : "System Bulk";
+                String manager = managerIdx != -1 && cols.length > managerIdx ? cols[managerIdx] : "";
                 LocalDateTime transactionDate = LocalDateTime.now();
 
                 saveData(type, materialCode, materialName, quantity, reference, note, manager, transactionDate);
@@ -125,7 +125,7 @@ public class ExcelUploadService {
 
                 String reference = refIdx != -1 ? getCellValue(row.getCell(refIdx)) : "";
                 String note = noteIdx != -1 ? getCellValue(row.getCell(noteIdx)) : "";
-                String manager = managerIdx != -1 ? getCellValue(row.getCell(managerIdx)) : "System Bulk";
+                String manager = managerIdx != -1 ? getCellValue(row.getCell(managerIdx)) : "";
 
                 LocalDateTime transactionDate = LocalDateTime.now();
                 if (dateIdx != -1 && row.getCell(dateIdx) != null) {
@@ -144,14 +144,7 @@ public class ExcelUploadService {
         if (quantity > 0) {
             Material material = materialRepository.findById(materialCode).orElse(null);
             if (material == null) {
-                material = Material.builder()
-                        .materialCode(materialCode)
-                        .materialName(materialName)
-                        .currentStockQty(0)
-                        .safeStockQty(0)
-                        .location(reference.isEmpty() ? null : reference)
-                        .build();
-                materialRepository.save(material);
+                throw new IllegalArgumentException("미리 등록되지 않은 자재는 업로드할 수 없습니다: " + materialCode + " (" + materialName + ")");
             }
 
             TransactionRequest req = new TransactionRequest();
@@ -165,10 +158,6 @@ public class ExcelUploadService {
             if (type == TransactionType.IN) {
                 inventoryService.processInbound(req);
             } else if (type == TransactionType.OUT) {
-                if (material.getCurrentStockQty() < quantity) {
-                    material.setCurrentStockQty(quantity);
-                    materialRepository.save(material);
-                }
                 inventoryService.processOutbound(req);
             }
         }

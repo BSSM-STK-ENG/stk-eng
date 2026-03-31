@@ -27,6 +27,7 @@ class SuperAdminBootstrapServiceTest {
                 passwordEncoder,
                 true,
                 "superadmin@test.com",
+                "슈퍼 어드민",
                 "ChangeMe123!"
         );
 
@@ -34,7 +35,8 @@ class SuperAdminBootstrapServiceTest {
 
         verify(userRepository).save(any(User.class));
         verify(userRepository).save(argThat(user ->
-                user.getRole() == Role.SUPER_ADMIN
+                "슈퍼 어드민".equals(user.getName())
+                        && user.getRole() == Role.SUPER_ADMIN
                         && !user.isChatPanelEnabled()
                         && !user.isPasswordChangeRequired()
                         && "superadmin@test.com".equals(user.getEmail())

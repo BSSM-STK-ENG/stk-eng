@@ -2,7 +2,10 @@ package com.stk.inventory.controller;
 
 import com.stk.inventory.dto.AuthRequest;
 import com.stk.inventory.dto.AuthResponse;
+import com.stk.inventory.dto.EmailVerificationResponse;
 import com.stk.inventory.dto.PasswordSetupRequest;
+import com.stk.inventory.dto.RegisterRequest;
+import com.stk.inventory.dto.RegisterResponse;
 import com.stk.inventory.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -18,14 +21,19 @@ public class AuthController {
         this.authService = authService;
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody AuthRequest request) {
-        return ResponseEntity.ok(authService.register(request));
-    }
-
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.ok(authService.register(request));
+    }
+
+    @GetMapping("/verify-email")
+    public ResponseEntity<EmailVerificationResponse> verifyEmail(@RequestParam String token) {
+        return ResponseEntity.ok(authService.verifyEmail(token));
     }
 
     @PostMapping("/change-password")
