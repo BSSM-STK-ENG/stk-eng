@@ -3,6 +3,7 @@ import {
   clearMaterialWorklist,
   getMaterialWorklistCodes,
   isMaterialInWorklist,
+  setMaterialWorklistCodes,
   toggleMaterialWorklistCode,
 } from '../material-worklist';
 
@@ -31,5 +32,13 @@ describe('material-worklist', () => {
     clearMaterialWorklist();
 
     expect(getMaterialWorklistCodes()).toEqual([]);
+  });
+
+  it('replaces the worklist and keeps broad multi-select sets', () => {
+    const nextCodes = Array.from({ length: 20 }, (_, index) => `MAT-${index + 1}`);
+
+    setMaterialWorklistCodes(nextCodes);
+
+    expect(getMaterialWorklistCodes()).toEqual(nextCodes);
   });
 });

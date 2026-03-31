@@ -22,6 +22,9 @@ public class Material {
     @Column(name = "location")
     private String location;
 
+    @Column(name = "description", length = 1000)
+    private String description;
+
     @Column(name = "safe_stock_qty")
     private Integer safeStockQty;
 
