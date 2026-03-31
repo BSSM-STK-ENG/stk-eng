@@ -22,19 +22,22 @@ public class SuperAdminBootstrapService implements ApplicationRunner {
     private final PasswordEncoder passwordEncoder;
     private final boolean enabled;
     private final String email;
+    private final String name;
     private final String password;
 
     public SuperAdminBootstrapService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             @Value("${app.bootstrap.super-admin.enabled:true}") boolean enabled,
-            @Value("${app.bootstrap.super-admin.email:superadmin@stk.local}") String email,
-            @Value("${app.bootstrap.super-admin.password:ChangeMe123!}") String password
+            @Value("${app.bootstrap.super-admin.email:}") String email,
+            @Value("${app.bootstrap.super-admin.name:슈퍼 어드민}") String name,
+            @Value("${app.bootstrap.super-admin.password:}") String password
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.enabled = enabled;
         this.email = email;
+        this.name = name;
         this.password = password;
     }
 
@@ -54,17 +57,29 @@ public class SuperAdminBootstrapService implements ApplicationRunner {
                 existingUser.setPasswordChangeRequired(false);
                 updated = true;
             }
+            if (!existingUser.isEmailVerified()) {
+                existingUser.setEmailVerified(true);
+                existingUser.setEmailVerificationToken(null);
+                existingUser.setEmailVerificationExpiresAt(null);
+                updated = true;
+            }
+            if (existingUser.getName() == null || existingUser.getName().trim().isBlank()) {
+                existingUser.setName(name);
+                updated = true;
+            }
             if (updated) {
                 userRepository.save(existingUser);
                 log.info("Ensured configured super admin account is ready: {}", existingUser.getEmail());
             }
         }, () -> {
             userRepository.save(User.builder()
+                    .name(name)
                     .email(email.trim())
                     .password(passwordEncoder.encode(password))
                     .role(Role.SUPER_ADMIN)
                     .chatPanelEnabled(false)
                     .passwordChangeRequired(false)
+                    .emailVerified(true)
                     .build());
             log.info("Bootstrapped super admin account: {}", email.trim());
         });

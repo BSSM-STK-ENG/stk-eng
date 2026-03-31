@@ -2,6 +2,25 @@ spring:
   application:
     name: inventory
 
+  sql:
+    init:
+      mode: always
+
+  mail:
+    host: ${SPRING_MAIL_HOST:}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:true}
+          connectiontimeout: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_CONNECTIONTIMEOUT:5000}
+          timeout: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_TIMEOUT:5000}
+          writetimeout: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_WRITETIMEOUT:5000}
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/inventory_db}
     username: ${SPRING_DATASOURCE_USERNAME:stkuser}
@@ -28,12 +47,18 @@ server:
 
 app:
   cors:
-    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173}
   bootstrap:
     super-admin:
-      enabled: ${APP_BOOTSTRAP_SUPER_ADMIN_ENABLED:true}
-      email: ${APP_BOOTSTRAP_SUPER_ADMIN_EMAIL:superadmin@stk.local}
-      password: ${APP_BOOTSTRAP_SUPER_ADMIN_PASSWORD:ChangeMe123!}
+      enabled: ${SUPER_ADMIN_ENABLED:${APP_BOOTSTRAP_SUPER_ADMIN_ENABLED:true}}
+      email: ${SUPER_ADMIN_EMAIL:${APP_BOOTSTRAP_SUPER_ADMIN_EMAIL:}}
+      name: ${SUPER_ADMIN_NAME:${APP_BOOTSTRAP_SUPER_ADMIN_NAME:슈퍼 어드민}}
+      password: ${SUPER_ADMIN_PASSWORD:${APP_BOOTSTRAP_SUPER_ADMIN_PASSWORD:}}
+  frontend-base-url: ${APP_FRONTEND_BASE_URL:http://localhost:3000}
+  mail:
+    from: ${MAIL_FROM:${SPRING_MAIL_USERNAME:}}
+  auth:
+    verification-expiration-hours: ${APP_AUTH_VERIFICATION_EXPIRATION_HOURS:24}
   ai:
     master-key: ${AI_MASTER_KEY:4MblI4M0n4tF2e7l3f5x1V8f0GvX9K0+Qm8A2eI2Q6Q=}
     sql:

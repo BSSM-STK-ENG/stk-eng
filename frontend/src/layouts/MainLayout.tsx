@@ -1,6 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
+  BarChart3,
+  Building2,
+  Package,
   PackageOpen,
   PackageMinus,
   Layers,
@@ -11,29 +14,41 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronRight,
   MessageCircle,
-  UserPlus,
+  Shield,
 } from 'lucide-react';
 import ChatPanel from '../components/chat/ChatPanel';
-import { clearAuthSession, getStoredEmail, getStoredRole } from '../utils/auth-session';
+import type { PagePermissionKey } from '../types/api';
+import { clearAuthSession, getStoredEmail, getStoredName, getStoredRole, hasStoredPagePermission } from '../utils/auth-session';
 import { getAiPreferences, saveAiPreferences } from '../api/chat';
 import type { AiPreferences } from '../types/chat';
+import { clearMaterialWorklist } from '../utils/material-worklist';
 
 interface NavItem {
   name: string;
   path: string;
   icon: React.FC<{ size?: number }>;
   shortName: string;
+  permission?: PagePermissionKey;
 }
 
-const baseNavItems: NavItem[] = [
-  { name: '입고 관리', path: '/inbound', icon: PackageOpen, shortName: '입고' },
-  { name: '출고 관리', path: '/outbound', icon: PackageMinus, shortName: '출고' },
-  { name: '현재 재고', path: '/stock/current', icon: Layers, shortName: '재고' },
-  { name: '재고 수불부', path: '/stock/ledger', icon: ClipboardList, shortName: '수불부' },
-  { name: '월마감', path: '/closing', icon: Lock, shortName: '마감' },
-  { name: '변경 이력', path: '/history', icon: History, shortName: '이력' },
+const viewerNavItems: NavItem[] = [
+  { name: '재고 대시보드', path: '/dashboard', icon: BarChart3, shortName: '대시', permission: 'DASHBOARD' },
+  { name: '현재 재고', path: '/stock/current', icon: Layers, shortName: '재고', permission: 'CURRENT_STOCK' },
+  { name: '재고 수불부', path: '/stock/ledger', icon: ClipboardList, shortName: '수불부', permission: 'STOCK_LEDGER' },
+  { name: '변경 이력', path: '/history', icon: History, shortName: '이력', permission: 'HISTORY' },
+];
+
+const managerNavItems: NavItem[] = [
+  { name: '입고 관리', path: '/inbound', icon: PackageOpen, shortName: '입고', permission: 'INBOUND' },
+  { name: '출고 관리', path: '/outbound', icon: PackageMinus, shortName: '출고', permission: 'OUTBOUND' },
+  { name: '월마감', path: '/closing', icon: Lock, shortName: '마감', permission: 'CLOSING' },
+  { name: '사업장 관리', path: '/master-data', icon: Building2, shortName: '사업장', permission: 'MASTER_DATA' },
+  { name: '자재 관리', path: '/materials', icon: Package, shortName: '자재', permission: 'MASTER_DATA' },
+];
+
+const superAdminNavItems: NavItem[] = [
+  { name: '사용자 관리', path: '/admin/accounts', icon: Shield, shortName: '계정', permission: 'ADMIN_ACCOUNTS' },
 ];
 
 const STORAGE_KEYS = {
@@ -56,12 +71,15 @@ function getChatVisibilityStorageKey(email: string) {
 const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const userName = getStoredName();
   const userEmail = getStoredEmail();
   const userRole = getStoredRole();
   const chatVisibilityStorageKey = getChatVisibilityStorageKey(userEmail);
-  const navItems = userRole === 'SUPER_ADMIN'
-    ? [...baseNavItems, { name: '계정 발급', path: '/admin/accounts', icon: UserPlus, shortName: '계정' }]
-    : baseNavItems;
+  const navItems = [
+    ...viewerNavItems,
+    ...managerNavItems,
+    ...superAdminNavItems,
+  ].filter((item) => !item.permission || hasStoredPagePermission(item.permission));
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [chatMobileOpen, setChatMobileOpen] = useState<boolean>(false);
   const [chatPreferences, setChatPreferences] = useState<AiPreferences | null>(null);
@@ -123,6 +141,12 @@ const MainLayout: React.FC = () => {
       mounted = false;
     };
   }, []);
+
+  useLayoutEffect(() => {
+    if (!location.pathname.startsWith('/stock/current')) {
+      clearMaterialWorklist();
+    }
+  }, [location.pathname]);
 
   const currentPage = navItems.find(item =>
     location.pathname === item.path ||
@@ -201,13 +225,16 @@ const MainLayout: React.FC = () => {
   const renderSidebarContent = () => (
     <>
       <div className="flex h-16 shrink-0 items-center border-b border-slate-200/80 px-5">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-600/30">
-            <Layers size={16} className="text-white" />
+        <div className="flex items-center gap-3">
+          <img
+            src="/stk-mark.svg"
+            alt="STK-ENG 로고"
+            className="h-8 w-8 shrink-0"
+          />
+          <div className="min-w-0">
+            <p className="text-base font-semibold tracking-tight text-slate-900">STK-ENG</p>
+            <p className="text-[11px] font-medium text-slate-400">Inventory System</p>
           </div>
-          <span className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            STK Inventory
-          </span>
         </div>
         <button
           onClick={() => setSidebarOpen(false)}
@@ -218,30 +245,25 @@ const MainLayout: React.FC = () => {
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-        <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">메뉴</p>
         {navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             onClick={() => setSidebarOpen(false)}
             className={({ isActive }) =>
-              `group flex items-center rounded-xl px-3 py-2.5 text-[13.5px] transition-all duration-150 ${
+              `group flex items-center rounded-lg px-3 py-2.5 text-[14px] transition-colors ${
                 isActive
-                  ? 'bg-gradient-to-r from-blue-50 to-indigo-50 font-bold text-blue-700 shadow-sm ring-1 ring-blue-100'
-                  : 'font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  ? 'bg-slate-900 font-medium text-white'
+                  : 'font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <span className={`mr-3 transition-colors ${isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'}`}>
+                <span className={`mr-3 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`}>
                   <item.icon size={20} />
                 </span>
                 {item.name}
-                <ChevronRight
-                  size={14}
-                  className={`ml-auto transition-all ${isActive ? 'opacity-100 text-blue-400' : 'opacity-0 group-hover:opacity-50'}`}
-                />
               </>
             )}
           </NavLink>
@@ -252,13 +274,13 @@ const MainLayout: React.FC = () => {
         <div className="rounded-xl bg-slate-50 px-3 py-2.5">
           <p className="truncate text-xs font-bold text-slate-500">{userEmail}</p>
           {userRole === 'SUPER_ADMIN' && (
-            <span className="mt-2 inline-flex rounded-full bg-blue-100 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700">
+            <span className="mt-2 inline-flex rounded-full bg-slate-900 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
               Super Admin
             </span>
           )}
           <button
             onClick={() => navigate('/account/password')}
-            className="mt-3 flex items-center text-xs font-semibold text-slate-500 transition-colors hover:text-blue-600"
+            className="mt-3 flex items-center text-xs font-semibold text-slate-500 transition-colors hover:text-slate-900"
           >
             <KeyRound size={13} className="mr-1" />
             비밀번호 변경
@@ -276,20 +298,20 @@ const MainLayout: React.FC = () => {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.12),transparent_25%),linear-gradient(180deg,#f8fafc_0%,#f8fbff_50%,#eef4ff_100%)] text-slate-800 font-sans">
+    <div className="flex h-screen overflow-hidden bg-[#f3f4f6] text-slate-800 font-sans">
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/20 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-200/80 bg-white lg:flex">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-200 bg-white lg:flex">
         {renderSidebarContent()}
       </aside>
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:hidden ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -297,7 +319,7 @@ const MainLayout: React.FC = () => {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="z-10 flex h-14 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-lg md:px-6">
+        <header className="z-10 flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -305,11 +327,16 @@ const MainLayout: React.FC = () => {
             >
               <Menu size={20} />
             </button>
+            <img
+              src="/stk-mark.svg"
+              alt="STK-ENG 로고"
+              className="hidden h-7 w-7 shrink-0 sm:block"
+            />
             <div>
-              <h1 className="text-sm font-bold leading-tight text-slate-800">
+              <h1 className="text-sm font-semibold leading-tight text-slate-900">
                 {currentPage?.name ?? '재고 관리 시스템'}
               </h1>
-              <p className="hidden text-[10px] leading-tight text-slate-400 sm:block">STK Inventory</p>
+              <p className="hidden text-[10px] leading-tight text-slate-400 sm:block">STK-ENG</p>
             </div>
           </div>
 
@@ -319,31 +346,42 @@ const MainLayout: React.FC = () => {
                 type="button"
                 onClick={() => void handleEnableChatPanel()}
                 disabled={chatPreferencesSaving}
-                className="chat-focus-ring flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className="chat-focus-ring flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <MessageCircle size={14} />
                 {chatPreferencesSaving ? 'AI 켜는 중...' : 'AI 패널 켜기'}
               </button>
             )}
-            <span className="max-w-[200px] truncate rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">
-              {userEmail}
+            <span className="max-w-[220px] truncate rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+              {userName ? `${userName} · ${userEmail}` : userEmail}
             </span>
           </div>
 
-          {!chatPanelEnabled && (
-            <button
-              type="button"
-              onClick={() => void handleEnableChatPanel()}
-              disabled={chatPreferencesSaving}
-              className="chat-focus-ring inline-flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60 md:hidden"
-            >
-              <MessageCircle size={14} />
-              {chatPreferencesSaving ? 'AI 켜는 중...' : 'AI 켜기'}
-            </button>
-          )}
+          <div className="flex items-center gap-2 md:hidden">
+            {chatPanelEnabled ? (
+              <button
+                type="button"
+                onClick={() => setChatMobileOpen(true)}
+                className="chat-focus-ring inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition-colors hover:bg-slate-50"
+                aria-label="AI 채팅 열기"
+              >
+                <MessageCircle size={16} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void handleEnableChatPanel()}
+                disabled={chatPreferencesSaving}
+                className="chat-focus-ring inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <MessageCircle size={14} />
+                {chatPreferencesSaving ? 'AI 켜는 중...' : 'AI 켜기'}
+              </button>
+            )}
+          </div>
         </header>
 
-        <main className="flex-1 overflow-hidden bg-gradient-to-br from-slate-50/70 via-white/60 to-blue-50/30 p-3 pb-20 md:p-6 lg:pb-6">
+        <main className="flex-1 overflow-hidden bg-[#f3f4f6] p-3 pb-4 md:p-6">
           <div className="mx-auto flex h-full min-w-0 max-w-[1760px] gap-0">
             <div className="chat-scrollbar min-w-0 flex-1 overflow-y-auto">
               <Outlet />
@@ -372,46 +410,6 @@ const MainLayout: React.FC = () => {
           </div>
         </main>
 
-        {chatPanelEnabled && (
-          <button
-            type="button"
-            onClick={() => setChatMobileOpen(true)}
-            className="fixed bottom-20 right-4 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-[0_16px_40px_rgba(37,99,235,0.28)] transition hover:bg-blue-700 lg:hidden"
-            aria-label="채팅 열기"
-          >
-            <MessageCircle size={22} />
-          </button>
-        )}
-
-        <nav className="safe-area-pb fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur-lg lg:hidden">
-          <div
-            className="grid h-16"
-            style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
-          >
-            {navItems.map((item) => {
-              const isActive =
-                location.pathname === item.path ||
-                location.pathname.startsWith(item.path + '/');
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className="flex flex-col items-center justify-center gap-0.5 transition-colors"
-                >
-                  <span className={`transition-colors ${isActive ? 'text-blue-600' : 'text-slate-400'}`}>
-                    <item.icon size={20} />
-                  </span>
-                  <span className={`text-[9px] font-bold leading-tight ${isActive ? 'text-blue-600' : 'text-slate-400'}`}>
-                    {item.shortName}
-                  </span>
-                  {isActive && (
-                    <span className="absolute bottom-0 h-0.5 w-8 rounded-full bg-blue-600" />
-                  )}
-                </NavLink>
-              );
-            })}
-          </div>
-        </nav>
       </div>
     </div>
   );

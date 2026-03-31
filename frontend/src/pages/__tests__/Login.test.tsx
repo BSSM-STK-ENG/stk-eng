@@ -27,19 +27,19 @@ describe('Login', () => {
     renderLogin();
     expect(screen.getByPlaceholderText('name@company.com')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
-    expect(screen.getByText('로그인')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /로그인/ })).toBeInTheDocument();
   });
 
   it('renders title and description', () => {
     renderLogin();
-    expect(screen.getByText('STK Inventory')).toBeInTheDocument();
-    expect(screen.getByText('슈퍼 어드민이 발급한 계정으로 로그인하세요.')).toBeInTheDocument();
+    expect(screen.getByText('STK-ENG')).toBeInTheDocument();
+    expect(screen.getByText('이메일 인증을 마친 계정으로 로그인하세요.')).toBeInTheDocument();
   });
 
-  it('shows admin-issued account guidance', () => {
+  it('shows signup guidance', () => {
     renderLogin();
-    expect(screen.getByText('계정은 슈퍼 어드민이 발급합니다.')).toBeInTheDocument();
-    expect(screen.getByText('1234')).toBeInTheDocument();
+    expect(screen.getByText('회원가입')).toBeInTheDocument();
+    expect(screen.getByText(/가입 후 권한 변경은 슈퍼 어드민이 관리합니다/)).toBeInTheDocument();
   });
 
   it('updates input values on change', async () => {
@@ -60,8 +60,11 @@ describe('Login', () => {
     mockedPost.mockResolvedValueOnce({
       data: {
         token: 'test-token',
+        name: '홍길동',
         email: 'test@test.com',
         role: 'USER',
+        permissionPreset: 'VIEWER',
+        pagePermissions: ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY'],
         passwordChangeRequired: true,
         message: 'success',
       },
@@ -76,12 +79,15 @@ describe('Login', () => {
 
     await user.type(screen.getByPlaceholderText('name@company.com'), 'test@test.com');
     await user.type(screen.getByPlaceholderText('••••••••'), 'password123');
-    await user.click(screen.getByText('로그인'));
+    await user.click(screen.getByRole('button', { name: /로그인/ }));
 
     await waitFor(() => {
       expect(localStorage.getItem('token')).toBe('test-token');
+      expect(localStorage.getItem('name')).toBe('홍길동');
       expect(localStorage.getItem('email')).toBe('test@test.com');
       expect(localStorage.getItem('role')).toBe('USER');
+      expect(localStorage.getItem('permissionPreset')).toBe('VIEWER');
+      expect(localStorage.getItem('pagePermissions')).toBe(JSON.stringify(['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY']));
       expect(localStorage.getItem('passwordChangeRequired')).toBe('true');
     });
   });
@@ -94,7 +100,7 @@ describe('Login', () => {
 
     await user.type(screen.getByPlaceholderText('name@company.com'), 'wrong@test.com');
     await user.type(screen.getByPlaceholderText('••••••••'), 'wrongpass');
-    await user.click(screen.getByText('로그인'));
+    await user.click(screen.getByRole('button', { name: /로그인/ }));
 
     await waitFor(() => {
       expect(screen.getByText(/로그인에 실패했습니다/)).toBeInTheDocument();
