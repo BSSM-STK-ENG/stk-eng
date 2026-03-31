@@ -10,6 +10,13 @@ import java.util.UUID;
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
+    Optional<User> findByEmailVerificationToken(String token);
+    Optional<User> findByNameIgnoreCase(String name);
     boolean existsByEmail(String email);
+    boolean existsByNameIgnoreCase(String name);
+    boolean existsByNameIgnoreCaseAndIdNot(String name, UUID id);
+    boolean existsByPermissionPreset(String permissionPreset);
+    boolean existsByRoleProfileKey(String roleProfileKey);
     java.util.List<User> findAllByOrderByCreatedAtDesc();
+    java.util.List<User> findAllByEmailVerifiedTrueOrderByNameAsc();
 }
