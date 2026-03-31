@@ -2,7 +2,7 @@ import { getStoredEmail } from './auth-session';
 
 const STORAGE_PREFIX = 'stk-material-worklist';
 const CHANGE_EVENT_NAME = 'stk-material-worklist-change';
-const MAX_WORKLIST_CODES = 8;
+const MAX_WORKLIST_CODES = 250;
 
 function getStorageKey() {
   const email = getStoredEmail();
@@ -79,6 +79,12 @@ export function toggleMaterialWorklistCode(materialCode: string) {
 
 export function addMaterialWorklistCodes(materialCodes: string[]) {
   const nextCodes = normalizeCodes([...materialCodes, ...readWorklist()]);
+  writeWorklist(nextCodes);
+  return nextCodes;
+}
+
+export function setMaterialWorklistCodes(materialCodes: string[]) {
+  const nextCodes = normalizeCodes(materialCodes);
   writeWorklist(nextCodes);
   return nextCodes;
 }

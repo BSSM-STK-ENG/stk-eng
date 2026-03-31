@@ -11,6 +11,12 @@ import java.util.List;
 
 @Repository
 public interface InventoryTransactionRepository extends JpaRepository<InventoryTransaction, Long>, JpaSpecificationExecutor<InventoryTransaction> {
+    boolean existsByMaterialMaterialCode(String materialCode);
+
+    List<InventoryTransaction> findAllByRevertedFalseAndSystemGeneratedFalseOrderByTransactionDateDescIdDesc();
+
+    List<InventoryTransaction> findAllByOrderByTransactionDateDescIdDesc();
+
     List<InventoryTransaction> findByMaterialMaterialCodeInAndTransactionDateGreaterThanEqualOrderByTransactionDateDesc(
             Collection<String> materialCodes,
             LocalDateTime transactionDate

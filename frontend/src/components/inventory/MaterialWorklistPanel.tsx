@@ -84,8 +84,8 @@ const MaterialWorklistPanel: React.FC<MaterialWorklistPanelProps> = ({
   onPickMaterial,
   actions = [],
   emptyActions = [],
-  emptyTitle = '작업 바구니가 비어 있습니다.',
-  emptyDescription = '현재 재고나 트렌드에서 자재를 담아두면 여러 화면에서 다시 찾지 않아도 됩니다.',
+  emptyTitle = '선택한 자재가 없습니다.',
+  emptyDescription = '현재 재고나 트렌드에서 자재를 선택해두면 여러 화면에서 다시 찾지 않아도 됩니다.',
   emptySteps = [],
   selectionHint,
   compact = false,
@@ -150,7 +150,7 @@ const MaterialWorklistPanel: React.FC<MaterialWorklistPanelProps> = ({
 
         <div className="flex flex-wrap items-center gap-2">
           <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${palette.helper}`}>
-            {resolvedItems.length > 0 ? `담아둔 ${countLabel}` : `선택한 ${countLabel}`}
+            {`선택한 ${countLabel}`}
           </span>
           {resolvedItems.length > 0 && (
             <button
@@ -198,8 +198,8 @@ const MaterialWorklistPanel: React.FC<MaterialWorklistPanelProps> = ({
                     type="button"
                     onClick={() => setWorklistCodes(toggleMaterialWorklistCode(code))}
                     className={`chat-focus-ring flex h-7 w-7 items-center justify-center rounded-full transition ${isActive ? 'bg-white/16 text-white hover:bg-white/24' : 'bg-white text-slate-400 hover:text-slate-600'}`}
-                    aria-label={`${code} 작업 바구니에서 제거`}
-                    title="작업 바구니에서 제거"
+                    aria-label={`${code} 선택 해제`}
+                    title="선택 해제"
                   >
                     <X size={13} />
                   </button>
@@ -215,15 +215,15 @@ const MaterialWorklistPanel: React.FC<MaterialWorklistPanelProps> = ({
           )}
         </>
       ) : (
-        <div className={`mt-4 rounded-[22px] border border-dashed border-slate-200 bg-white/78 ${compact ? 'px-4 py-4' : 'px-4 py-4 sm:px-5'}`}>
+        <div className={`mt-4 rounded-[22px] ${compact ? 'border border-slate-200 bg-white/82 px-4 py-3.5' : 'border border-dashed border-slate-200 bg-white/78 px-4 py-4 sm:px-5'}`}>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-2xl">
-                <p className="text-base font-black text-slate-800">{emptyTitle}</p>
-                <p className="mt-1.5 text-sm leading-6 text-slate-500">{emptyDescription}</p>
+                <p className={`${compact ? 'text-sm' : 'text-base'} font-black text-slate-800`}>{emptyTitle}</p>
+                <p className={`mt-1.5 ${compact ? 'text-sm leading-6' : 'text-sm leading-6'} text-slate-500`}>{emptyDescription}</p>
                 {emptySteps.length > 0 && (
                   <div className="mt-3 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-500">
-                    {compact ? '필요하면 아래에서 사용법을 펼쳐 보세요.' : `사용법은 ${emptySteps.length}단계로 끝납니다.`}
+                    {compact ? '필요한 경우만 사용법을 펼쳐 보세요.' : `사용법은 ${emptySteps.length}단계로 끝납니다.`}
                   </div>
                 )}
               </div>
