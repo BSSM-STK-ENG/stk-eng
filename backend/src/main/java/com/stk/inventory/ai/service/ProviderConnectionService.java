@@ -16,6 +16,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @Service
 public class ProviderConnectionService {
+    private static final int MAX_TRANSIENT_RETRIES = 2;
 
     private final ProviderCatalogService providerCatalogService;
     private final Map<ProviderType, LlmProviderClient> clients;
@@ -42,14 +43,21 @@ public class ProviderConnectionService {
             throw new ResponseStatusException(BAD_REQUEST, "Unsupported provider");
         }
 
-        try {
-            client.complete(
-                    apiKey.trim(),
-                    model.trim(),
-                    List.of(new AiPromptMessage("user", "Reply with OK."))
-            );
-        } catch (ResponseStatusException ex) {
-            throw new ResponseStatusException(BAD_GATEWAY, toUserFriendlyMessage(ex.getReason()), ex);
+        for (int attempt = 1; attempt <= MAX_TRANSIENT_RETRIES; attempt++) {
+            try {
+                client.complete(
+                        apiKey.trim(),
+                        model.trim(),
+                        List.of(new AiPromptMessage("user", "Reply with OK."))
+                );
+                break;
+            } catch (ResponseStatusException ex) {
+                boolean lastAttempt = attempt == MAX_TRANSIENT_RETRIES;
+                if (lastAttempt || !isTransientFailure(ex.getReason())) {
+                    throw new ResponseStatusException(BAD_GATEWAY, toUserFriendlyMessage(ex.getReason()), ex);
+                }
+                pauseBeforeRetry();
+            }
         }
 
         return new CredentialConnectionTestResponse(
@@ -75,6 +83,9 @@ public class ProviderConnectionService {
         }
 
         String normalized = reason.toLowerCase();
+        if (isTransientFailure(normalized)) {
+            return "외부 AI 연결이 일시적으로 불안정합니다. 잠시 후 다시 시도하세요.";
+        }
         if (normalized.contains("unauthorized")
                 || normalized.contains("authentication")
                 || normalized.contains("api key")
@@ -90,5 +101,37 @@ public class ProviderConnectionService {
             return "요청 한도에 걸렸습니다. 잠시 후 다시 시도하세요.";
         }
         return "외부 AI 연결 확인에 실패했습니다. " + reason;
+    }
+
+    private boolean isTransientFailure(String reason) {
+        if (reason == null || reason.isBlank()) {
+            return false;
+        }
+
+        String normalized = reason.toLowerCase();
+        return normalized.contains("timeout")
+                || normalized.contains("timed out")
+                || normalized.contains("temporar")
+                || normalized.contains("overloaded")
+                || normalized.contains("service unavailable")
+                || normalized.contains("internal server error")
+                || normalized.contains("server error")
+                || normalized.contains("bad gateway")
+                || normalized.contains("try again")
+                || normalized.contains("provider request failed")
+                || normalized.contains("connection reset")
+                || normalized.contains("502")
+                || normalized.contains("503")
+                || normalized.contains("504")
+                || normalized.contains("529");
+    }
+
+    private void pauseBeforeRetry() {
+        try {
+            Thread.sleep(250L);
+        } catch (InterruptedException interruptedException) {
+            Thread.currentThread().interrupt();
+            throw new ResponseStatusException(BAD_GATEWAY, "외부 AI 연결 확인에 실패했습니다.", interruptedException);
+        }
     }
 }

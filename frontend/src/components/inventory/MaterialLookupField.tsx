@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Check, Search } from 'lucide-react';
 import type { MaterialDto } from '../../types/api';
 import { formatLocation, sanitizeLocation } from '../../utils/inventory-display';
+import { buildMaterialLookupLabel } from './material-lookup-utils';
 
 type Accent = 'blue' | 'rose';
 
@@ -29,10 +30,6 @@ const ACCENT_STYLES: Record<Accent, { ring: string; border: string; badge: strin
     check: 'border-rose-500 bg-rose-500 text-white',
   },
 };
-
-export function buildMaterialLookupLabel(material: MaterialDto) {
-  return `${material.materialCode} · ${material.materialName}`;
-}
 
 function sortMaterials(left: MaterialDto, right: MaterialDto) {
   return left.materialName.localeCompare(right.materialName, 'ko-KR')
@@ -69,10 +66,6 @@ export default function MaterialLookupField({
       .slice(0, 12);
   }, [materials, normalizedQuery]);
 
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [normalizedQuery, open]);
-
   const selectMaterial = (material: MaterialDto) => {
     onSelectionChange(material);
     onInputValueChange(buildMaterialLookupLabel(material));
@@ -84,6 +77,7 @@ export default function MaterialLookupField({
     if (selectedMaterial && nextValue.trim() !== buildMaterialLookupLabel(selectedMaterial)) {
       onSelectionChange(null);
     }
+    setActiveIndex(0);
     setOpen(nextValue.trim().length > 0);
   };
 
@@ -122,7 +116,7 @@ export default function MaterialLookupField({
 
   return (
     <div className="relative">
-      <label className={`flex min-h-11 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3.5 transition ${accentStyles.border}`}>
+      <label className={`flex min-h-10 items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3 transition ${accentStyles.border}`}>
         <Search size={16} className="shrink-0 text-slate-400" />
         <input
           type="text"
@@ -130,6 +124,7 @@ export default function MaterialLookupField({
           onChange={(event) => handleInputChange(event.target.value)}
           onFocus={() => {
             if (normalizedQuery && !selectedMaterial) {
+              setActiveIndex(0);
               setOpen(true);
             }
           }}
@@ -145,7 +140,7 @@ export default function MaterialLookupField({
       </label>
 
       {open && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-2 rounded-xl border border-slate-200 bg-white p-2 shadow-[0_16px_32px_rgba(15,23,42,0.08)]">
+        <div className="absolute left-0 right-0 top-full z-20 mt-2 rounded-lg border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_rgba(15,23,42,0.08)]">
           {filteredMaterials.length > 0 ? (
             <ul role="listbox" className="max-h-72 space-y-1 overflow-y-auto">
               {filteredMaterials.map((material, index) => {
@@ -157,7 +152,7 @@ export default function MaterialLookupField({
                       type="button"
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => selectMaterial(material)}
-                      className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition ${
+                      className={`flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition ${
                         active
                           ? 'border border-slate-200 bg-slate-50'
                           : 'border border-transparent bg-white hover:border-slate-200 hover:bg-slate-50'

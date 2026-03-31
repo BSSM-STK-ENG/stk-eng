@@ -196,6 +196,13 @@ describe('useChatWorkspace', () => {
       model: 'gemini-2.5-flash',
       chatPanelEnabled: false,
     });
+    expect(result.current.credentialTestResult).toEqual({
+      success: true,
+      provider: 'google',
+      model: 'gemini-2.5-flash',
+      message: '연결 확인에 성공했습니다.',
+      checkedAt: '2026-03-22T10:00:00.000Z',
+    });
     expect(result.current.preferences?.provider).toBe('google');
     expect(result.current.preferences?.model).toBe('gemini-2.5-flash');
     expect(result.current.preferences?.chatPanelEnabled).toBe(false);

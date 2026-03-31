@@ -113,7 +113,28 @@ function resolveDraft(providers: ProviderDescriptor[], preferences: AiPreference
   };
 }
 
-export function useChatWorkspace() {
+export type ChatWorkspaceState = {
+  providers: ProviderDescriptor[];
+  credentials: Record<string, ProviderCredential>;
+  preferences: AiPreferences | null;
+  draft: ChatDraft;
+  messages: ChatMessage[];
+  runtimeSessionId: string | null;
+  composerValue: string;
+  requestState: RequestState;
+  credentialTestResult: CredentialConnectionTestResponse | null;
+  setComposerValue: (value: string) => void;
+  refreshMetadata: () => Promise<void>;
+  testCredential: (payload: SettingsPayload) => Promise<CredentialConnectionTestResponse | { success: false; provider: ProviderType; model: string; message: string; checkedAt: string }>;
+  sendMessage: (overrideText?: string) => Promise<unknown>;
+  stopResponse: () => void;
+  resetConversation: (infoMessage?: string) => void;
+  applySettings: (payload: SettingsPayload) => Promise<AiPreferences | null>;
+  removeCredential: (provider: ProviderType) => Promise<void>;
+  clearNotices: () => void;
+};
+
+export function useChatWorkspace(): ChatWorkspaceState {
   const abortRef = useRef<AbortController | null>(null);
   const [providers, setProviders] = useState<ProviderDescriptor[]>(DEFAULT_PROVIDER_CATALOG);
   const [credentials, setCredentials] = useState<Record<string, ProviderCredential>>({});
