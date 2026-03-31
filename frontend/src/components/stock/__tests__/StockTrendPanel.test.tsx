@@ -14,10 +14,10 @@ vi.mock('../../../api/axios', () => ({
 const mockedGet = vi.mocked(api.get);
 
 const materials: MaterialDto[] = [
-  { materialCode: 'MAT-001', materialName: '알루미늄 코일', location: 'A-01', safeStockQty: 80, currentStockQty: 420 },
-  { materialCode: 'MAT-002', materialName: '스테인리스 판재', location: 'A-03', safeStockQty: 120, currentStockQty: 280 },
-  { materialCode: 'MAT-003', materialName: '구리 배선', location: 'B-04', safeStockQty: 40, currentStockQty: 510 },
-  { materialCode: 'MAT-004', materialName: '절연 튜브', location: 'B-07', safeStockQty: 25, currentStockQty: 160 },
+  { materialCode: 'MAT-001', materialName: '알루미늄 코일', description: null, location: 'A-01', safeStockQty: 80, currentStockQty: 420 },
+  { materialCode: 'MAT-002', materialName: '스테인리스 판재', description: null, location: 'A-03', safeStockQty: 120, currentStockQty: 280 },
+  { materialCode: 'MAT-003', materialName: '구리 배선', description: null, location: 'B-04', safeStockQty: 40, currentStockQty: 510 },
+  { materialCode: 'MAT-004', materialName: '절연 튜브', description: null, location: 'B-07', safeStockQty: 25, currentStockQty: 160 },
 ];
 
 const trendResponse: StockTrendResponse = {
