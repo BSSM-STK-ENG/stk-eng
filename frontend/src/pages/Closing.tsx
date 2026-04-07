@@ -95,7 +95,7 @@ const Closing: React.FC = () => {
   const displayClosings = showAll ? closings : closings.slice(0, 6);
 
   return (
-    <div className="admin-page max-w-3xl mx-auto">
+    <div className="admin-page">
 
       <section className="admin-header">
       <div className="admin-header-row">
@@ -107,9 +107,10 @@ const Closing: React.FC = () => {
         <div className="admin-toolbar">
           <button onClick={fetchClosings} className="admin-btn">
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            새로고침
           </button>
           <button onClick={handleExport} className="admin-btn">
-            <Download size={14} className="mr-1.5" /> 다운로드
+            <Download size={16} /> 다운로드
           </button>
         </div>
       </div>
@@ -117,13 +118,13 @@ const Closing: React.FC = () => {
 
       {/* Toast messages */}
       {successMsg && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm font-medium text-emerald-700">
+        <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-sm font-medium text-emerald-700">
           <CheckCircle2 size={16} className="shrink-0" />
           {successMsg}
         </div>
       )}
       {errorMsg && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm font-medium text-red-600">
+        <div className="flex items-center gap-2 px-4 py-3 bg-rose-50 border border-rose-200 rounded-2xl text-sm font-medium text-rose-700">
           <AlertCircle size={16} className="shrink-0" />
           {errorMsg}
         </div>

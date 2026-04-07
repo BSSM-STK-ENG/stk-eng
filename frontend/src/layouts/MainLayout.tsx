@@ -337,7 +337,7 @@ const MainLayout: React.FC = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-[#f3f4f6] text-slate-800 font-sans">
       {permissionDenied && (
-        <div className="fixed top-4 right-4 z-[100] animate-in fade-in slide-in-from-top-2 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-medium text-amber-700 shadow-lg">
+        <div className="fixed top-4 right-4 z-[300] animate-in fade-in slide-in-from-top-2 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-medium text-amber-700 shadow-lg">
           {permissionDenied}
         </div>
       )}

@@ -427,6 +427,7 @@ const Inbound = () => {
         </div>
         <div className="admin-toolbar">
           <button
+            type="button"
             onClick={() => void refreshAll(page, searchTerm, dayFilter, businessUnitFilter)}
             className="admin-btn"
             title="새로고침"
@@ -434,24 +435,27 @@ const Inbound = () => {
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           </button>
           <button
+            type="button"
             onClick={handleExport}
             className="admin-btn"
           >
-            <Download size={14} className="mr-1.5" />
+            <Download size={16} />
             엑셀 다운로드
           </button>
           <button
+            type="button"
             onClick={() => setShowUploadModal(true)}
             className="admin-btn"
           >
-            <Upload size={14} className="mr-1.5" />
+            <Upload size={16} />
             일괄 업로드
           </button>
           <button
+            type="button"
             onClick={openNew}
             className="admin-btn admin-btn-primary"
           >
-            <Plus size={14} className="mr-1.5" />
+            <Plus size={16} />
             신규 입고
           </button>
         </div>
@@ -594,14 +598,14 @@ const Inbound = () => {
       </div>
 
       {showModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-[680px] rounded-[20px] bg-white p-5 shadow-2xl ring-1 ring-black/5">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-[680px] max-h-[90dvh] overflow-y-auto rounded-[20px] bg-white p-5 shadow-2xl ring-1 ring-black/5">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">{editingTransaction ? '입고 내역 수정' : '신규 입고 등록'}</h3>
                 <p className="mt-1 text-sm text-slate-500">자재, 수량, 사업장, 위치를 확인한 뒤 저장합니다.</p>
               </div>
-              <button onClick={closeModal} className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100">
+              <button type="button" aria-label="닫기" onClick={closeModal} className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100">
                 <X size={18} />
               </button>
             </div>
@@ -717,14 +721,14 @@ const Inbound = () => {
       )}
 
       {showUploadModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-2xl ring-1 ring-black/5">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="flex items-center text-lg font-extrabold text-slate-800">
                 <FileSpreadsheet size={20} className="mr-2 text-emerald-500" />
                 입고 일괄 업로드
               </h3>
-              <button onClick={() => setShowUploadModal(false)} className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100">
+              <button type="button" aria-label="닫기" onClick={() => setShowUploadModal(false)} className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100">
                 <X size={18} />
               </button>
             </div>
