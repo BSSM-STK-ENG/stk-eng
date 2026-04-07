@@ -3,9 +3,9 @@ package com.stk.inventory.controller;
 import com.stk.inventory.dto.TransactionRequest;
 import com.stk.inventory.dto.InventoryCalendarResponse;
 import com.stk.inventory.dto.StockTrendResponse;
-import com.stk.inventory.entity.InventoryTransaction;
+import com.stk.inventory.dto.TransactionResponse;
 import com.stk.inventory.service.InventoryCalendarService;
-import com.stk.inventory.service.InventoryService;
+import com.stk.inventory.usecase.InventoryUseCase;
 import com.stk.inventory.service.StockTrendService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,11 +20,11 @@ import java.util.Map;
 @RequestMapping("/api/inventory")
 public class InventoryController {
 
-    private final InventoryService inventoryService;
+    private final InventoryUseCase inventoryService;
     private final StockTrendService stockTrendService;
     private final InventoryCalendarService inventoryCalendarService;
 
-    public InventoryController(InventoryService inventoryService,
+    public InventoryController(InventoryUseCase inventoryService,
                                StockTrendService stockTrendService,
                                InventoryCalendarService inventoryCalendarService) {
         this.inventoryService = inventoryService;
@@ -33,23 +33,23 @@ public class InventoryController {
     }
 
     @PostMapping("/inbound")
-    public ResponseEntity<InventoryTransaction> inbound(@RequestBody TransactionRequest request) {
+    public ResponseEntity<TransactionResponse> inbound(@RequestBody TransactionRequest request) {
         return ResponseEntity.ok(inventoryService.processInbound(request));
     }
 
     @PostMapping("/outbound")
-    public ResponseEntity<InventoryTransaction> outbound(@RequestBody TransactionRequest request) {
+    public ResponseEntity<TransactionResponse> outbound(@RequestBody TransactionRequest request) {
         return ResponseEntity.ok(inventoryService.processOutbound(request));
     }
 
     @GetMapping("/ledger")
-    public ResponseEntity<List<InventoryTransaction>> getLedger() {
-        return ResponseEntity.ok(inventoryService.getTransactions());
+    public ResponseEntity<List<TransactionResponse>> getLedger() {
+        return ResponseEntity.ok(inventoryService.getLedger());
     }
 
     @GetMapping("/history")
-    public ResponseEntity<List<InventoryTransaction>> getHistory() {
-        return ResponseEntity.ok(inventoryService.getHistoryTransactions());
+    public ResponseEntity<List<TransactionResponse>> getHistory() {
+        return ResponseEntity.ok(inventoryService.getHistory());
     }
 
     @GetMapping("/calendar")

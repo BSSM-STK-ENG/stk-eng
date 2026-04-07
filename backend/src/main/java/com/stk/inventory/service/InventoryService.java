@@ -8,6 +8,9 @@ import com.stk.inventory.entity.User;
 import com.stk.inventory.repository.InventoryTransactionRepository;
 import com.stk.inventory.repository.MaterialRepository;
 import com.stk.inventory.repository.UserRepository;
+import com.stk.inventory.gateway.InventoryGateway;
+import com.stk.inventory.mapper.TransactionMapper;
+import com.stk.inventory.dto.TransactionResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -17,38 +20,40 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-public class InventoryService {
+public class InventoryService implements com.stk.inventory.usecase.InventoryUseCase {
 
-    private final InventoryTransactionRepository transactionRepository;
-    private final MaterialRepository materialRepository;
+    private final InventoryGateway inventoryGateway;
     private final UserRepository userRepository;
     private final MasterDataService masterDataService;
     private final UserDirectoryService userDirectoryService;
+    private final TransactionMapper transactionMapper;
 
-    public InventoryService(InventoryTransactionRepository transactionRepository,
-                            MaterialRepository materialRepository,
+    public InventoryService(InventoryGateway inventoryGateway,
                             UserRepository userRepository,
                             MasterDataService masterDataService,
-                            UserDirectoryService userDirectoryService) {
-        this.transactionRepository = transactionRepository;
-        this.materialRepository = materialRepository;
+                            UserDirectoryService userDirectoryService,
+                            TransactionMapper transactionMapper) {
+        this.inventoryGateway = inventoryGateway;
         this.userRepository = userRepository;
         this.masterDataService = masterDataService;
         this.userDirectoryService = userDirectoryService;
+        this.transactionMapper = transactionMapper;
     }
 
     @Transactional
-    public InventoryTransaction processInbound(TransactionRequest request) {
-        return processTransaction(request, TransactionType.IN);
+    public com.stk.inventory.dto.TransactionResponse processInbound(TransactionRequest request) {
+        InventoryTransaction tx = processTransaction(request, TransactionType.IN);
+        return transactionMapper.toResponse(tx);
     }
 
     @Transactional
-    public InventoryTransaction processOutbound(TransactionRequest request) {
-        return processTransaction(request, TransactionType.OUT);
+    public com.stk.inventory.dto.TransactionResponse processOutbound(TransactionRequest request) {
+        InventoryTransaction tx = processTransaction(request, TransactionType.OUT);
+        return transactionMapper.toResponse(tx);
     }
 
     private InventoryTransaction processTransaction(TransactionRequest request, TransactionType type) {
-        Material material = materialRepository.findById(request.getMaterialCode())
+        Material material = inventoryGateway.findMaterialById(request.getMaterialCode())
                 .orElseThrow(() -> new IllegalArgumentException("등록된 자재만 선택할 수 있습니다."));
 
         String validatedBusinessUnit = masterDataService.requireRegisteredBusinessUnit(request.getBusinessUnit());
@@ -65,7 +70,7 @@ public class InventoryService {
             material.setCurrentStockQty(material.getCurrentStockQty() - request.getQuantity());
         }
 
-        materialRepository.save(material);
+        inventoryGateway.saveMaterial(material);
 
         InventoryTransaction transaction = InventoryTransaction.builder()
                 .transactionType(type)
@@ -79,20 +84,20 @@ public class InventoryService {
                 .createdBy(getCurrentUser())
                 .build();
 
-        return transactionRepository.save(transaction);
+        return inventoryGateway.saveTransaction(transaction);
     }
 
-    public List<InventoryTransaction> getTransactions() {
-        return transactionRepository.findAllByRevertedFalseAndSystemGeneratedFalseOrderByTransactionDateDescIdDesc();
+    public List<TransactionResponse> getLedger() {
+        return inventoryGateway.findLedgerTransactions().stream().map(transactionMapper::toResponse).toList();
     }
 
-    public List<InventoryTransaction> getHistoryTransactions() {
-        return transactionRepository.findAllByOrderByTransactionDateDescIdDesc();
+    public List<TransactionResponse> getHistory() {
+        return inventoryGateway.findAllTransactions().stream().map(transactionMapper::toResponse).toList();
     }
 
     @Transactional
     public void revertTransaction(Long id) {
-        InventoryTransaction tx = transactionRepository.findById(id)
+        InventoryTransaction tx = inventoryGateway.findTransactionById(id)
                 .orElseThrow(() -> new IllegalArgumentException("거래 내역을 찾을 수 없습니다."));
 
         if (tx.isSystemGenerated()) {
@@ -119,7 +124,7 @@ public class InventoryService {
             throw new IllegalArgumentException("이 거래는 되돌릴 수 없습니다.");
         }
 
-        materialRepository.save(material);
+        inventoryGateway.saveMaterial(material);
 
         User currentUser = getCurrentUser();
         LocalDateTime revertedAt = LocalDateTime.now();
@@ -127,7 +132,7 @@ public class InventoryService {
         tx.setReverted(true);
         tx.setRevertedAt(revertedAt);
         tx.setRevertedBy(currentUser);
-        transactionRepository.save(tx);
+        inventoryGateway.saveTransaction(tx);
 
         InventoryTransaction reversalTransaction = InventoryTransaction.builder()
                 .transactionType(reversalType)
@@ -142,7 +147,7 @@ public class InventoryService {
                 .systemGenerated(true)
                 .reversalOfTransactionId(tx.getId())
                 .build();
-        transactionRepository.save(reversalTransaction);
+        inventoryGateway.saveTransaction(reversalTransaction);
     }
 
     @Transactional
@@ -151,14 +156,14 @@ public class InventoryService {
     }
 
     @Transactional
-    public InventoryTransaction updateTransaction(Long id, TransactionRequest request) {
-        InventoryTransaction tx = transactionRepository.findById(id)
+    public TransactionResponse updateTransaction(Long id, TransactionRequest request) {
+        InventoryTransaction tx = inventoryGateway.findTransactionById(id)
                 .orElseThrow(() -> new IllegalArgumentException("거래 내역을 찾을 수 없습니다."));
 
         Material oldMaterial = tx.getMaterial();
         Material newMaterial = oldMaterial.getMaterialCode().equals(request.getMaterialCode()) 
                 ? oldMaterial 
-                : materialRepository.findById(request.getMaterialCode())
+                : inventoryGateway.findMaterialById(request.getMaterialCode())
                         .orElseThrow(() -> new IllegalArgumentException("변경할 자재를 찾을 수 없습니다."));
 
         String validatedBusinessUnit = masterDataService.requireRegisteredBusinessUnit(request.getBusinessUnit());
@@ -174,7 +179,7 @@ public class InventoryService {
         }
 
         if (!oldMaterial.getMaterialCode().equals(newMaterial.getMaterialCode())) {
-            materialRepository.save(oldMaterial);
+            inventoryGateway.saveMaterial(oldMaterial);
         }
 
         // Apply stock impact on new material
@@ -186,7 +191,7 @@ public class InventoryService {
             }
             newMaterial.setCurrentStockQty(newMaterial.getCurrentStockQty() - request.getQuantity());
         }
-        materialRepository.save(newMaterial);
+        inventoryGateway.saveMaterial(newMaterial);
 
         tx.setMaterial(newMaterial);
         tx.setQuantity(request.getQuantity());
@@ -196,7 +201,8 @@ public class InventoryService {
         tx.setNote(request.getNote());
         tx.setReference(request.getReference());
 
-        return transactionRepository.save(tx);
+        InventoryTransaction saved = inventoryGateway.saveTransaction(tx);
+        return transactionMapper.toResponse(saved);
     }
 
     private User getCurrentUser() {
