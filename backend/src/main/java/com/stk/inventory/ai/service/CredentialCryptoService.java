@@ -20,7 +20,7 @@ public class CredentialCryptoService {
     private final SecretKey secretKey;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public CredentialCryptoService(@Value("${app.ai.master-key:4MblI4M0n4tF2e7l3f5x1V8f0GvX9K0+Qm8A2eI2Q6Q=}") String base64MasterKey) {
+    public CredentialCryptoService(@Value("${app.ai.master-key}") String base64MasterKey) {
         byte[] keyBytes = Base64.getDecoder().decode(base64MasterKey);
         this.secretKey = new SecretKeySpec(keyBytes, "AES");
     }
