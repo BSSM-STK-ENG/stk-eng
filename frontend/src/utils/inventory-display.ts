@@ -58,6 +58,14 @@ export function formatLocation(value: string | null | undefined, fallback = '-')
   return sanitizeLocation(value) ?? fallback;
 }
 
+export function isInboundType(type: TransactionType): boolean {
+  return type === 'IN' || type === 'RETURN';
+}
+
+export function isOutboundType(type: TransactionType): boolean {
+  return type === 'OUT' || type === 'EXCHANGE';
+}
+
 export function formatTransactionTypeLabel(type: TransactionType) {
   switch (type) {
     case 'IN':

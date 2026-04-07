@@ -185,7 +185,7 @@ function summarizeTransactionsByDay(days: InventoryCalendarDay[], transactions: 
     if (transaction.transactionType === 'IN' || transaction.transactionType === 'RETURN') {
       current.inboundQty += transaction.quantity;
       current.inboundCount += 1;
-    } else if (transaction.transactionType === 'OUT') {
+    } else if (transaction.transactionType === 'OUT' || transaction.transactionType === 'EXCHANGE') {
       current.outboundQty += transaction.quantity;
       current.outboundCount += 1;
     }

@@ -18,7 +18,7 @@ import api from '../api/axios';
 import InfoTooltip from '../components/common/InfoTooltip';
 import type { InventoryTransaction, MaterialDto } from '../types/api';
 import { formatAppDateTime } from '../utils/date-format';
-import { formatBusinessUnit, formatTransactionTypeLabel } from '../utils/inventory-display';
+import { formatBusinessUnit, formatTransactionTypeLabel, isInboundType, isOutboundType } from '../utils/inventory-display';
 
 type DayMetric = {
   key: string;
@@ -50,13 +50,6 @@ function formatSignedQty(value: number) {
   return `${value > 0 ? '+' : '-'}${Math.abs(value).toLocaleString()} EA`;
 }
 
-function isInboundTransaction(type: InventoryTransaction['transactionType']) {
-  return type === 'IN' || type === 'RETURN';
-}
-
-function isOutboundTransaction(type: InventoryTransaction['transactionType']) {
-  return type === 'OUT' || type === 'EXCHANGE';
-}
 
 function getMaterialStatus(material: MaterialDto) {
   const currentStock = material.currentStockQty ?? 0;
@@ -410,11 +403,11 @@ const Dashboard = () => {
       const dayKey = toDayKey(transactionDate);
       const currentDay = byDay.get(dayKey) ?? { inboundQty: 0, outboundQty: 0, count: 0 };
 
-      if (isInboundTransaction(transaction.transactionType)) {
+      if (isInboundType(transaction.transactionType)) {
         currentDay.inboundQty += transaction.quantity;
       }
 
-      if (isOutboundTransaction(transaction.transactionType)) {
+      if (isOutboundType(transaction.transactionType)) {
         currentDay.outboundQty += transaction.quantity;
       }
 
@@ -466,7 +459,7 @@ const Dashboard = () => {
   const todayInboundQty = useMemo(
     () =>
       todayTransactions.reduce(
-        (sum, transaction) => sum + (isInboundTransaction(transaction.transactionType) ? transaction.quantity : 0),
+        (sum, transaction) => sum + (isInboundType(transaction.transactionType) ? transaction.quantity : 0),
         0,
       ),
     [todayTransactions],
@@ -475,7 +468,7 @@ const Dashboard = () => {
   const todayOutboundQty = useMemo(
     () =>
       todayTransactions.reduce(
-        (sum, transaction) => sum + (isOutboundTransaction(transaction.transactionType) ? transaction.quantity : 0),
+        (sum, transaction) => sum + (isOutboundType(transaction.transactionType) ? transaction.quantity : 0),
         0,
       ),
     [todayTransactions],
@@ -604,7 +597,7 @@ const Dashboard = () => {
         <div className="divide-y divide-slate-100">
           {recentTransactions.length > 0 ? (
             recentTransactions.map((transaction) => {
-              const inbound = isInboundTransaction(transaction.transactionType);
+              const inbound = isInboundType(transaction.transactionType);
               const quantityLabel = formatQty(transaction.quantity);
 
               return (

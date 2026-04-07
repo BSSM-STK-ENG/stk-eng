@@ -57,13 +57,20 @@ export default function Materials() {
     setNotice(null);
     setMaterialSubmitting(true);
     try {
+      const rawSafeStock = materialForm.safeStockQty.trim();
+      const parsedSafeStock = rawSafeStock ? parseInt(rawSafeStock, 10) : 0;
+      if (isNaN(parsedSafeStock) || parsedSafeStock < 0) {
+        setNotice({ tone: 'error', message: '안전재고는 0 이상의 정수를 입력해주세요.' });
+        setMaterialSubmitting(false);
+        return;
+      }
       const payload = {
         materialCode: materialForm.materialCode.trim(),
         materialName: materialForm.materialName.trim(),
         location: editingMaterialCode
           ? materials.find((item) => item.materialCode === editingMaterialCode)?.location ?? null
           : null,
-        safeStockQty: materialForm.safeStockQty.trim() ? Number(materialForm.safeStockQty) : 0,
+        safeStockQty: parsedSafeStock,
         description: materialForm.description.trim() || null,
         currentStockQty: editingMaterialCode
           ? materials.find((item) => item.materialCode === editingMaterialCode)?.currentStockQty ?? 0
