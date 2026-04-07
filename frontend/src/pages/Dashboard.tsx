@@ -44,7 +44,7 @@ function formatSignedQty(value: number) {
 }
 
 
-function getMetricToneClasses(tone: 'slate' | 'blue' | 'amber' | 'rose' | 'emerald') {
+function getMetricToneClasses(tone: 'slate' | 'blue' | 'amber') {
   switch (tone) {
     case 'blue':
       return {
@@ -56,18 +56,6 @@ function getMetricToneClasses(tone: 'slate' | 'blue' | 'amber' | 'rose' | 'emera
       return {
         card: 'border-slate-200 bg-white',
         icon: 'bg-amber-50 text-amber-600',
-        value: 'text-slate-900',
-      };
-    case 'rose':
-      return {
-        card: 'border-slate-200 bg-white',
-        icon: 'bg-slate-100 text-slate-700',
-        value: 'text-slate-900',
-      };
-    case 'emerald':
-      return {
-        card: 'border-slate-200 bg-white',
-        icon: 'bg-slate-100 text-slate-700',
         value: 'text-slate-900',
       };
     case 'slate':
@@ -92,7 +80,7 @@ function MetricCard({
   label: string;
   value: string;
   helpText?: string;
-  tone: 'slate' | 'blue' | 'amber' | 'rose' | 'emerald';
+  tone: 'slate' | 'blue' | 'amber';
   onClick?: () => void;
 }) {
   const toneClasses = getMetricToneClasses(tone);
@@ -390,7 +378,7 @@ const Dashboard = () => {
         <div className="admin-header-row">
           <div className="min-w-0">
             <p className="admin-kicker">대시보드</p>
-            <h1 className="admin-page-title">재고 현황</h1>
+            <h2 className="admin-page-title">재고 현황</h2>
           </div>
 
           <div className="admin-toolbar">

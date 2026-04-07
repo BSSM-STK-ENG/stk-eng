@@ -11,7 +11,7 @@ function SearchFieldHarness() {
 }
 
 describe('AdminSearchField', () => {
-  it('hides the search icon on focus and clears typed text', async () => {
+  it('always shows search icon and clears typed text', async () => {
     const user = userEvent.setup();
     const { container } = render(<SearchFieldHarness />);
     const input = screen.getByPlaceholderText('검색');
@@ -20,7 +20,7 @@ describe('AdminSearchField', () => {
     expect(screen.queryByRole('button', { name: '검색어 지우기' })).not.toBeInTheDocument();
 
     await user.click(input);
-    expect(container.querySelector('.admin-search-icon')).toBeNull();
+    expect(container.querySelector('.admin-search-icon')).not.toBeNull();
 
     await user.type(input, '재고');
     expect(screen.getByRole('button', { name: '검색어 지우기' })).toBeInTheDocument();

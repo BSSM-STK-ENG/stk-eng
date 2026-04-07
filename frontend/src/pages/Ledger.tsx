@@ -174,11 +174,11 @@ const Ledger: React.FC = () => {
 
           <div className="admin-toolbar">
             <button type="button" onClick={() => void fetchLedger(page, searchTerm, typeFilter, businessUnitFilter, dayFilter)} className="admin-btn chat-focus-ring">
-              <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
               새로고침
             </button>
             <button type="button" onClick={handleExport} className="admin-btn admin-btn-primary chat-focus-ring">
-              <Download size={15} />
+              <Download size={16} />
               엑셀 다운로드
             </button>
           </div>
@@ -186,7 +186,7 @@ const Ledger: React.FC = () => {
       </section>
 
       {errorMsg && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-600">
+        <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-700">
           {errorMsg}
         </div>
       )}
@@ -213,7 +213,7 @@ const Ledger: React.FC = () => {
               ))}
             </select>
 
-            <label className="chat-focus-ring flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20">
+            <label className="chat-focus-ring flex min-h-11 items-center rounded-[10px] border border-slate-300 bg-white px-4 transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20">
               <input
                 type="date"
                 value={dayFilter}

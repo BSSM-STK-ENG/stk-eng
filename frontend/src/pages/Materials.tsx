@@ -280,8 +280,8 @@ export default function Materials() {
                     <p className="mt-1">{(item.safeStockQty ?? 0).toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400">현재재고</p>
-                    <p className="mt-1">{(item.currentStockQty ?? 0).toLocaleString()}</p>
+                    <p className="text-xs text-slate-400">위치</p>
+                    <p className="mt-1">{item.location ?? '-'}</p>
                   </div>
                 </div>
                 <div className="mt-3">
