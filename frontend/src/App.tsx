@@ -3,21 +3,22 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import MainLayout from './layouts/MainLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Inbound from './pages/Inbound';
-import Outbound from './pages/Outbound';
-import CurrentStock from './pages/CurrentStock';
-import Ledger from './pages/Ledger';
-import Closing from './pages/Closing';
-import History from './pages/History';
-import SetupPassword from './pages/SetupPassword';
-import AdminAccounts from './pages/AdminAccounts';
-import ChangePassword from './pages/ChangePassword';
-import MasterData from './pages/MasterData';
-import Materials from './pages/Materials';
 import VerifyEmail from './pages/VerifyEmail';
 import type { PagePermissionKey } from './types/api';
 import { getDefaultRouteForRole, getStoredRole, getStoredToken, hasStoredPagePermission, requiresPasswordSetup } from './utils/auth-session';
+
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Inbound = React.lazy(() => import('./pages/Inbound'));
+const Outbound = React.lazy(() => import('./pages/Outbound'));
+const CurrentStock = React.lazy(() => import('./pages/CurrentStock'));
+const Ledger = React.lazy(() => import('./pages/Ledger'));
+const Closing = React.lazy(() => import('./pages/Closing'));
+const History = React.lazy(() => import('./pages/History'));
+const SetupPassword = React.lazy(() => import('./pages/SetupPassword'));
+const AdminAccounts = React.lazy(() => import('./pages/AdminAccounts'));
+const ChangePassword = React.lazy(() => import('./pages/ChangePassword'));
+const MasterData = React.lazy(() => import('./pages/MasterData'));
+const Materials = React.lazy(() => import('./pages/Materials'));
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -64,27 +65,29 @@ function PermissionRoute({ children, permission }: PrivateRouteProps & { permiss
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
-        <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
-        <Route path="/verify-email" element={<GuestRoute><VerifyEmail /></GuestRoute>} />
-        <Route path="/setup-password" element={<PasswordSetupRoute><SetupPassword /></PasswordSetupRoute>} />
+      <React.Suspense fallback={<div className="flex h-screen items-center justify-center text-slate-400">Loading...</div>}>
+        <Routes>
+          <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+          <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+          <Route path="/verify-email" element={<GuestRoute><VerifyEmail /></GuestRoute>} />
+          <Route path="/setup-password" element={<PasswordSetupRoute><SetupPassword /></PasswordSetupRoute>} />
 
-        <Route path="/" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
-          <Route index element={<Navigate to={getDefaultRouteForRole(getStoredRole())} replace />} />
-          <Route path="dashboard" element={<PermissionRoute permission="DASHBOARD"><Dashboard /></PermissionRoute>} />
-          <Route path="inbound" element={<PermissionRoute permission="INBOUND"><Inbound /></PermissionRoute>} />
-          <Route path="outbound" element={<PermissionRoute permission="OUTBOUND"><Outbound /></PermissionRoute>} />
-          <Route path="stock/current" element={<PermissionRoute permission="CURRENT_STOCK"><CurrentStock /></PermissionRoute>} />
-          <Route path="stock/ledger" element={<PermissionRoute permission="STOCK_LEDGER"><Ledger /></PermissionRoute>} />
-          <Route path="closing" element={<PermissionRoute permission="CLOSING"><Closing /></PermissionRoute>} />
-          <Route path="history" element={<PermissionRoute permission="HISTORY"><History /></PermissionRoute>} />
-          <Route path="master-data" element={<PermissionRoute permission="MASTER_DATA"><MasterData /></PermissionRoute>} />
-          <Route path="materials" element={<PermissionRoute permission="MASTER_DATA"><Materials /></PermissionRoute>} />
-          <Route path="account/password" element={<ChangePassword />} />
-          <Route path="admin/accounts" element={<SuperAdminRoute><AdminAccounts /></SuperAdminRoute>} />
-        </Route>
-      </Routes>
+          <Route path="/" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
+            <Route index element={<Navigate to={getDefaultRouteForRole(getStoredRole())} replace />} />
+            <Route path="dashboard" element={<PermissionRoute permission="DASHBOARD"><Dashboard /></PermissionRoute>} />
+            <Route path="inbound" element={<PermissionRoute permission="INBOUND"><Inbound /></PermissionRoute>} />
+            <Route path="outbound" element={<PermissionRoute permission="OUTBOUND"><Outbound /></PermissionRoute>} />
+            <Route path="stock/current" element={<PermissionRoute permission="CURRENT_STOCK"><CurrentStock /></PermissionRoute>} />
+            <Route path="stock/ledger" element={<PermissionRoute permission="STOCK_LEDGER"><Ledger /></PermissionRoute>} />
+            <Route path="closing" element={<PermissionRoute permission="CLOSING"><Closing /></PermissionRoute>} />
+            <Route path="history" element={<PermissionRoute permission="HISTORY"><History /></PermissionRoute>} />
+            <Route path="master-data" element={<PermissionRoute permission="MASTER_DATA"><MasterData /></PermissionRoute>} />
+            <Route path="materials" element={<PermissionRoute permission="MASTER_DATA"><Materials /></PermissionRoute>} />
+            <Route path="account/password" element={<ChangePassword />} />
+            <Route path="admin/accounts" element={<SuperAdminRoute><AdminAccounts /></SuperAdminRoute>} />
+          </Route>
+        </Routes>
+      </React.Suspense>
     </Router>
   );
 }

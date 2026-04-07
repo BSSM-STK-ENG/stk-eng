@@ -31,7 +31,7 @@ const History = () => {
 
     useEffect(() => { fetchHistory(); }, []);
 
-    const handleExport = () => {
+    const handleExport = async () => {
         const rows = transactions.map(t => ({
             '변경일시': formatAppDateTime(t.createdAt),
             'ID': t.id,
@@ -42,7 +42,7 @@ const History = () => {
             '변경수량': isInboundType(t.transactionType) ? t.quantity : -t.quantity,
             '변경자': t.createdBy?.email ?? 'System',
         }));
-        downloadExcel(rows, '변경_이력');
+        await downloadExcel(rows, '변경_이력');
     };
 
     const filtered = transactions.filter(t =>

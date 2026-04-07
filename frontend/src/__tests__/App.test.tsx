@@ -91,7 +91,7 @@ describe('App', () => {
     expect(screen.queryByLabelText('채팅 패널')).not.toBeInTheDocument();
   });
 
-  it('redirects authenticated users who must change password', () => {
+  it('redirects authenticated users who must change password', async () => {
     setSession({
       email: 'test@test.com',
       role: 'USER',
@@ -101,7 +101,9 @@ describe('App', () => {
     });
     window.history.pushState({}, '', '/stock/current');
     render(<App />);
-    expect(screen.getByText('초기 비밀번호 변경')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('초기 비밀번호 변경')).toBeInTheDocument();
+    });
   });
 
   it('renders super admin account page for super admin users', async () => {
@@ -135,13 +137,15 @@ describe('App', () => {
     }));
     window.history.pushState({}, '', '/admin/accounts');
     render(<App />);
-    expect(screen.getAllByText('사용자 관리').length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText('사용자 관리').length).toBeGreaterThan(0);
+    });
     await waitFor(() => {
       expect(screen.getByText('아직 등록된 사용자가 없습니다.')).toBeInTheDocument();
     });
   });
 
-  it('renders password change page for authenticated users', () => {
+  it('renders password change page for authenticated users', async () => {
     setSession({
       email: 'user@test.com',
       role: 'USER',
@@ -150,7 +154,9 @@ describe('App', () => {
     });
     window.history.pushState({}, '', '/account/password');
     render(<App />);
-    expect(screen.getByRole('heading', { name: '비밀번호 변경' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: '비밀번호 변경' })).toBeInTheDocument();
+    });
   });
 
   it('renders master data page when the account has that page permission', async () => {
@@ -231,8 +237,8 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(screen.queryByLabelText('채팅 패널')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'AI 패널 켜기' })).toBeInTheDocument();
     });
-    expect(screen.getByRole('button', { name: 'AI 패널 켜기' })).toBeInTheDocument();
   });
 
   it('clears selected materials when opening another page', async () => {

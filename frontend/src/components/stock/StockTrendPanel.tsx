@@ -17,6 +17,7 @@ import axios from 'axios';
 import api from '../../api/axios';
 import type { MaterialDto, StockTrendResponse } from '../../types/api';
 import { formatLocation, isMeaningfulInventoryValue, sanitizeLocation } from '../../utils/inventory-display';
+import { formatNumber, formatCompactNumber } from '../../utils/number-format';
 import { getFavoriteMaterialCodes, getRecentMaterialCodes, subscribeMaterialPreferences } from '../../utils/material-preferences';
 import { addMaterialWorklistCodes, getMaterialWorklistCodes, subscribeMaterialWorklist } from '../../utils/material-worklist';
 
@@ -82,16 +83,6 @@ function areStringArraysEqual(a: string[], b: string[]) {
   return a.every((value, index) => value === b[index]);
 }
 
-function formatNumber(value: number) {
-  return new Intl.NumberFormat('ko-KR').format(value);
-}
-
-function formatCompactNumber(value: number) {
-  return new Intl.NumberFormat('ko-KR', {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(value);
-}
 
 function formatDateLabel(value: string, options?: Intl.DateTimeFormatOptions) {
   const date = new Date(`${value}T00:00:00`);

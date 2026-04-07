@@ -21,6 +21,7 @@ import type {
   TransactionType,
 } from '../../types/api';
 import { formatBusinessUnit, sanitizeBusinessUnit } from '../../utils/inventory-display';
+import { formatNumber, formatCompactNumber } from '../../utils/number-format';
 
 type TransactionFilter = 'ALL' | 'INBOUND' | 'OUTBOUND' | 'OTHER';
 
@@ -58,16 +59,6 @@ function getCurrentMonthKey() {
   return toMonthKey(new Date());
 }
 
-function formatNumber(value: number) {
-  return new Intl.NumberFormat('ko-KR').format(value);
-}
-
-function formatCompactNumber(value: number) {
-  return new Intl.NumberFormat('ko-KR', {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(value);
-}
 
 function formatDate(date: string, options?: Intl.DateTimeFormatOptions) {
   return new Intl.DateTimeFormat('ko-KR', options ?? { month: 'long', day: 'numeric' }).format(new Date(`${date}T00:00:00`));
