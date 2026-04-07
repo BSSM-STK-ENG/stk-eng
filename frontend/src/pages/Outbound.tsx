@@ -204,7 +204,9 @@ const Outbound = () => {
   };
 
   const openRepeatOutbound = (transaction: InventoryTransaction) => {
-    const matchedUser = userOptions.find((item) => item.name === (sanitizeInventoryText(transaction.manager) ?? ''));
+    const matchedUser = transaction.managerUser
+      ? userOptions.find((item) => item.id === transaction.managerUser!.id)
+      : userOptions.find((item) => item.name === (sanitizeInventoryText(transaction.manager) ?? ''));
     setMaterialCode(transaction.material.materialCode);
     setMaterialQuery(buildMaterialLookupLabel(transaction.material));
     setBusinessUnit(sanitizeBusinessUnit(transaction.businessUnit) ?? '');
@@ -217,7 +219,9 @@ const Outbound = () => {
   };
 
   const openEditOutbound = (transaction: InventoryTransaction) => {
-    const matchedUser = userOptions.find((item) => item.name === (sanitizeInventoryText(transaction.manager) ?? ''));
+    const matchedUser = transaction.managerUser
+      ? userOptions.find((item) => item.id === transaction.managerUser!.id)
+      : userOptions.find((item) => item.name === (sanitizeInventoryText(transaction.manager) ?? ''));
     setEditingTransaction(transaction);
     setMaterialCode(transaction.material.materialCode);
     setMaterialQuery(buildMaterialLookupLabel(transaction.material));

@@ -46,6 +46,10 @@ public class InventoryTransaction {
     private String reference;
 
     @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "manager_user_id")
+    private User managerUser;
+
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "created_by_user_id")
     private User createdBy;
 
