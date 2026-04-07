@@ -16,6 +16,7 @@ import com.stk.inventory.dto.RoleProfileResponse;
 import com.stk.inventory.entity.Role;
 import com.stk.inventory.entity.User;
 import com.stk.inventory.gateway.UserGateway;
+import com.stk.inventory.mapper.UserMapper;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -35,11 +36,13 @@ public class AdminUserManagementService implements com.stk.inventory.usecase.Adm
     private final UserGateway userGateway;
     private final PasswordEncoder passwordEncoder;
     private final UserPermissionService userPermissionService;
+    private final UserMapper userMapper;
 
-    public AdminUserManagementService(UserGateway userGateway, PasswordEncoder passwordEncoder, UserPermissionService userPermissionService) {
+    public AdminUserManagementService(UserGateway userGateway, PasswordEncoder passwordEncoder, UserPermissionService userPermissionService, UserMapper userMapper) {
         this.userGateway = userGateway;
         this.passwordEncoder = passwordEncoder;
         this.userPermissionService = userPermissionService;
+        this.userMapper = userMapper;
     }
 
     public List<AdminUserSummaryResponse> listUsers() {
@@ -72,18 +75,15 @@ public class AdminUserManagementService implements com.stk.inventory.usecase.Adm
                 userPermissionService.normalizeAssignablePermissions(request.getPagePermissions(), permissionPreset, role)
         );
 
-        User savedUser = userGateway.save(User.builder()
-                .name(name)
-                .email(email)
-                .password(passwordEncoder.encode(INITIAL_ISSUED_PASSWORD))
-                .role(role)
-                .roleProfileKey(roleProfile.key())
-                .permissionPreset(permissionPreset)
-                .pagePermissions(serializedPermissions)
-                .chatPanelEnabled(false)
-                .passwordChangeRequired(true)
-                .emailVerified(true)
-                .build());
+        User savedUser = userGateway.save(userMapper.toEntityForCreate(
+                name,
+                email,
+                passwordEncoder.encode(INITIAL_ISSUED_PASSWORD),
+                role,
+                roleProfile.key(),
+                permissionPreset,
+                serializedPermissions
+        ));
 
         return AdminCreatedUserResponse.builder()
                 .name(savedUser.getName())
