@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Search } from 'lucide-react';
 import type { MaterialDto } from '../../types/api';
 import { formatLocation, sanitizeLocation } from '../../utils/inventory-display';
@@ -47,6 +47,13 @@ export default function MaterialLookupField({
 }: MaterialLookupFieldProps) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+    };
+  }, []);
   const accentStyles = ACCENT_STYLES[accent];
   const selectedMaterial = materials.find((material) => material.materialCode === selectedCode) ?? null;
   const normalizedQuery = inputValue.trim().toLowerCase();
@@ -128,7 +135,7 @@ export default function MaterialLookupField({
               setOpen(true);
             }
           }}
-          onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+          onBlur={() => { blurTimerRef.current = window.setTimeout(() => setOpen(false), 120); }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={`w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400 ${accentStyles.ring}`}

@@ -86,14 +86,20 @@ const CurrentStock = () => {
     [scope, searchedMaterials],
   );
 
-  const allCount = searchedMaterials.length;
-  const lowCount = searchedMaterials.filter((material) => {
-    const safeStock = material.safeStockQty ?? 0;
-    const currentStock = material.currentStockQty ?? 0;
-    return safeStock > 0 && currentStock > 0 && currentStock <= safeStock;
-  }).length;
-  const zeroCount = searchedMaterials.filter((material) => (material.currentStockQty ?? 0) <= 0).length;
-  const availableCount = searchedMaterials.filter((material) => (material.currentStockQty ?? 0) > 0).length;
+  const { allCount, lowCount, zeroCount, availableCount } = useMemo(() => {
+    return searchedMaterials.reduce(
+      (acc, m) => {
+        const current = m.currentStockQty ?? 0;
+        const safe = m.safeStockQty ?? 0;
+        acc.allCount++;
+        if (current <= 0) acc.zeroCount++;
+        else if (safe > 0 && current <= safe) acc.lowCount++;
+        else acc.availableCount++;
+        return acc;
+      },
+      { allCount: 0, lowCount: 0, zeroCount: 0, availableCount: 0 },
+    );
+  }, [searchedMaterials]);
 
   const handleExport = async () => {
     const rows = filtered.map((material) => ({
