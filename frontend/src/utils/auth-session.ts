@@ -10,8 +10,6 @@ const AUTH_KEYS = {
   passwordChangeRequired: 'passwordChangeRequired',
 } as const;
 
-export const INITIAL_ISSUED_PASSWORD = '1234';
-
 export function saveAuthSession(auth: AuthResponse) {
   localStorage.setItem(AUTH_KEYS.token, auth.token);
   localStorage.setItem(AUTH_KEYS.name, auth.name ?? '');
@@ -32,8 +30,23 @@ export function clearAuthSession() {
   localStorage.removeItem(AUTH_KEYS.passwordChangeRequired);
 }
 
-export function getStoredToken() {
-  return localStorage.getItem(AUTH_KEYS.token);
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+}
+
+export function getStoredToken(): string | null {
+  const token = localStorage.getItem(AUTH_KEYS.token);
+  if (!token) return null;
+  if (isTokenExpired(token)) {
+    clearAuthSession();
+    return null;
+  }
+  return token;
 }
 
 export function getStoredEmail() {
@@ -87,6 +100,15 @@ export function requiresPasswordSetup() {
 
 export function completePasswordSetup() {
   localStorage.setItem(AUTH_KEYS.passwordChangeRequired, 'false');
+}
+
+export function updateStoredProfile(profile: { name?: string; email: string; role: Role; permissionPreset?: string; pagePermissions?: string[]; passwordChangeRequired: boolean }) {
+  localStorage.setItem(AUTH_KEYS.name, profile.name ?? '');
+  localStorage.setItem(AUTH_KEYS.email, profile.email);
+  localStorage.setItem(AUTH_KEYS.role, profile.role);
+  localStorage.setItem(AUTH_KEYS.permissionPreset, profile.permissionPreset ?? '');
+  localStorage.setItem(AUTH_KEYS.pagePermissions, JSON.stringify(profile.pagePermissions ?? []));
+  localStorage.setItem(AUTH_KEYS.passwordChangeRequired, String(profile.passwordChangeRequired));
 }
 
 export function getDefaultRouteForRole(role: Role | null) {

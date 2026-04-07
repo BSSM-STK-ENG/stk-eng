@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Loader2, Lock, UserRound } from 'lucide-react';
 import api from '../api/axios';
-import { completePasswordSetup, getDefaultRouteForRole, getStoredEmail, getStoredName, getStoredRole, INITIAL_ISSUED_PASSWORD } from '../utils/auth-session';
+import { completePasswordSetup, getDefaultRouteForRole, getStoredEmail, getStoredName, getStoredRole } from '../utils/auth-session';
 import { getErrorMessage } from '../utils/api-error';
 
 const SetupPassword = () => {
@@ -52,7 +52,7 @@ const SetupPassword = () => {
             초기 비밀번호 변경
           </h1>
           <p className="mt-2 text-sm text-slate-500">
-            첫 로그인입니다. 초기 비밀번호 {INITIAL_ISSUED_PASSWORD} 대신 앞으로 사용할 비밀번호를 설정하세요.
+            첫 로그인입니다. 관리자에게 전달받은 임시 비밀번호를 입력하고, 앞으로 사용할 비밀번호를 설정하세요.
           </p>
           <p className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs leading-5 text-slate-500">
             로그인 계정: <span className="font-semibold text-slate-700">{getStoredEmail()}</span>

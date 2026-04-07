@@ -14,6 +14,7 @@ const Ledger: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>(() => searchParams.get('material') ?? '');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [businessUnitFilter, setBusinessUnitFilter] = useState<string>(() => searchParams.get('unit') ?? 'ALL');
@@ -22,6 +23,7 @@ const Ledger: React.FC = () => {
 
   const fetchLedger = async () => {
     setLoading(true);
+    setErrorMsg(null);
     try {
       const response = await api.get<InventoryTransaction[]>('/inventory/ledger');
       setTransactions(
@@ -30,7 +32,7 @@ const Ledger: React.FC = () => {
           .sort((left, right) => new Date(right.transactionDate).getTime() - new Date(left.transactionDate).getTime()),
       );
     } catch (error) {
-      console.error('Failed to fetch ledger', error);
+      setErrorMsg('수불부 데이터를 불러오지 못했습니다.');
     } finally {
       setLoading(false);
     }
@@ -188,6 +190,12 @@ const Ledger: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {errorMsg && (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-600">
+          {errorMsg}
+        </div>
+      )}
 
       <section className="admin-table-panel">
         <div className="border-b border-slate-100 px-5 py-5 md:px-6">

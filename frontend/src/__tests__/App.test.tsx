@@ -9,6 +9,12 @@ vi.mock('../api/axios', () => ({
 
 const mockedGet = vi.mocked(api.get);
 
+function createTestToken() {
+  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const payload = btoa(JSON.stringify({ sub: 'test@test.com', exp: Math.floor(Date.now() / 1000) + 86400 }));
+  return `${header}.${payload}.test-signature`;
+}
+
 const setSession = (options: {
   email: string;
   role: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
@@ -16,7 +22,7 @@ const setSession = (options: {
   pagePermissions?: string[];
   permissionPreset?: string;
 }) => {
-  localStorage.setItem('token', 'test-token');
+  localStorage.setItem('token', createTestToken());
   localStorage.setItem('email', options.email);
   localStorage.setItem('role', options.role);
   localStorage.setItem('passwordChangeRequired', String(options.passwordChangeRequired ?? false));
