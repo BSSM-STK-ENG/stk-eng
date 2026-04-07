@@ -31,18 +31,18 @@ import java.util.UUID;
 @Service
 public class AdminUserManagementService implements com.stk.inventory.usecase.AdminUserManagementUseCase {
 
-    public static final String INITIAL_ISSUED_PASSWORD = "1234";
-
     private final UserGateway userGateway;
     private final PasswordEncoder passwordEncoder;
     private final UserPermissionService userPermissionService;
     private final UserMapper userMapper;
+    private final TemporaryPasswordGenerator temporaryPasswordGenerator;
 
-    public AdminUserManagementService(UserGateway userGateway, PasswordEncoder passwordEncoder, UserPermissionService userPermissionService, UserMapper userMapper) {
+    public AdminUserManagementService(UserGateway userGateway, PasswordEncoder passwordEncoder, UserPermissionService userPermissionService, UserMapper userMapper, TemporaryPasswordGenerator temporaryPasswordGenerator) {
         this.userGateway = userGateway;
         this.passwordEncoder = passwordEncoder;
         this.userPermissionService = userPermissionService;
         this.userMapper = userMapper;
+        this.temporaryPasswordGenerator = temporaryPasswordGenerator;
     }
 
     public List<AdminUserSummaryResponse> listUsers() {
@@ -75,10 +75,12 @@ public class AdminUserManagementService implements com.stk.inventory.usecase.Adm
                 userPermissionService.normalizeAssignablePermissions(request.getPagePermissions(), permissionPreset, role)
         );
 
+        String temporaryPassword = temporaryPasswordGenerator.generate();
+
         User savedUser = userGateway.save(userMapper.toEntityForCreate(
                 name,
                 email,
-                passwordEncoder.encode(INITIAL_ISSUED_PASSWORD),
+                passwordEncoder.encode(temporaryPassword),
                 role,
                 roleProfile.key(),
                 permissionPreset,
@@ -93,7 +95,7 @@ public class AdminUserManagementService implements com.stk.inventory.usecase.Adm
                 .roleLabel(userPermissionService.resolveRoleProfileDefinition(savedUser.getRoleProfileKey(), savedUser.getRole()).label())
                 .permissionPreset(userPermissionService.resolvePresetKey(savedUser))
                 .pagePermissions(userPermissionService.resolvePermissions(savedUser).stream().map(PagePermission::getKey).toList())
-                .temporaryPassword(INITIAL_ISSUED_PASSWORD)
+                .temporaryPassword(temporaryPassword)
                 .passwordChangeRequired(savedUser.isPasswordChangeRequired())
                 .createdAt(savedUser.getCreatedAt())
                 .build();
@@ -147,7 +149,8 @@ public class AdminUserManagementService implements com.stk.inventory.usecase.Adm
         User currentUser = requireSuperAdmin();
         User targetUser = requireManageableUser(userId, currentUser);
 
-        targetUser.setPassword(passwordEncoder.encode(INITIAL_ISSUED_PASSWORD));
+        String temporaryPassword = temporaryPasswordGenerator.generate();
+        targetUser.setPassword(passwordEncoder.encode(temporaryPassword));
         targetUser.setPasswordChangeRequired(true);
         User savedUser = userGateway.save(targetUser);
 
@@ -156,7 +159,7 @@ public class AdminUserManagementService implements com.stk.inventory.usecase.Adm
                 .role(savedUser.getRole())
                 .roleProfileKey(userPermissionService.resolveRoleProfileDefinition(savedUser.getRoleProfileKey(), savedUser.getRole()).key())
                 .roleLabel(userPermissionService.resolveRoleProfileDefinition(savedUser.getRoleProfileKey(), savedUser.getRole()).label())
-                .temporaryPassword(INITIAL_ISSUED_PASSWORD)
+                .temporaryPassword(temporaryPassword)
                 .passwordChangeRequired(savedUser.isPasswordChangeRequired())
                 .build();
     }
