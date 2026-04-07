@@ -362,9 +362,9 @@ const Outbound = () => {
     try {
       await api.post(`/inventory/${id}/revert`);
       await fetchPageData();
-      setNotice({ tone: 'success', message: '출고 내역을 되돌렸습니다.' });
+      setNotice({ tone: 'success', message: '출고 내역을 취소했습니다.' });
     } catch (error) {
-      setNotice({ tone: 'error', message: `되돌리기에 실패했습니다. ${getErrorMessage(error)}` });
+      setNotice({ tone: 'error', message: `취소하기에 실패했습니다. ${getErrorMessage(error)}` });
     }
   };
 
@@ -432,7 +432,7 @@ const Outbound = () => {
             className="admin-btn"
           >
             <Download size={14} className="mr-1.5" />
-            다운로드
+            엑셀 다운로드
           </button>
           <button
             onClick={() => setShowUploadModal(true)}
@@ -494,7 +494,7 @@ const Outbound = () => {
         <button
           type="button"
           onClick={handleResetFilters}
-          className="chat-focus-ring h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+          className="chat-focus-ring inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
         >
           <RotateCcw size={13} className="mr-1.5" />
           필터 초기화
@@ -504,7 +504,7 @@ const Outbound = () => {
       <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
         <div className="divide-y divide-slate-100">
           {paged.map((transaction) => (
-            <article key={transaction.id} className="grid gap-4 px-4 py-4 md:grid-cols-[minmax(0,1.4fr)_120px_160px_220px] md:px-5">
+            <article key={transaction.id} className="grid items-center gap-4 px-4 py-4 md:grid-cols-[minmax(0,1.45fr)_112px_132px_264px] md:px-5">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-slate-900">{transaction.material.materialName}</p>
                 <p className="mt-1 text-xs text-slate-500">{transaction.material.materialCode}</p>
@@ -515,19 +515,19 @@ const Outbound = () => {
                   <span>{transaction.note || '비고 없음'}</span>
                 </div>
               </div>
-              <div className="rounded-lg bg-slate-50 px-3 py-3">
+              <div className="rounded-lg bg-slate-50 px-3 py-3 text-center">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">수량</p>
                 <p className="mt-1 text-lg font-semibold text-rose-500">-{transaction.quantity} EA</p>
               </div>
-              <div className="rounded-lg bg-slate-50 px-3 py-3">
+              <div className="rounded-lg bg-slate-50 px-3 py-3 text-center">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">등록자</p>
                 <p className="mt-1 text-sm font-medium text-slate-700">{transaction.createdBy?.name ?? transaction.createdBy?.email ?? '-'}</p>
               </div>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => openEditOutbound(transaction)}
-                className="admin-btn inline-flex h-9 justify-center whitespace-nowrap px-3 text-sm text-slate-600"
+                  className="admin-btn inline-flex h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap px-2.5 text-xs font-semibold text-slate-600"
                 >
                   <PencilLine size={14} />
                   수정
@@ -535,7 +535,7 @@ const Outbound = () => {
                 <button
                   type="button"
                   onClick={() => openRepeatOutbound(transaction)}
-                className="admin-btn inline-flex h-9 justify-center whitespace-nowrap px-3 text-sm text-slate-600"
+                  className="admin-btn inline-flex h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap px-2.5 text-xs font-semibold text-slate-600"
                 >
                   <Plus size={14} />
                   다시 등록
@@ -543,10 +543,10 @@ const Outbound = () => {
                 <button
                   type="button"
                   onClick={() => void handleRevert(transaction.id)}
-                className="admin-btn inline-flex h-9 justify-center whitespace-nowrap px-3 text-sm text-slate-600"
+                  className="admin-btn inline-flex h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap px-2.5 text-xs font-semibold text-slate-600"
                 >
                   <RotateCcw size={14} />
-                  되돌리기
+                  취소하기
                 </button>
               </div>
             </article>
@@ -558,7 +558,7 @@ const Outbound = () => {
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className="chat-focus-ring inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                  className="chat-focus-ring inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
                 >
                   <RotateCcw size={13} className="mr-1.5" />
                   필터 초기화
@@ -623,7 +623,7 @@ const Outbound = () => {
                         <p className="mt-2 text-sm text-slate-400">{resolvedMaterial.description}</p>
                       )}
                     </div>
-                    <span className={`inline-flex min-w-[88px] shrink-0 self-start justify-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    <span className={`inline-flex h-7 min-w-[108px] shrink-0 self-start items-center justify-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold leading-none ${
                       insufficientStock ? 'bg-white text-rose-700' : 'bg-white text-slate-700'
                     }`}>
                       {insufficientStock ? '재고 부족' : '출고 가능'}
@@ -713,7 +713,7 @@ const Outbound = () => {
                   <X size={14} className="mr-1.5" />
                   취소
                 </button>
-                <button type="submit" disabled={submitLoading || insufficientStock || businessUnits.length === 0 || userOptions.length === 0} className="h-9 rounded-lg bg-rose-500 px-4 text-sm font-semibold text-white shadow-sm shadow-rose-500/20 transition-colors hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-50">
+                <button type="submit" disabled={submitLoading || insufficientStock || businessUnits.length === 0 || userOptions.length === 0} className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg bg-rose-500 px-4 text-sm font-semibold text-white shadow-sm shadow-rose-500/20 transition-colors hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-50">
                   <CheckCircle2 size={14} className="mr-1.5" />
                   {submitLoading ? '처리 중...' : editingTransaction ? '수정 저장' : '출고 등록'}
                 </button>
@@ -796,7 +796,7 @@ const Outbound = () => {
                   <X size={14} className="mr-1.5" />
                   취소
                 </button>
-                <button type="submit" disabled={uploadLoading || !uploadFile} className="h-9 rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-white shadow-sm shadow-emerald-500/20 transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40">
+                <button type="submit" disabled={uploadLoading || !uploadFile} className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-white shadow-sm shadow-emerald-500/20 transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40">
                   <Upload size={14} className="mr-1.5" />
                   {uploadLoading ? '업로드 중...' : '업로드'}
                 </button>
