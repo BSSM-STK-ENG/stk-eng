@@ -32,7 +32,9 @@ export function clearAuthSession() {
 
 function isTokenExpired(token: string): boolean {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const segment = token.split('.')[1];
+    if (!segment) return true;
+    const payload = JSON.parse(atob(segment));
     return typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now();
   } catch {
     return true;
