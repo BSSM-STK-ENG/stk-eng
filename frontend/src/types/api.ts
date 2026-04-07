@@ -243,6 +243,7 @@ export interface InventoryTransaction {
   transactionDate: string;
   businessUnit: string | null;
   manager: string | null;
+  managerUser?: User | null;
   note: string | null;
   reference: string | null;
   createdBy: User | null;

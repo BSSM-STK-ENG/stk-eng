@@ -59,7 +59,7 @@ const Closing: React.FC = () => {
       if (targetMonth) {
         setMonthInput(month);
       }
-      fetchClosings();
+      await fetchClosings();
     } catch {
       showError('마감 처리 실패. 이전 월의 마감 상태를 확인해주세요.');
     } finally {
@@ -73,7 +73,7 @@ const Closing: React.FC = () => {
     try {
       await api.post(`/closing/${month}/unclose`);
       showSuccess(`${month} 마감이 취소되었습니다.`);
-      fetchClosings();
+      await fetchClosings();
     } catch {
       showError('마감 취소 실패. 이후 월이 마감된 경우 취소할 수 없습니다.');
     } finally {

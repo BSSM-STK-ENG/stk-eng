@@ -79,6 +79,10 @@ public class InventoryService {
                 .createdBy(getCurrentUser())
                 .build();
 
+        if (request.getManagerUserId() != null) {
+            userRepository.findById(request.getManagerUserId()).ifPresent(transaction::setManagerUser);
+        }
+
         return transactionRepository.save(transaction);
     }
 
@@ -136,6 +140,7 @@ public class InventoryService {
                 .transactionDate(revertedAt)
                 .businessUnit(tx.getBusinessUnit())
                 .manager(tx.getManager())
+                .managerUser(tx.getManagerUser())
                 .note(buildReversalNote(tx))
                 .reference(tx.getReference())
                 .createdBy(currentUser)
@@ -193,6 +198,11 @@ public class InventoryService {
         if (request.getTransactionDate() != null) tx.setTransactionDate(request.getTransactionDate());
         tx.setBusinessUnit(validatedBusinessUnit);
         tx.setManager(validatedManager);
+        if (request.getManagerUserId() != null) {
+            userRepository.findById(request.getManagerUserId()).ifPresent(tx::setManagerUser);
+        } else {
+            tx.setManagerUser(null);
+        }
         tx.setNote(request.getNote());
         tx.setReference(request.getReference());
 

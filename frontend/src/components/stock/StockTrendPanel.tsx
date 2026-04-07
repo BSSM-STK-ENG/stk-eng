@@ -13,6 +13,7 @@ import {
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
+import axios from 'axios';
 import api from '../../api/axios';
 import type { MaterialDto, StockTrendResponse } from '../../types/api';
 import { formatLocation, isMeaningfulInventoryValue, sanitizeLocation } from '../../utils/inventory-display';
@@ -241,7 +242,7 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
   const [recentCodes, setRecentCodes] = useState<string[]>(() => getRecentMaterialCodes());
   const [worklistCodes, setWorklistCodes] = useState<string[]>(() => getMaterialWorklistCodes());
   const popoverRef = useRef<HTMLDivElement | null>(null);
-  const requestSequenceRef = useRef<number>(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const favoriteCodeSet = useMemo(() => new Set(favoriteCodes), [favoriteCodes]);
   const recentCodeOrder = useMemo(
     () => new Map(recentCodes.map((code, index) => [code, index])),
@@ -315,12 +316,6 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
   }, []);
 
   useEffect(() => {
-    return () => {
-      requestSequenceRef.current += 1;
-    };
-  }, []);
-
-  useEffect(() => {
     if (!selectedCodes.length || !dateRange.from || !dateRange.to) {
       return;
     }
@@ -331,8 +326,9 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
       return;
     }
 
-    const requestId = requestSequenceRef.current + 1;
-    requestSequenceRef.current = requestId;
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setLoading(true);
     setError(null);
 
@@ -343,18 +339,15 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
           to: dateRange.to,
           materialCodes: selectedCodes.join(','),
         },
+        signal: controller.signal,
       })
       .then((response) => {
-        if (requestSequenceRef.current !== requestId) {
-          return;
-        }
-
         setTrendData(response.data);
         setLastUpdatedAt(new Date().toISOString());
         setHoverIndex(null);
       })
       .catch((requestError: unknown) => {
-        if (requestSequenceRef.current !== requestId) {
+        if (axios.isCancel(requestError)) {
           return;
         }
 
@@ -362,10 +355,14 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
         setError(extractErrorMessage(requestError));
       })
       .finally(() => {
-        if (requestSequenceRef.current === requestId) {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
       });
+
+    return () => {
+      controller.abort();
+    };
   }, [dateRange.from, dateRange.to, selectedCodes]);
 
   const handlePresetChange = (nextPreset: PeriodPreset) => {
@@ -404,12 +401,13 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
   };
 
   const handleRefresh = async () => {
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setRefreshing(true);
     try {
       await onRefresh?.();
 
-      const requestId = requestSequenceRef.current + 1;
-      requestSequenceRef.current = requestId;
       setLoading(true);
       setError(null);
 
@@ -419,19 +417,22 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
           to: dateRange.to,
           materialCodes: selectedCodes.join(','),
         },
+        signal: controller.signal,
       });
 
-      if (requestSequenceRef.current === requestId) {
-        setTrendData(response.data);
-        setLastUpdatedAt(new Date().toISOString());
-        setHoverIndex(null);
-      }
+      setTrendData(response.data);
+      setLastUpdatedAt(new Date().toISOString());
+      setHoverIndex(null);
     } catch (requestError) {
-      setTrendData(null);
-      setError(extractErrorMessage(requestError));
+      if (!axios.isCancel(requestError)) {
+        setTrendData(null);
+        setError(extractErrorMessage(requestError));
+      }
     } finally {
       setRefreshing(false);
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
   };
 
