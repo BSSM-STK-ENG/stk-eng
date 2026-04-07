@@ -69,6 +69,18 @@ textarea {
   font: inherit;
 }
 
+button,
+[role="button"],
+summary {
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 ::selection {
   background: rgba(59, 130, 246, 0.18);
   color: #0f172a;
@@ -339,10 +351,19 @@ textarea {
   color: #4b5563;
 }
 
+.admin-pill:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
 .admin-pill-active {
   border-color: #111827;
   background: #111827;
   color: #ffffff;
+}
+
+.admin-pill-active:hover {
+  background: #1f2937;
 }
 
 .admin-table-panel {
