@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Download, RefreshCw } from 'lucide-react';
 import api from '../api/axios';
@@ -130,7 +130,10 @@ const Ledger: React.FC = () => {
     setSearchParams(new URLSearchParams(), { replace: true });
   };
 
-  const businessUnitOptions = businessUnits.map((item) => item.name).filter((value): value is string => Boolean(value)).sort((left, right) => left.localeCompare(right, 'ko'));
+  const businessUnitOptions = useMemo(
+    () => businessUnits.map((item) => item.name).filter((value): value is string => Boolean(value)).sort((left, right) => left.localeCompare(right, 'ko')),
+    [businessUnits],
+  );
 
   const handleExport = async () => {
     const rows = transactions.map((transaction) => ({

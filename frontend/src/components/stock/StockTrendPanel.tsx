@@ -241,7 +241,7 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
   );
   const worklistCodeSet = useMemo(() => new Set(worklistCodes), [worklistCodes]);
 
-  const availableMaterials = [...materials].sort((left, right) => {
+  const availableMaterials = useMemo(() => [...materials].sort((left, right) => {
     const leftFavoriteRank = favoriteCodeSet.has(left.materialCode) ? 0 : 1;
     const rightFavoriteRank = favoriteCodeSet.has(right.materialCode) ? 0 : 1;
     if (leftFavoriteRank !== rightFavoriteRank) {
@@ -255,14 +255,20 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
     }
 
     return left.materialName.localeCompare(right.materialName, 'ko-KR') || left.materialCode.localeCompare(right.materialCode);
-  });
-  const selectedMaterials = selectedCodes
-    .map((code) => materials.find((material) => material.materialCode === code))
-    .filter((material): material is MaterialDto => Boolean(material));
-  const filteredMaterials = availableMaterials.filter((material) =>
-    [material.materialCode, material.materialName, sanitizeLocation(material.location)]
-      .filter(Boolean)
-      .some((value) => value?.toLowerCase().includes(materialQuery.toLowerCase())),
+  }), [materials, favoriteCodeSet, recentCodeOrder]);
+  const selectedMaterials = useMemo(() =>
+    selectedCodes
+      .map((code) => materials.find((material) => material.materialCode === code))
+      .filter((material): material is MaterialDto => Boolean(material)),
+    [selectedCodes, materials],
+  );
+  const filteredMaterials = useMemo(() =>
+    availableMaterials.filter((material) =>
+      [material.materialCode, material.materialName, sanitizeLocation(material.location)]
+        .filter(Boolean)
+        .some((value) => value?.toLowerCase().includes(materialQuery.toLowerCase())),
+    ),
+    [availableMaterials, materialQuery],
   );
 
   useEffect(() => {

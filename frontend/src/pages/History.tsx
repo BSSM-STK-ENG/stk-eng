@@ -29,7 +29,7 @@ const History = () => {
     }
   };
 
-  useEffect(() => { fetchHistory(); }, []);
+  useEffect(() => { void fetchHistory(); }, []);
 
   const handleExport = async () => {
     const rows = transactions.map(t => ({
@@ -65,10 +65,10 @@ const History = () => {
             <p className="admin-page-description">재고 변경 기록을 조회합니다.</p>
           </div>
           <div className="admin-toolbar">
-            <button onClick={fetchHistory} className="admin-btn">
+            <button type="button" onClick={fetchHistory} className="admin-btn">
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             </button>
-            <button onClick={handleExport} className="admin-btn admin-btn-primary">
+            <button type="button" onClick={handleExport} className="admin-btn admin-btn-primary">
               <Download size={16} /> 엑셀 다운로드
             </button>
           </div>

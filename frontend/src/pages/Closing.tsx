@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
 import { downloadExcel } from '../utils/excel';
 import { formatAppDateTime } from '../utils/date-format';
@@ -16,6 +16,8 @@ const Closing: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
   const [showAll, setShowAll] = useState<boolean>(false);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchClosings = async () => {
     setLoading(true);
@@ -34,18 +36,25 @@ const Closing: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchClosings();
+    void fetchClosings();
     setMonthInput(new Date().toISOString().substring(0, 7));
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    };
   }, []);
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(''), 3000);
+    successTimerRef.current = setTimeout(() => setSuccessMsg(''), 3000);
   };
 
   const showError = (msg: string) => {
     setErrorMsg(msg);
-    setTimeout(() => setErrorMsg(''), 4000);
+    errorTimerRef.current = setTimeout(() => setErrorMsg(''), 4000);
   };
 
   const handleClose = async (targetMonth?: string) => {
