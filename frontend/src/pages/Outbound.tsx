@@ -25,7 +25,7 @@ import { buildMaterialLookupLabel } from '../components/inventory/material-looku
 import type { TransactionResponse, UserOption } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
 import { formatAppDateTime } from '../utils/date-format';
-import { downloadCsv, downloadExcel } from '../utils/excel';
+import { downloadCsv, downloadServerExcel } from '../utils/excel';
 import {
   formatBusinessUnit,
   formatLocation,
@@ -262,21 +262,7 @@ const Outbound = () => {
   };
 
   const handleExport = async () => {
-    const rows = pagedTransactions.map((transaction) => {
-      const matchedMaterial = materials.find((m) => m.materialCode === transaction.materialCode);
-      return {
-        출고일시: formatAppDateTime(transaction.transactionDate),
-        자재코드: transaction.materialCode,
-        자재명: matchedMaterial?.materialName ?? transaction.materialCode,
-        자재설명: matchedMaterial?.description ?? '',
-        수량: transaction.quantity,
-        사업장: sanitizeBusinessUnit(transaction.businessUnit) ?? '',
-        담당자: sanitizeInventoryText(transaction.manager) ?? '',
-        비고: transaction.note ?? '',
-        등록자: transaction.createdByEmail ?? '',
-      };
-    });
-    await downloadExcel(rows, '출고_내역');
+    await downloadServerExcel('outbound');
   };
 
   const handleResetFilters = () => {

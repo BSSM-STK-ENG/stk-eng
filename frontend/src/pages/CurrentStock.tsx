@@ -7,7 +7,7 @@ import { queryKeys, useMaterials } from '../api/queries';
 import AdminSearchField from '../components/common/AdminSearchField';
 import type { MaterialDto } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
-import { downloadExcel } from '../utils/excel';
+import { downloadServerExcel } from '../utils/excel';
 import { formatLocation, sanitizeLocation } from '../utils/inventory-display';
 
 const PAGE_SIZE = 25;
@@ -90,13 +90,7 @@ const CurrentStock = () => {
   }, [searchedMaterials]);
 
   const handleExport = async () => {
-    const rows = filtered.map((material) => ({
-      자재코드: material.materialCode,
-      자재명: material.materialName,
-      재고수량: material.currentStockQty ?? 0,
-      자재위치: sanitizeLocation(material.location) ?? '',
-    }));
-    await downloadExcel(rows, '재고_현황');
+    await downloadServerExcel('current');
   };
 
   const startLocationEdit = (material: MaterialDto) => {

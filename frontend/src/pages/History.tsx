@@ -5,7 +5,7 @@ import api from '../api/axios';
 import AdminSearchField from '../components/common/AdminSearchField';
 import type { InventoryTransaction } from '../types/api';
 import { formatAppDateTime } from '../utils/date-format';
-import { downloadExcel } from '../utils/excel';
+import { downloadServerExcel } from '../utils/excel';
 import { formatTransactionTypeLabel, isInboundType } from '../utils/inventory-display';
 
 const PAGE_SIZE = 25;
@@ -28,17 +28,7 @@ const History = () => {
   const [page, setPage] = useState<number>(0);
 
   const handleExport = async () => {
-    const rows = transactions.map((t) => ({
-      변경일시: formatAppDateTime(t.createdAt),
-      ID: t.id,
-      유형: formatTransactionTypeLabel(t.transactionType),
-      자재코드: t.material.materialCode,
-      자재명: t.material.materialName,
-      자재설명: t.material.description ?? '',
-      변경수량: isInboundType(t.transactionType) ? t.quantity : -t.quantity,
-      변경자: t.createdBy?.email ?? 'System',
-    }));
-    await downloadExcel(rows, '변경_이력');
+    await downloadServerExcel('history');
   };
 
   const filtered = transactions.filter(

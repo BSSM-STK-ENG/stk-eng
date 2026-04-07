@@ -6,8 +6,8 @@ import { useBusinessUnits, usePagedLedger } from '../api/queries';
 import AdminSearchField from '../components/common/AdminSearchField';
 import type { TransactionType } from '../types/api';
 import { formatAppDate, formatAppDateTime } from '../utils/date-format';
-import { downloadExcel } from '../utils/excel';
-import { formatBusinessUnit, formatTransactionTypeLabel, sanitizeBusinessUnit } from '../utils/inventory-display';
+import { downloadServerExcel } from '../utils/excel';
+import { formatBusinessUnit, formatTransactionTypeLabel } from '../utils/inventory-display';
 
 const PAGE_SIZE = 25;
 
@@ -113,17 +113,7 @@ const Ledger = () => {
   );
 
   const handleExport = async () => {
-    const rows = transactions.map((transaction) => ({
-      일자: formatAppDateTime(transaction.transactionDate),
-      유형: formatTransactionTypeLabel(transaction.transactionType),
-      사업장: sanitizeBusinessUnit(transaction.businessUnit) ?? '',
-      자재코드: transaction.materialCode,
-      수량: transaction.transactionType === 'OUT' ? -transaction.quantity : transaction.quantity,
-      담당자: transaction.manager ?? '',
-      참조번호: transaction.reference ?? '',
-      비고: transaction.note ?? '',
-    }));
-    await downloadExcel(rows, '수불_현황');
+    await downloadServerExcel('ledger');
   };
 
   const hasActiveFilters =

@@ -95,6 +95,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/export/history").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_HISTORY")
                 .requestMatchers(HttpMethod.GET, "/api/export/inbound").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_INBOUND")
                 .requestMatchers(HttpMethod.GET, "/api/export/outbound").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_OUTBOUND")
+                .requestMatchers(HttpMethod.GET, "/api/export/closing").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_CLOSING")
                 .requestMatchers("/api/admin/**").hasRole("SUPER_ADMIN")
                 .requestMatchers("/error").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

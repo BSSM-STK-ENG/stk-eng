@@ -2,8 +2,10 @@ package com.stk.inventory.controller;
 
 import com.stk.inventory.entity.InventoryTransaction;
 import com.stk.inventory.entity.Material;
+import com.stk.inventory.entity.MonthlyClosing;
 import com.stk.inventory.repository.InventoryTransactionRepository;
 import com.stk.inventory.repository.MaterialRepository;
+import com.stk.inventory.repository.MonthlyClosingRepository;
 import com.stk.inventory.service.ExcelService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -27,11 +29,13 @@ public class ExportController {
     private final ExcelService excelService;
     private final InventoryTransactionRepository transactionRepository;
     private final MaterialRepository materialRepository;
+    private final MonthlyClosingRepository closingRepository;
 
-    public ExportController(ExcelService excelService, InventoryTransactionRepository transactionRepository, MaterialRepository materialRepository) {
+    public ExportController(ExcelService excelService, InventoryTransactionRepository transactionRepository, MaterialRepository materialRepository, MonthlyClosingRepository closingRepository) {
         this.excelService = excelService;
         this.transactionRepository = transactionRepository;
         this.materialRepository = materialRepository;
+        this.closingRepository = closingRepository;
     }
 
     @GetMapping("/{type}")
@@ -65,6 +69,11 @@ public class ExportController {
             case "history":
                 in = excelService.exportTransactionsToExcel(txs, "History");
                 filename = "변경_이력_" + dateStr + ".xlsx";
+                break;
+            case "closing":
+                List<MonthlyClosing> closings = closingRepository.findAll();
+                in = excelService.exportClosingToExcel(closings, "Closing");
+                filename = "월마감_현황_" + dateStr + ".xlsx";
                 break;
             default:
                 throw new IllegalArgumentException("Unknown export type: " + type);

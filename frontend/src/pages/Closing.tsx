@@ -6,7 +6,7 @@ import api from '../api/axios';
 import { queryKeys, useClosings } from '../api/queries';
 import type { MonthlyClosing } from '../types/api';
 import { formatAppDateTime } from '../utils/date-format';
-import { downloadExcel } from '../utils/excel';
+import { downloadServerExcel } from '../utils/excel';
 
 const Closing = () => {
   const queryClient = useQueryClient();
@@ -77,13 +77,7 @@ const Closing = () => {
   };
 
   const handleExport = async () => {
-    const rows = closings.map((c) => ({
-      대상월: c.closingMonth,
-      상태: c.status === 'CLOSED' ? '마감완료' : '미마감',
-      처리일시: c.closedAt ? formatAppDateTime(c.closedAt) : '',
-      처리자: c.closedBy?.email ?? '',
-    }));
-    await downloadExcel(rows, '월마감_현황');
+    await downloadServerExcel('closing');
   };
 
   // Show only recent 6 months by default
