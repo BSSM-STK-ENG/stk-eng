@@ -1,10 +1,12 @@
 package com.stk.inventory.controller;
 
+import com.stk.inventory.dto.PagedLedgerResponse;
 import com.stk.inventory.dto.TransactionRequest;
 import com.stk.inventory.dto.InventoryCalendarResponse;
 import com.stk.inventory.dto.StockTrendResponse;
 import com.stk.inventory.dto.TransactionResponse;
 import com.stk.inventory.service.InventoryCalendarService;
+import com.stk.inventory.service.InventoryService;
 import com.stk.inventory.usecase.InventoryUseCase;
 import com.stk.inventory.service.StockTrendService;
 import org.springframework.http.ResponseEntity;
@@ -21,13 +23,16 @@ import java.util.Map;
 public class InventoryController {
 
     private final InventoryUseCase inventoryService;
+    private final InventoryService inventoryServiceImpl;
     private final StockTrendService stockTrendService;
     private final InventoryCalendarService inventoryCalendarService;
 
     public InventoryController(InventoryUseCase inventoryService,
+                               InventoryService inventoryServiceImpl,
                                StockTrendService stockTrendService,
                                InventoryCalendarService inventoryCalendarService) {
         this.inventoryService = inventoryService;
+        this.inventoryServiceImpl = inventoryServiceImpl;
         this.stockTrendService = stockTrendService;
         this.inventoryCalendarService = inventoryCalendarService;
     }
@@ -43,8 +48,15 @@ public class InventoryController {
     }
 
     @GetMapping("/ledger")
-    public ResponseEntity<List<TransactionResponse>> getLedger() {
-        return ResponseEntity.ok(inventoryService.getLedger());
+    public ResponseEntity<PagedLedgerResponse> getLedger(
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String unit,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return ResponseEntity.ok(inventoryServiceImpl.getLedgerPaged(type, from, to, q, unit, page, size));
     }
 
     @GetMapping("/history")

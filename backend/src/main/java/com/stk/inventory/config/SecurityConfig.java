@@ -73,6 +73,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/materials").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_MASTER_DATA")
                 .requestMatchers(HttpMethod.PUT, "/api/materials/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_MASTER_DATA", "PAGE_CURRENT_STOCK", "PAGE_INBOUND")
                 .requestMatchers(HttpMethod.DELETE, "/api/materials/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_MASTER_DATA")
+                .requestMatchers(HttpMethod.GET, "/api/dashboard/summary").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_DASHBOARD")
                 .requestMatchers(HttpMethod.GET, "/api/inventory/ledger").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_DASHBOARD", "PAGE_STOCK_LEDGER", "PAGE_INBOUND", "PAGE_OUTBOUND")
                 .requestMatchers(HttpMethod.GET, "/api/inventory/history").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_HISTORY")
                 .requestMatchers(HttpMethod.GET, "/api/inventory/stock-trends").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_DASHBOARD", "PAGE_CURRENT_STOCK")

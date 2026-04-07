@@ -1,5 +1,6 @@
 package com.stk.inventory.service;
 
+import com.stk.inventory.dto.PagedLedgerResponse;
 import com.stk.inventory.dto.TransactionRequest;
 import com.stk.inventory.entity.InventoryTransaction;
 import com.stk.inventory.entity.Material;
@@ -11,11 +12,16 @@ import com.stk.inventory.repository.UserRepository;
 import com.stk.inventory.gateway.InventoryGateway;
 import com.stk.inventory.mapper.TransactionMapper;
 import com.stk.inventory.dto.TransactionResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -97,6 +103,40 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
 
     public List<TransactionResponse> getHistory() {
         return inventoryGateway.findAllTransactions().stream().map(transactionMapper::toResponse).toList();
+    }
+
+    public PagedLedgerResponse getLedgerPaged(String type, String from, String to, String q, String unit, int page, int size) {
+        Specification<InventoryTransaction> spec = Specification
+            .where(InventoryTransactionSpec.notReverted())
+            .and(InventoryTransactionSpec.notSystemGenerated());
+
+        if (type != null && !type.isBlank()) {
+            spec = spec.and(InventoryTransactionSpec.hasType(TransactionType.valueOf(type)));
+        }
+        if (from != null && !from.isBlank()) {
+            spec = spec.and(InventoryTransactionSpec.dateFrom(LocalDate.parse(from).atStartOfDay()));
+        }
+        if (to != null && !to.isBlank()) {
+            spec = spec.and(InventoryTransactionSpec.dateTo(LocalDate.parse(to).plusDays(1).atStartOfDay()));
+        }
+        if (unit != null && !unit.isBlank()) {
+            spec = spec.and(InventoryTransactionSpec.hasBusinessUnit(unit));
+        }
+        if (q != null && !q.isBlank()) {
+            spec = spec.and(InventoryTransactionSpec.searchTerm(q));
+        }
+
+        int clampedSize = Math.min(Math.max(size, 1), 100);
+        Page<InventoryTransaction> result = inventoryGateway.findTransactionsPaged(spec,
+            PageRequest.of(page, clampedSize, Sort.by(Sort.Direction.DESC, "transactionDate", "id")));
+
+        return PagedLedgerResponse.builder()
+            .content(result.getContent().stream().map(transactionMapper::toResponse).toList())
+            .page(result.getNumber())
+            .size(result.getSize())
+            .totalElements(result.getTotalElements())
+            .totalPages(result.getTotalPages())
+            .build();
     }
 
     @Transactional

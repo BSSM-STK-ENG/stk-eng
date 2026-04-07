@@ -1,6 +1,8 @@
 package com.stk.inventory.repository;
 
 import com.stk.inventory.entity.InventoryTransaction;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -26,4 +28,8 @@ public interface InventoryTransactionRepository extends JpaRepository<InventoryT
             LocalDateTime from,
             LocalDateTime to
     );
+
+    Page<InventoryTransaction> findByRevertedFalseAndSystemGeneratedFalse(Pageable pageable);
+
+    List<InventoryTransaction> findByTransactionDateGreaterThanEqualAndRevertedFalseAndSystemGeneratedFalseOrderByTransactionDateDesc(LocalDateTime from);
 }
