@@ -4,9 +4,9 @@ import com.stk.inventory.dto.TransactionRequest;
 import com.stk.inventory.entity.InventoryTransaction;
 import com.stk.inventory.entity.Material;
 import com.stk.inventory.entity.TransactionType;
-import com.stk.inventory.repository.InventoryTransactionRepository;
-import com.stk.inventory.repository.MaterialRepository;
+import com.stk.inventory.gateway.InventoryGateway;
 import com.stk.inventory.repository.UserRepository;
+import com.stk.inventory.mapper.TransactionMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -23,10 +23,8 @@ import static org.mockito.Mockito.*;
 class InventoryServiceTest {
 
     @Mock
-    private InventoryTransactionRepository transactionRepository;
+    private InventoryGateway inventoryGateway;
 
-    @Mock
-    private MaterialRepository materialRepository;
 
     @Mock
     private UserRepository userRepository;
@@ -39,7 +37,7 @@ class InventoryServiceTest {
 
     @Test
     void processInboundRequiresRegisteredBusinessUnit() {
-        InventoryService service = new InventoryService(transactionRepository, materialRepository, userRepository, masterDataService, userDirectoryService);
+        InventoryService service = new InventoryService(inventoryGateway, userRepository, masterDataService, userDirectoryService, new TransactionMapper());
         Material material = Material.builder()
                 .materialCode("MAT-001")
                 .materialName("테스트 자재")
@@ -51,23 +49,23 @@ class InventoryServiceTest {
         request.setQuantity(3);
         request.setBusinessUnit("QA-T1");
 
-        when(materialRepository.findById("MAT-001")).thenReturn(Optional.of(material));
+        when(inventoryGateway.findMaterialById("MAT-001")).thenReturn(Optional.of(material));
         when(masterDataService.requireRegisteredBusinessUnit("QA-T1")).thenReturn("QA-T1");
-        when(materialRepository.save(any(Material.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(transactionRepository.save(any(InventoryTransaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(inventoryGateway.saveMaterial(any(Material.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(inventoryGateway.saveTransaction(any(InventoryTransaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        InventoryTransaction saved = service.processInbound(request);
+        com.stk.inventory.dto.TransactionResponse saved = service.processInbound(request);
 
         ArgumentCaptor<InventoryTransaction> captor = ArgumentCaptor.forClass(InventoryTransaction.class);
-        verify(transactionRepository).save(captor.capture());
+        verify(inventoryGateway).saveTransaction(captor.capture());
         assertEquals("QA-T1", captor.getValue().getBusinessUnit());
         assertNull(captor.getValue().getManager());
-        assertEquals(8, saved.getMaterial().getCurrentStockQty());
+        assertEquals(8, material.getCurrentStockQty());
     }
 
     @Test
     void processOutboundRejectsWhenStockIsInsufficient() {
-        InventoryService service = new InventoryService(transactionRepository, materialRepository, userRepository, masterDataService, userDirectoryService);
+        InventoryService service = new InventoryService(inventoryGateway, userRepository, masterDataService, userDirectoryService, new TransactionMapper());
         Material material = Material.builder()
                 .materialCode("MAT-002")
                 .materialName("출고 자재")
@@ -80,7 +78,7 @@ class InventoryServiceTest {
         request.setBusinessUnit("QA-T1");
         request.setManager("Port QA");
 
-        when(materialRepository.findById("MAT-002")).thenReturn(Optional.of(material));
+        when(inventoryGateway.findMaterialById("MAT-002")).thenReturn(Optional.of(material));
         when(masterDataService.requireRegisteredBusinessUnit("QA-T1")).thenReturn("QA-T1");
         when(userDirectoryService.requireRegisteredManagerName("Port QA")).thenReturn("Port QA");
 
@@ -90,7 +88,7 @@ class InventoryServiceTest {
 
     @Test
     void updateInboundTransactionRecalculatesCurrentStock() {
-        InventoryService service = new InventoryService(transactionRepository, materialRepository, userRepository, masterDataService, userDirectoryService);
+        InventoryService service = new InventoryService(inventoryGateway, userRepository, masterDataService, userDirectoryService, new TransactionMapper());
         Material material = Material.builder()
                 .materialCode("MAT-003")
                 .materialName("입고 자재")
@@ -110,12 +108,12 @@ class InventoryServiceTest {
         request.setBusinessUnit("QA-T2");
         request.setNote("수정 메모");
 
-        when(transactionRepository.findById(10L)).thenReturn(Optional.of(transaction));
+        when(inventoryGateway.findTransactionById(10L)).thenReturn(Optional.of(transaction));
         when(masterDataService.requireRegisteredBusinessUnit("QA-T2")).thenReturn("QA-T2");
-        when(materialRepository.save(any(Material.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(transactionRepository.save(any(InventoryTransaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(inventoryGateway.saveMaterial(any(Material.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(inventoryGateway.saveTransaction(any(InventoryTransaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        InventoryTransaction updated = service.updateTransaction(10L, request);
+        com.stk.inventory.dto.TransactionResponse updated = service.updateTransaction(10L, request);
 
         assertEquals(18, material.getCurrentStockQty());
         assertEquals(8, updated.getQuantity());
