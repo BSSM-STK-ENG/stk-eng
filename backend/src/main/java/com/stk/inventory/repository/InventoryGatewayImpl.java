@@ -3,6 +3,9 @@ package com.stk.inventory.repository;
 import com.stk.inventory.entity.InventoryTransaction;
 import com.stk.inventory.entity.Material;
 import com.stk.inventory.gateway.InventoryGateway;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -47,5 +50,10 @@ public class InventoryGatewayImpl implements InventoryGateway {
     @Override
     public List<InventoryTransaction> findAllTransactions() {
         return transactionRepository.findAllByOrderByTransactionDateDescIdDesc();
+    }
+
+    @Override
+    public Page<InventoryTransaction> findTransactionsPaged(Specification<InventoryTransaction> spec, Pageable pageable) {
+        return transactionRepository.findAll(spec, pageable);
     }
 }
