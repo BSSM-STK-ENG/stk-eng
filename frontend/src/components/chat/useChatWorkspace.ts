@@ -10,7 +10,6 @@ import {
   sendChatMessage,
   testChatCredential,
 } from '../../api/chat';
-import { DEFAULT_PROVIDER_CATALOG, getFallbackProvider, getFallbackProviderModels } from './chatDefaults';
 import type {
   AiPreferences,
   ChatContextMode,
@@ -21,6 +20,7 @@ import type {
   ProviderDescriptor,
   ProviderType,
 } from '../../types/chat';
+import { DEFAULT_PROVIDER_CATALOG, getFallbackProvider, getFallbackProviderModels } from './chatDefaults';
 
 type ChatDraft = {
   provider: ProviderType;
@@ -105,7 +105,8 @@ function normalizeCredentialMap(credentialList: ProviderCredential[]) {
 function resolveDraft(providers: ProviderDescriptor[], preferences: AiPreferences | null): ChatDraft {
   const firstProvider = providers[0]?.provider ?? 'openai';
   const preferredProvider = preferences?.provider ?? firstProvider;
-  const providerEntry = providers.find((item) => item.provider === preferredProvider) ?? providers[0] ?? getFallbackProvider(firstProvider);
+  const providerEntry =
+    providers.find((item) => item.provider === preferredProvider) ?? providers[0] ?? getFallbackProvider(firstProvider);
   const supportedModel = providerEntry.models.find((item) => item.id === preferences?.model)?.id;
   return {
     provider: providerEntry.provider,
@@ -125,7 +126,12 @@ export type ChatWorkspaceState = {
   credentialTestResult: CredentialConnectionTestResponse | null;
   setComposerValue: (value: string) => void;
   refreshMetadata: () => Promise<void>;
-  testCredential: (payload: SettingsPayload) => Promise<CredentialConnectionTestResponse | { success: false; provider: ProviderType; model: string; message: string; checkedAt: string }>;
+  testCredential: (
+    payload: SettingsPayload,
+  ) => Promise<
+    | CredentialConnectionTestResponse
+    | { success: false; provider: ProviderType; model: string; message: string; checkedAt: string }
+  >;
   sendMessage: (overrideText?: string) => Promise<unknown>;
   stopResponse: () => void;
   resetConversation: (infoMessage?: string) => void;
@@ -232,66 +238,69 @@ export function useChatWorkspace(): ChatWorkspaceState {
     }
   }, []);
 
-  const applySettings = useCallback(async (payload: SettingsPayload) => {
-    setRequestState((current) => ({ ...current, savingSettings: true, error: null, info: null }));
-    try {
-      const trimmedKey = payload.apiKey.trim();
-      let savedCredential = credentials[payload.provider] ?? null;
-      if (trimmedKey) {
-        savedCredential = await saveChatCredential(payload.provider, { apiKey: trimmedKey, model: payload.model });
-        if (!savedCredential?.hasKey) {
-          throw new Error('자격증명을 저장하지 못했습니다.');
+  const applySettings = useCallback(
+    async (payload: SettingsPayload) => {
+      setRequestState((current) => ({ ...current, savingSettings: true, error: null, info: null }));
+      try {
+        const trimmedKey = payload.apiKey.trim();
+        let savedCredential = credentials[payload.provider] ?? null;
+        if (trimmedKey) {
+          savedCredential = await saveChatCredential(payload.provider, { apiKey: trimmedKey, model: payload.model });
+          if (!savedCredential?.hasKey) {
+            throw new Error('자격증명을 저장하지 못했습니다.');
+          }
+        } else if (!savedCredential?.hasKey) {
+          throw new Error('먼저 API 키를 입력하고 연결 확인을 해주세요.');
         }
-      } else if (!savedCredential?.hasKey) {
-        throw new Error('먼저 API 키를 입력하고 연결 확인을 해주세요.');
-      }
 
-      const savedPreferences = await saveAiPreferences({
-        provider: payload.provider,
-        model: payload.model,
-        chatPanelEnabled: payload.chatPanelEnabled,
-      });
-
-      if (savedCredential) {
-        setCredentials((current) => ({
-          ...current,
-          [payload.provider]: savedCredential ?? current[payload.provider],
-        }));
-      }
-
-      const nextPreferences = {
-        provider: savedPreferences?.provider ?? payload.provider,
-        model: savedPreferences?.model ?? payload.model,
-        chatPanelEnabled: savedPreferences?.chatPanelEnabled ?? payload.chatPanelEnabled,
-      };
-
-      setPreferences(nextPreferences);
-      setDraft({
-        provider: nextPreferences.provider,
-        model: nextPreferences.model,
-      });
-      if (savedCredential) {
-        setCredentialTestResult({
-          success: true,
+        const savedPreferences = await saveAiPreferences({
           provider: payload.provider,
           model: payload.model,
-          message: savedCredential.validationMessage ?? '연결 확인 후 저장했습니다.',
-          checkedAt: savedCredential.validatedAt ?? nowIso(),
+          chatPanelEnabled: payload.chatPanelEnabled,
         });
+
+        if (savedCredential) {
+          setCredentials((current) => ({
+            ...current,
+            [payload.provider]: savedCredential ?? current[payload.provider],
+          }));
+        }
+
+        const nextPreferences = {
+          provider: savedPreferences?.provider ?? payload.provider,
+          model: savedPreferences?.model ?? payload.model,
+          chatPanelEnabled: savedPreferences?.chatPanelEnabled ?? payload.chatPanelEnabled,
+        };
+
+        setPreferences(nextPreferences);
+        setDraft({
+          provider: nextPreferences.provider,
+          model: nextPreferences.model,
+        });
+        if (savedCredential) {
+          setCredentialTestResult({
+            success: true,
+            provider: payload.provider,
+            model: payload.model,
+            message: savedCredential.validationMessage ?? '연결 확인 후 저장했습니다.',
+            checkedAt: savedCredential.validatedAt ?? nowIso(),
+          });
+        }
+        setRequestState((current) => ({
+          ...current,
+          info: trimmedKey ? '연결 확인 후 설정을 저장했습니다.' : '설정을 저장했습니다.',
+        }));
+        return nextPreferences;
+      } catch (error) {
+        const message = toErrorMessage(error, '설정을 저장하지 못했습니다.');
+        setRequestState((current) => ({ ...current, error: message }));
+        return null;
+      } finally {
+        setRequestState((current) => ({ ...current, savingSettings: false }));
       }
-      setRequestState((current) => ({
-        ...current,
-        info: trimmedKey ? '연결 확인 후 설정을 저장했습니다.' : '설정을 저장했습니다.',
-      }));
-      return nextPreferences;
-    } catch (error) {
-      const message = toErrorMessage(error, '설정을 저장하지 못했습니다.');
-      setRequestState((current) => ({ ...current, error: message }));
-      return null;
-    } finally {
-      setRequestState((current) => ({ ...current, savingSettings: false }));
-    }
-  }, [credentials]);
+    },
+    [credentials],
+  );
 
   const removeCredential = useCallback(async (provider: ProviderType) => {
     setRequestState((current) => ({ ...current, deletingCredential: true, error: null, info: null }));
@@ -346,90 +355,93 @@ export function useChatWorkspace(): ChatWorkspaceState {
     }));
   }, []);
 
-  const sendMessage = useCallback(async (overrideText?: string) => {
-    const messageText = (overrideText ?? composerValue).trim();
-    if (!messageText || requestState.sendingMessage) {
-      return null;
-    }
-
-    const activeProvider = draft.provider;
-    const activeModel = draft.model || firstModelForProvider(draft.provider, providers);
-    const optimisticUserMessage: ChatMessage = {
-      id: createTempId('user'),
-      sessionId: runtimeSessionId ?? 'runtime',
-      role: 'user',
-      content: messageText,
-      createdAt: nowIso(),
-      status: 'sent',
-    };
-    const optimisticAssistantMessage: ChatMessage = {
-      id: createTempId('assistant'),
-      sessionId: runtimeSessionId ?? 'runtime',
-      role: 'assistant',
-      content: '답변을 정리하고 있습니다.',
-      createdAt: nowIso(),
-      status: 'pending',
-    };
-
-    setRequestState((current) => ({ ...current, sendingMessage: true, error: null, info: null }));
-    setMessages((current) => [...current, optimisticUserMessage, optimisticAssistantMessage]);
-    setComposerValue('');
-
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    try {
-      const response = await sendChatMessage(
-        {
-          sessionId: runtimeSessionId,
-          provider: activeProvider,
-          model: activeModel,
-          message: messageText,
-          contextMode: INVENTORY_CONTEXT_MODE,
-        },
-        controller.signal,
-      );
-
-      if (!response) {
-        throw new Error('메시지를 전송하지 못했습니다.');
-      }
-
-      const assistantMessage: ChatMessage = {
-        ...response.assistantMessage,
-        toolTrace: response.toolTrace?.length ? response.toolTrace : response.assistantMessage.toolTrace,
-      };
-
-      setRuntimeSessionId(response.sessionId);
-      setMessages((current) => current.map((item) => (
-        item.id === optimisticAssistantMessage.id
-          ? assistantMessage
-          : item
-      )));
-      setRequestState((current) => ({ ...current, sendingMessage: false }));
-      return response;
-    } catch (error) {
-      if (controller.signal.aborted) {
-        setMessages((current) => current.filter((item) => item.id !== optimisticAssistantMessage.id));
-        setRequestState((current) => ({ ...current, sendingMessage: false }));
+  const sendMessage = useCallback(
+    async (overrideText?: string) => {
+      const messageText = (overrideText ?? composerValue).trim();
+      if (!messageText || requestState.sendingMessage) {
         return null;
       }
 
-      setMessages((current) => current.map((item) => (
-        item.id === optimisticAssistantMessage.id
-          ? { ...item, content: '재고 DB 조회 실패', status: 'error' }
-          : item
-      )));
-      setRequestState((current) => ({
-        ...current,
-        sendingMessage: false,
-        error: error instanceof Error ? error.message : '메시지를 전송하지 못했습니다.',
-      }));
-      return null;
-    } finally {
-      abortRef.current = null;
-    }
-  }, [composerValue, draft.model, draft.provider, providers, requestState.sendingMessage, runtimeSessionId]);
+      const activeProvider = draft.provider;
+      const activeModel = draft.model || firstModelForProvider(draft.provider, providers);
+      const optimisticUserMessage: ChatMessage = {
+        id: createTempId('user'),
+        sessionId: runtimeSessionId ?? 'runtime',
+        role: 'user',
+        content: messageText,
+        createdAt: nowIso(),
+        status: 'sent',
+      };
+      const optimisticAssistantMessage: ChatMessage = {
+        id: createTempId('assistant'),
+        sessionId: runtimeSessionId ?? 'runtime',
+        role: 'assistant',
+        content: '답변을 정리하고 있습니다.',
+        createdAt: nowIso(),
+        status: 'pending',
+      };
+
+      setRequestState((current) => ({ ...current, sendingMessage: true, error: null, info: null }));
+      setMessages((current) => [...current, optimisticUserMessage, optimisticAssistantMessage]);
+      setComposerValue('');
+
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      try {
+        const response = await sendChatMessage(
+          {
+            sessionId: runtimeSessionId,
+            provider: activeProvider,
+            model: activeModel,
+            message: messageText,
+            contextMode: INVENTORY_CONTEXT_MODE,
+          },
+          controller.signal,
+        );
+
+        if (!response) {
+          throw new Error('메시지를 전송하지 못했습니다.');
+        }
+
+        const assistantMessage: ChatMessage = {
+          ...response.assistantMessage,
+          toolTrace: response.toolTrace?.length ? response.toolTrace : response.assistantMessage.toolTrace,
+        };
+
+        setRuntimeSessionId(response.sessionId);
+        setMessages((current) =>
+          current.map((item) => (item.id === optimisticAssistantMessage.id ? assistantMessage : item)),
+        );
+        setRequestState((current) => ({ ...current, sendingMessage: false }));
+        return response;
+      } catch (error) {
+        if (controller.signal.aborted) {
+          setMessages((current) => current.filter((item) => item.id !== optimisticAssistantMessage.id));
+          setRequestState((current) => ({ ...current, sendingMessage: false }));
+          return null;
+        }
+
+        setMessages((current) =>
+          current.map((item) =>
+            item.id === optimisticAssistantMessage.id
+              ? { ...item, content: '재고 DB 조회 실패', status: 'error' }
+              : item,
+          ),
+        );
+        setRequestState((current) => ({
+          ...current,
+          sendingMessage: false,
+          error: error instanceof Error ? error.message : '메시지를 전송하지 못했습니다.',
+        }));
+        return null;
+      } finally {
+        abortRef.current = null;
+      }
+    },
+    [composerValue, draft.model, draft.provider, providers, requestState.sendingMessage, runtimeSessionId],
+  );
 
   useEffect(() => {
     void refreshMetadata();

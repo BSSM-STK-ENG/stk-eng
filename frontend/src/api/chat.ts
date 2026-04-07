@@ -1,4 +1,3 @@
-import api from './axios';
 import type {
   AiPreferences,
   ChatMessage,
@@ -6,13 +5,14 @@ import type {
   ChatResponse,
   ChatSession,
   CreateChatSessionRequest,
+  CredentialConnectionTestResponse,
   ModelDescriptor,
   ProviderCredential,
   ProviderDescriptor,
-  CredentialConnectionTestResponse,
   UpdateAiPreferencesRequest,
   UpdateCredentialRequest,
 } from '../types/chat';
+import api from './axios';
 
 function unwrapList<T>(data: unknown): T[] {
   if (Array.isArray(data)) {
@@ -66,12 +66,18 @@ export async function getChatCredentials(): Promise<ProviderCredential[]> {
   return unwrapList<ProviderCredential>(data);
 }
 
-export async function saveChatCredential(provider: string, payload: UpdateCredentialRequest): Promise<ProviderCredential | null> {
+export async function saveChatCredential(
+  provider: string,
+  payload: UpdateCredentialRequest,
+): Promise<ProviderCredential | null> {
   const { data } = await api.put(`/ai/credentials/${provider}`, payload);
   return unwrapObject<ProviderCredential>(data);
 }
 
-export async function testChatCredential(provider: string, payload: UpdateCredentialRequest): Promise<CredentialConnectionTestResponse | null> {
+export async function testChatCredential(
+  provider: string,
+  payload: UpdateCredentialRequest,
+): Promise<CredentialConnectionTestResponse | null> {
   const { data } = await api.post(`/ai/credentials/${provider}/test`, payload);
   return unwrapObject<CredentialConnectionTestResponse>(data);
 }

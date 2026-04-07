@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getFavoriteMaterialCodes,
-  getRecentMaterialCodes,
   getMaterialPreferences,
+  getRecentMaterialCodes,
   registerRecentMaterialCode,
   toggleFavoriteMaterialCode,
 } from '../material-preferences';

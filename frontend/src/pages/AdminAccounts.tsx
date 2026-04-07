@@ -1,18 +1,32 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { BadgeCheck, CheckCheck, Copy, Loader2, Plus, RefreshCw, RotateCcw, Settings2, Shield, Trash2, UserPlus, X } from 'lucide-react';
+import {
+  BadgeCheck,
+  CheckCheck,
+  Copy,
+  Loader2,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Settings2,
+  Shield,
+  Trash2,
+  UserPlus,
+  X,
+} from 'lucide-react';
+import type React from 'react';
+import { useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
 import type {
+  AdminCreatedUserResponse,
   AdminCreatePermissionPresetRequest,
   AdminCreateRoleProfileRequest,
   AdminCreateUserRequest,
-  AdminCreatedUserResponse,
-  AdminPermissionOptionsResponse,
   AdminPasswordResetResponse,
-  AdminUpdateUserPermissionsRequest,
+  AdminPermissionOptionsResponse,
   AdminUpdateUserNameRequest,
+  AdminUpdateUserPermissionsRequest,
   AdminUserSummary,
-  Role,
   PagePermissionKey,
+  Role,
 } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
 import { getStoredEmail } from '../utils/auth-session';
@@ -82,15 +96,18 @@ const AdminAccounts = () => {
   const getDefaultPresetKeyForRole = (role: AdminUserSummary['role'] | AdminCreateUserRequest['role']) =>
     role === 'ADMIN' ? 'OPERATOR' : 'VIEWER';
 
-  const getRoleProfiles = () => (permissionOptions?.roleProfiles ?? []).filter((profile) => profile.baseRole !== 'SUPER_ADMIN');
+  const getRoleProfiles = () =>
+    (permissionOptions?.roleProfiles ?? []).filter((profile) => profile.baseRole !== 'SUPER_ADMIN');
 
   const getRoleProfile = (roleProfileKey: string | null | undefined) =>
     getRoleProfiles().find((profile) => profile.key === roleProfileKey);
 
-  const managingUser = managingUserId ? users.find((user) => user.id === managingUserId) ?? null : null;
+  const managingUser = managingUserId ? (users.find((user) => user.id === managingUserId) ?? null) : null;
 
-  const getDefaultPresetKeyForRoleProfile = (roleProfileKey: string | null | undefined, fallbackRole: AdminUserSummary['role'] | AdminCreateUserRequest['role']) =>
-    getDefaultPresetKeyForRole(getRoleProfile(roleProfileKey)?.baseRole ?? fallbackRole);
+  const getDefaultPresetKeyForRoleProfile = (
+    roleProfileKey: string | null | undefined,
+    fallbackRole: AdminUserSummary['role'] | AdminCreateUserRequest['role'],
+  ) => getDefaultPresetKeyForRole(getRoleProfile(roleProfileKey)?.baseRole ?? fallbackRole);
 
   const copyText = async (text: string, field: 'email' | 'credentials') => {
     const fallbackCopy = () => {
@@ -147,13 +164,15 @@ const AdminAccounts = () => {
       const response = await api.get<AdminPermissionOptionsResponse>('/admin/users/permission-options');
       setPermissionOptions(response.data);
       setForm((current) => {
-        const resolvedRoleProfileKey = current.roleProfileKey
-          ?? (response.data.roleProfiles ?? []).find((profile) => profile.key === current.role)?.key
-          ?? 'USER';
+        const resolvedRoleProfileKey =
+          current.roleProfileKey ??
+          (response.data.roleProfiles ?? []).find((profile) => profile.key === current.role)?.key ??
+          'USER';
         return {
           ...current,
           roleProfileKey: resolvedRoleProfileKey,
-          permissionPreset: current.permissionPreset ?? getDefaultPresetKeyForRoleProfile(resolvedRoleProfileKey, current.role),
+          permissionPreset:
+            current.permissionPreset ?? getDefaultPresetKeyForRoleProfile(resolvedRoleProfileKey, current.role),
         };
       });
       return response.data;
@@ -256,7 +275,10 @@ const AdminAccounts = () => {
     setProcessingUserId(user.id);
     setFlash(null);
     try {
-      const response = await api.put<AdminUserSummary, { data: AdminUserSummary }, AdminUpdateUserNameRequest>(`/admin/users/${user.id}/name`, { name });
+      const response = await api.put<AdminUserSummary, { data: AdminUserSummary }, AdminUpdateUserNameRequest>(
+        `/admin/users/${user.id}/name`,
+        { name },
+      );
       setUsers((current) => current.map((item) => (item.id === user.id ? response.data : item)));
       setNameDrafts((current) => ({ ...current, [user.id]: response.data.name ?? '' }));
       setFlash({
@@ -281,11 +303,9 @@ const AdminAccounts = () => {
     try {
       const response = await api.post<AdminPasswordResetResponse>(`/admin/users/${user.id}/reset-password`);
       setUsers((current) =>
-        current.map((item) => (
-          item.id === user.id
-            ? { ...item, passwordChangeRequired: response.data.passwordChangeRequired }
-            : item
-        )),
+        current.map((item) =>
+          item.id === user.id ? { ...item, passwordChangeRequired: response.data.passwordChangeRequired } : item,
+        ),
       );
       setFlash({
         kind: 'success',
@@ -308,7 +328,9 @@ const AdminAccounts = () => {
   };
 
   const handleDeleteUser = async (user: AdminUserSummary) => {
-    const confirmed = window.confirm(`${user.email} 계정을 삭제하시겠습니까?\n이미 거래나 마감 이력에 사용된 계정은 삭제되지 않습니다.`);
+    const confirmed = window.confirm(
+      `${user.email} 계정을 삭제하시겠습니까?\n이미 거래나 마감 이력에 사용된 계정은 삭제되지 않습니다.`,
+    );
     if (!confirmed) {
       return;
     }
@@ -361,9 +383,7 @@ const AdminAccounts = () => {
 
   const togglePermissionDraft = (permission: PagePermissionKey) => {
     setPermissionDrafts((current) =>
-      current.includes(permission)
-        ? current.filter((item) => item !== permission)
-        : [...current, permission],
+      current.includes(permission) ? current.filter((item) => item !== permission) : [...current, permission],
     );
   };
 
@@ -436,14 +456,15 @@ const AdminAccounts = () => {
     setPresetSubmitting(true);
     setFlash(null);
     try {
-      const response = await api.post<AdminPermissionOptionsResponse['presets'][number], { data: AdminPermissionOptionsResponse['presets'][number] }, AdminCreatePermissionPresetRequest>(
-        '/admin/users/permission-presets',
-        {
-          label: presetForm.label,
-          description: presetForm.description.trim() || undefined,
-          pagePermissions: permissionDrafts,
-        },
-      );
+      const response = await api.post<
+        AdminPermissionOptionsResponse['presets'][number],
+        { data: AdminPermissionOptionsResponse['presets'][number] },
+        AdminCreatePermissionPresetRequest
+      >('/admin/users/permission-presets', {
+        label: presetForm.label,
+        description: presetForm.description.trim() || undefined,
+        pagePermissions: permissionDrafts,
+      });
       const nextOptions = await loadPermissionOptions(true);
       if (nextOptions) {
         applyPresetDraft(response.data.key, nextOptions);
@@ -472,7 +493,9 @@ const AdminAccounts = () => {
       return;
     }
 
-    const confirmed = window.confirm(`${targetPreset.label} 프리셋을 삭제하시겠습니까? 사용 중인 프리셋은 삭제되지 않습니다.`);
+    const confirmed = window.confirm(
+      `${targetPreset.label} 프리셋을 삭제하시겠습니까? 사용 중인 프리셋은 삭제되지 않습니다.`,
+    );
     if (!confirmed) {
       return;
     }
@@ -507,10 +530,11 @@ const AdminAccounts = () => {
     setRoleProfileSubmitting(true);
     setFlash(null);
     try {
-      const response = await api.post<AdminPermissionOptionsResponse['roleProfiles'][number], { data: AdminPermissionOptionsResponse['roleProfiles'][number] }, AdminCreateRoleProfileRequest>(
-        '/admin/users/role-profiles',
-        roleProfileForm,
-      );
+      const response = await api.post<
+        AdminPermissionOptionsResponse['roleProfiles'][number],
+        { data: AdminPermissionOptionsResponse['roleProfiles'][number] },
+        AdminCreateRoleProfileRequest
+      >('/admin/users/role-profiles', roleProfileForm);
       const nextOptions = await loadPermissionOptions(true);
       if (nextOptions) {
         setForm((current) => ({
@@ -544,7 +568,9 @@ const AdminAccounts = () => {
       return;
     }
 
-    const confirmed = window.confirm(`${targetRoleProfile.label} 역할을 삭제하시겠습니까? 사용 중인 역할은 삭제되지 않습니다.`);
+    const confirmed = window.confirm(
+      `${targetRoleProfile.label} 역할을 삭제하시겠습니까? 사용 중인 역할은 삭제되지 않습니다.`,
+    );
     if (!confirmed) {
       return;
     }
@@ -623,7 +649,12 @@ const AdminAccounts = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void copyText(`이메일: ${flash.credentials!.email}\n초기 비밀번호: ${flash.credentials!.temporaryPassword}`, 'credentials')}
+                  onClick={() =>
+                    void copyText(
+                      `이메일: ${flash.credentials!.email}\n초기 비밀번호: ${flash.credentials!.temporaryPassword}`,
+                      'credentials',
+                    )
+                  }
                   className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 sm:flex-none"
                 >
                   {copiedField === 'credentials' ? <CheckCheck size={14} /> : <Copy size={14} />}
@@ -636,7 +667,10 @@ const AdminAccounts = () => {
       )}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-        <form onSubmit={handleCreateUser} className="grid gap-3 md:grid-cols-2 xl:grid-cols-[180px_minmax(0,1fr)_200px_140px]">
+        <form
+          onSubmit={handleCreateUser}
+          className="grid gap-3 md:grid-cols-2 xl:grid-cols-[180px_minmax(0,1fr)_200px_140px]"
+        >
           <div className="min-w-0">
             <label className="mb-2 block text-sm font-medium text-slate-700">이름</label>
             <input
@@ -779,7 +813,9 @@ const AdminAccounts = () => {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-semibold text-slate-900">{user.name?.trim() || '이름 없음'}</p>
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${status.className}`}>
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${status.className}`}
+                        >
                           {status.label}
                         </span>
                         <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
@@ -856,7 +892,9 @@ const AdminAccounts = () => {
                     <input
                       type="text"
                       value={nameDrafts[managingUser.id] ?? ''}
-                      onChange={(event) => setNameDrafts((current) => ({ ...current, [managingUser.id]: event.target.value }))}
+                      onChange={(event) =>
+                        setNameDrafts((current) => ({ ...current, [managingUser.id]: event.target.value }))
+                      }
                       disabled={processingUserId === managingUser.id}
                       className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-100"
                       placeholder="이름 입력"
@@ -875,7 +913,9 @@ const AdminAccounts = () => {
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-xs font-semibold text-slate-600">상태</p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getUserStatus(managingUser).className}`}>
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getUserStatus(managingUser).className}`}
+                    >
                       {getUserStatus(managingUser).label}
                     </span>
                     <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
@@ -911,7 +951,9 @@ const AdminAccounts = () => {
 
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-xs font-semibold text-slate-600">페이지 권한</p>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">{resolvePresetLabel(managingUser.permissionPreset)}</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">
+                    {resolvePresetLabel(managingUser.permissionPreset)}
+                  </p>
                   <p className="mt-1 text-xs text-slate-500">{managingUser.pagePermissions.length}개 페이지 허용</p>
                   <div className="mt-4">
                     <button
@@ -940,7 +982,11 @@ const AdminAccounts = () => {
                       disabled={processingUserId === managingUser.id}
                       className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {processingUserId === managingUser.id ? <Loader2 className="animate-spin" size={15} /> : <RotateCcw size={15} />}
+                      {processingUserId === managingUser.id ? (
+                        <Loader2 className="animate-spin" size={15} />
+                      ) : (
+                        <RotateCcw size={15} />
+                      )}
                       초기 비밀번호 재설정
                     </button>
                     <button
@@ -966,7 +1012,9 @@ const AdminAccounts = () => {
             <div className="flex items-start justify-between border-b border-slate-200 px-4 py-4 md:px-5">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">권한 역할 관리</h3>
-                <p className="mt-1 text-sm text-slate-500">원하는 이름의 역할을 만들고 기준 권한을 연결할 수 있습니다.</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  원하는 이름의 역할을 만들고 기준 권한을 연결할 수 있습니다.
+                </p>
               </div>
               <button
                 type="button"
@@ -994,7 +1042,12 @@ const AdminAccounts = () => {
                     <label className="mb-2 block text-xs font-semibold text-slate-600">기준 권한</label>
                     <select
                       value={roleProfileForm.baseRole}
-                      onChange={(event) => setRoleProfileForm((current) => ({ ...current, baseRole: event.target.value as Exclude<Role, 'SUPER_ADMIN'> }))}
+                      onChange={(event) =>
+                        setRoleProfileForm((current) => ({
+                          ...current,
+                          baseRole: event.target.value as Exclude<Role, 'SUPER_ADMIN'>,
+                        }))
+                      }
                       className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                     >
                       {ROLE_OPTIONS.map((role) => (
@@ -1010,7 +1063,9 @@ const AdminAccounts = () => {
                   <input
                     type="text"
                     value={roleProfileForm.description ?? ''}
-                    onChange={(event) => setRoleProfileForm((current) => ({ ...current, description: event.target.value }))}
+                    onChange={(event) =>
+                      setRoleProfileForm((current) => ({ ...current, description: event.target.value }))
+                    }
                     className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                     placeholder="어떤 사용자에게 쓰는 역할인지"
                   />
@@ -1032,7 +1087,9 @@ const AdminAccounts = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-slate-900">역할 목록</p>
-                    <p className="mt-1 text-xs text-slate-500">기본 역할은 삭제할 수 없고, 사용자 정의 역할만 삭제할 수 있습니다.</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      기본 역할은 삭제할 수 없고, 사용자 정의 역할만 삭제할 수 있습니다.
+                    </p>
                   </div>
                 </div>
                 <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -1057,7 +1114,11 @@ const AdminAccounts = () => {
                             disabled={roleProfileProcessingKey === profile.key}
                             className="inline-flex h-9 items-center gap-2 rounded-lg border border-red-200 bg-white px-3 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            {roleProfileProcessingKey === profile.key ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                            {roleProfileProcessingKey === profile.key ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={14} />
+                            )}
                             삭제
                           </button>
                         )}
@@ -1093,15 +1154,16 @@ const AdminAccounts = () => {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-slate-900">프리셋</p>
-                    <p className="mt-1 text-xs text-slate-500">기본 프리셋을 고르거나 현재 선택을 새 프리셋으로 저장할 수 있습니다.</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      기본 프리셋을 고르거나 현재 선택을 새 프리셋으로 저장할 수 있습니다.
+                    </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setPresetFormOpen((current) => !current)}
                     className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
-                    <Plus size={14} />
-                    새 프리셋 저장
+                    <Plus size={14} />새 프리셋 저장
                   </button>
                 </div>
 
@@ -1122,7 +1184,9 @@ const AdminAccounts = () => {
                       <input
                         type="text"
                         value={presetForm.description}
-                        onChange={(event) => setPresetForm((current) => ({ ...current, description: event.target.value }))}
+                        onChange={(event) =>
+                          setPresetForm((current) => ({ ...current, description: event.target.value }))
+                        }
                         className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                         placeholder="어떤 사용자에게 쓰는지"
                       />
@@ -1162,7 +1226,9 @@ const AdminAccounts = () => {
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-semibold">{preset.label}</p>
                               {!preset.systemPreset && (
-                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${active ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${active ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-500'}`}
+                                >
                                   사용자 추가
                                 </span>
                               )}
@@ -1183,7 +1249,11 @@ const AdminAccounts = () => {
                               } disabled:cursor-not-allowed disabled:opacity-60`}
                               aria-label={`${preset.label} 프리셋 삭제`}
                             >
-                              {presetProcessingKey === preset.key ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                              {presetProcessingKey === preset.key ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={14} />
+                              )}
                             </button>
                           )}
                         </div>
@@ -1245,7 +1315,11 @@ const AdminAccounts = () => {
                 disabled={processingUserId === permissionModalUser.id}
                 className="inline-flex h-10 items-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {processingUserId === permissionModalUser.id ? <Loader2 size={16} className="animate-spin" /> : <Settings2 size={16} />}
+                {processingUserId === permissionModalUser.id ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Settings2 size={16} />
+                )}
                 저장
               </button>
             </div>

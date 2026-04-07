@@ -1,29 +1,38 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   BarChart3,
   Building2,
-  Package,
-  PackageOpen,
-  PackageMinus,
-  Layers,
   ClipboardList,
-  KeyRound,
-  Lock,
   History,
+  KeyRound,
+  Layers,
+  Lock,
   LogOut,
   Menu,
-  X,
   MessageCircle,
+  Package,
+  PackageMinus,
+  PackageOpen,
   Shield,
+  X,
 } from 'lucide-react';
+import type React from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { getMe } from '../api/axios';
+import { getAiPreferences, saveAiPreferences } from '../api/chat';
 import ChatPanel from '../components/chat/ChatPanel';
 import { useChatWorkspace } from '../components/chat/useChatWorkspace';
 import type { PagePermissionKey } from '../types/api';
-import { clearAuthSession, getStoredEmail, getStoredName, getStoredRole, getStoredToken, hasStoredPagePermission, updateStoredProfile } from '../utils/auth-session';
-import { getMe } from '../api/axios';
-import { getAiPreferences, saveAiPreferences } from '../api/chat';
 import type { AiPreferences } from '../types/chat';
+import {
+  clearAuthSession,
+  getStoredEmail,
+  getStoredName,
+  getStoredRole,
+  getStoredToken,
+  hasStoredPagePermission,
+  updateStoredProfile,
+} from '../utils/auth-session';
 import { clearMaterialWorklist } from '../utils/material-worklist';
 
 interface NavItem {
@@ -78,11 +87,9 @@ const MainLayout: React.FC = () => {
   const userEmail = getStoredEmail();
   const userRole = getStoredRole();
   const chatVisibilityStorageKey = getChatVisibilityStorageKey(userEmail);
-  const navItems = [
-    ...viewerNavItems,
-    ...managerNavItems,
-    ...superAdminNavItems,
-  ].filter((item) => !item.permission || hasStoredPagePermission(item.permission));
+  const navItems = [...viewerNavItems, ...managerNavItems, ...superAdminNavItems].filter(
+    (item) => !item.permission || hasStoredPagePermission(item.permission),
+  );
   const [permissionDenied, setPermissionDenied] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [chatMobileOpen, setChatMobileOpen] = useState<boolean>(false);
@@ -185,9 +192,8 @@ const MainLayout: React.FC = () => {
     }
   }, [location.pathname]);
 
-  const currentPage = navItems.find(item =>
-    location.pathname === item.path ||
-    location.pathname.startsWith(item.path + '/')
+  const currentPage = navItems.find(
+    (item) => location.pathname === item.path || location.pathname.startsWith(item.path + '/'),
   );
 
   const handleChatResizePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -239,9 +245,8 @@ const MainLayout: React.FC = () => {
   };
 
   const handleEnableChatPanel = async () => {
-    const currentPreferences = chatPreferences
-      ?? await getAiPreferences().catch(() => null)
-      ?? { provider: 'openai', model: 'gpt-5', chatPanelEnabled: false };
+    const currentPreferences = chatPreferences ??
+      (await getAiPreferences().catch(() => null)) ?? { provider: 'openai', model: 'gpt-5', chatPanelEnabled: false };
 
     setChatPreferencesSaving(true);
     try {
@@ -263,17 +268,14 @@ const MainLayout: React.FC = () => {
     <>
       <div className="flex h-16 shrink-0 items-center border-b border-slate-200/80 px-5">
         <div className="flex items-center gap-3">
-          <img
-            src="/stk-mark.svg"
-            alt="STK-ENG 로고"
-            className="h-8 w-8 shrink-0"
-          />
+          <img src="/stk-mark.svg" alt="STK-ENG 로고" className="h-8 w-8 shrink-0" />
           <div className="min-w-0">
             <p className="text-base font-semibold tracking-tight text-slate-900">STK-ENG</p>
             <p className="text-[11px] font-medium text-slate-400">Inventory System</p>
           </div>
         </div>
         <button
+          type="button"
           onClick={() => setSidebarOpen(false)}
           className="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 lg:hidden"
         >
@@ -297,7 +299,9 @@ const MainLayout: React.FC = () => {
           >
             {({ isActive }) => (
               <>
-                <span className={`mr-3 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`}>
+                <span
+                  className={`mr-3 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`}
+                >
                   <item.icon size={20} />
                 </span>
                 {item.name}
@@ -316,6 +320,7 @@ const MainLayout: React.FC = () => {
             </span>
           )}
           <button
+            type="button"
             onClick={() => navigate('/account/password')}
             className="mt-3 flex items-center text-xs font-semibold text-slate-500 transition-colors hover:text-slate-900"
           >
@@ -323,6 +328,7 @@ const MainLayout: React.FC = () => {
             비밀번호 변경
           </button>
           <button
+            type="button"
             onClick={handleLogout}
             className="mt-1.5 flex items-center text-xs font-semibold text-slate-400 transition-colors hover:text-red-500"
           >
@@ -343,8 +349,10 @@ const MainLayout: React.FC = () => {
       )}
 
       {sidebarOpen && (
-        <div
+        <button
+          type="button"
           className="fixed inset-0 z-40 bg-black/20 lg:hidden"
+          aria-label="사이드바 닫기"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -365,16 +373,13 @@ const MainLayout: React.FC = () => {
         <header className="z-10 flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-6">
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => setSidebarOpen(true)}
               className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 lg:hidden"
             >
               <Menu size={20} />
             </button>
-            <img
-              src="/stk-mark.svg"
-              alt="STK-ENG 로고"
-              className="hidden h-7 w-7 shrink-0 sm:block"
-            />
+            <img src="/stk-mark.svg" alt="STK-ENG 로고" className="hidden h-7 w-7 shrink-0 sm:block" />
             <div>
               <h1 className="text-sm font-semibold leading-tight text-slate-900">
                 {currentPage?.name ?? '재고 관리 시스템'}
@@ -453,7 +458,6 @@ const MainLayout: React.FC = () => {
             )}
           </div>
         </main>
-
       </div>
     </div>
   );

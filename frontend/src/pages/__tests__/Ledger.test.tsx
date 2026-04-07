@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import Ledger from '../Ledger';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from '../../api/axios';
+import Ledger from '../Ledger';
 
 vi.mock('../../api/axios', () => ({
   default: { get: vi.fn(), post: vi.fn(), delete: vi.fn() },
@@ -110,11 +110,12 @@ describe('Ledger', () => {
     });
 
     expect(
-      screen.getByText((_, element) =>
-        element?.tagName === 'P'
-        && element.textContent?.includes('"MAT-001"')
-        && element.textContent.includes('2026. 3. 24.')
-        && element.textContent.includes('부산항'),
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === 'P' &&
+          element.textContent?.includes('"MAT-001"') &&
+          element.textContent.includes('2026. 3. 24.') &&
+          element.textContent.includes('부산항'),
       ),
     ).toBeInTheDocument();
   });

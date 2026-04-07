@@ -2,8 +2,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import api from '../../../api/axios';
-import InventoryCalendarBoard from '../InventoryCalendarBoard';
 import type { InventoryCalendarResponse } from '../../../types/api';
+import InventoryCalendarBoard from '../InventoryCalendarBoard';
 
 vi.mock('../../../api/axios', () => ({
   default: {

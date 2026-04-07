@@ -1,6 +1,3 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -15,6 +12,10 @@ import {
   Upload,
   X,
 } from 'lucide-react';
+import type React from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import AdminSearchField from '../components/common/AdminSearchField';
 import MaterialLookupField from '../components/inventory/MaterialLookupField';
@@ -63,7 +64,12 @@ const Inbound = () => {
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
   const [uploadDragActive, setUploadDragActive] = useState<boolean>(false);
 
-  const fetchLedger = async (currentPage: number, currentSearchTerm: string, currentDayFilter: string, currentBusinessUnitFilter: string) => {
+  const fetchLedger = async (
+    currentPage: number,
+    currentSearchTerm: string,
+    currentDayFilter: string,
+    currentBusinessUnitFilter: string,
+  ) => {
     setLoading(true);
     try {
       const ledgerResponse = await api.get<PagedLedger>('/inventory/ledger', {
@@ -99,7 +105,12 @@ const Inbound = () => {
     }
   };
 
-  const refreshAll = async (currentPage: number, currentSearchTerm: string, currentDayFilter: string, currentBusinessUnitFilter: string) => {
+  const refreshAll = async (
+    currentPage: number,
+    currentSearchTerm: string,
+    currentDayFilter: string,
+    currentBusinessUnitFilter: string,
+  ) => {
     await Promise.all([
       fetchPageData(),
       fetchLedger(currentPage, currentSearchTerm, currentDayFilter, currentBusinessUnitFilter),
@@ -152,26 +163,26 @@ const Inbound = () => {
 
   const businessUnitOptions = useMemo(
     () =>
-      Array.from(new Set(
-        businessUnits.map((item) => item.name).filter((value): value is string => Boolean(value)),
-      )).sort((left, right) => left.localeCompare(right, 'ko-KR')),
+      Array.from(
+        new Set(businessUnits.map((item) => item.name).filter((value): value is string => Boolean(value))),
+      ).sort((left, right) => left.localeCompare(right, 'ko-KR')),
     [businessUnits],
   );
 
   const resolvedMaterial = useMemo(
     () =>
-      materials.find((material) => material.materialCode === materialCode)
-      ?? materials.find((material) => material.materialCode.toLowerCase() === materialQuery.trim().toLowerCase())
-      ?? null,
+      materials.find((material) => material.materialCode === materialCode) ??
+      materials.find((material) => material.materialCode.toLowerCase() === materialQuery.trim().toLowerCase()) ??
+      null,
     [materialCode, materialQuery, materials],
   );
   const parsedQuantity = Number.parseInt(quantity, 10);
   const safeQuantity = Number.isFinite(parsedQuantity) ? parsedQuantity : 0;
-  const editableBaseStock = (resolvedMaterial?.currentStockQty ?? 0) - (
-    editingTransaction && editingTransaction.materialCode === resolvedMaterial?.materialCode
+  const editableBaseStock =
+    (resolvedMaterial?.currentStockQty ?? 0) -
+    (editingTransaction && editingTransaction.materialCode === resolvedMaterial?.materialCode
       ? editingTransaction.quantity
-      : 0
-  );
+      : 0);
   const projectedQuantity = editableBaseStock + safeQuantity;
 
   useEffect(() => {
@@ -341,7 +352,10 @@ const Inbound = () => {
         } catch {
           await refreshAll(page, searchTerm, dayFilter, businessUnitFilter);
           closeModal();
-          setNotice({ tone: 'success', message: '입고가 등록되었지만 자재 위치 변경에 실패했습니다. 위치를 수동으로 확인해주세요.' });
+          setNotice({
+            tone: 'success',
+            message: '입고가 등록되었지만 자재 위치 변경에 실패했습니다. 위치를 수동으로 확인해주세요.',
+          });
           return;
         }
       }
@@ -419,56 +433,50 @@ const Inbound = () => {
   return (
     <div className="admin-page">
       <section className="admin-header">
-      <div className="admin-header-row">
-        <div>
-          <p className="admin-kicker">입고</p>
-          <h2 className="admin-page-title">입고 관리</h2>
-          <p className="admin-page-description">등록된 사업장을 선택해 입고 내역을 조회하고 등록합니다.</p>
+        <div className="admin-header-row">
+          <div>
+            <p className="admin-kicker">입고</p>
+            <h2 className="admin-page-title">입고 관리</h2>
+            <p className="admin-page-description">등록된 사업장을 선택해 입고 내역을 조회하고 등록합니다.</p>
+          </div>
+          <div className="admin-toolbar">
+            <button
+              type="button"
+              onClick={() => void refreshAll(page, searchTerm, dayFilter, businessUnitFilter)}
+              className="admin-btn"
+              title="새로고침"
+            >
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            </button>
+            <button type="button" onClick={handleExport} className="admin-btn">
+              <Download size={16} />
+              엑셀 다운로드
+            </button>
+            <button type="button" onClick={() => setShowUploadModal(true)} className="admin-btn">
+              <Upload size={16} />
+              일괄 업로드
+            </button>
+            <button type="button" onClick={openNew} className="admin-btn admin-btn-primary">
+              <Plus size={16} />
+              신규 입고
+            </button>
+          </div>
         </div>
-        <div className="admin-toolbar">
-          <button
-            type="button"
-            onClick={() => void refreshAll(page, searchTerm, dayFilter, businessUnitFilter)}
-            className="admin-btn"
-            title="새로고침"
-          >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-          </button>
-          <button
-            type="button"
-            onClick={handleExport}
-            className="admin-btn"
-          >
-            <Download size={16} />
-            엑셀 다운로드
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowUploadModal(true)}
-            className="admin-btn"
-          >
-            <Upload size={16} />
-            일괄 업로드
-          </button>
-          <button
-            type="button"
-            onClick={openNew}
-            className="admin-btn admin-btn-primary"
-          >
-            <Plus size={16} />
-            신규 입고
-          </button>
-        </div>
-      </div>
       </section>
 
       {notice && (
-        <div className={`flex items-start gap-3 rounded-xl border px-3.5 py-2.5 text-sm font-medium ${
-          notice.tone === 'success'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-            : 'border-rose-200 bg-rose-50 text-rose-700'
-        }`}>
-          {notice.tone === 'success' ? <CheckCircle2 size={18} className="mt-0.5 shrink-0" /> : <AlertTriangle size={18} className="mt-0.5 shrink-0" />}
+        <div
+          className={`flex items-start gap-3 rounded-xl border px-3.5 py-2.5 text-sm font-medium ${
+            notice.tone === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : 'border-rose-200 bg-rose-50 text-rose-700'
+          }`}
+        >
+          {notice.tone === 'success' ? (
+            <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
+          ) : (
+            <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+          )}
           <span>{notice.message}</span>
         </div>
       )}
@@ -516,51 +524,56 @@ const Inbound = () => {
           {pagedTransactions.map((transaction) => {
             const matchedMaterial = materials.find((m) => m.materialCode === transaction.materialCode);
             return (
-            <article key={transaction.id} className="grid items-center gap-4 px-4 py-4 md:grid-cols-[minmax(0,1.45fr)_112px_132px_264px] md:px-5">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900">{matchedMaterial?.materialName ?? transaction.materialCode}</p>
-                <p className="mt-1 text-xs text-slate-500">{transaction.materialCode}</p>
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                  <span>{formatAppDateTime(transaction.transactionDate)}</span>
-                  <span>{formatBusinessUnit(transaction.businessUnit)}</span>
-                  <span>{transaction.note || '비고 없음'}</span>
+              <article
+                key={transaction.id}
+                className="grid items-center gap-4 px-4 py-4 md:grid-cols-[minmax(0,1.45fr)_112px_132px_264px] md:px-5"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-900">
+                    {matchedMaterial?.materialName ?? transaction.materialCode}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">{transaction.materialCode}</p>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                    <span>{formatAppDateTime(transaction.transactionDate)}</span>
+                    <span>{formatBusinessUnit(transaction.businessUnit)}</span>
+                    <span>{transaction.note || '비고 없음'}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="rounded-lg bg-slate-50 px-3 py-3 text-center">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">수량</p>
-                <p className="mt-1 text-lg font-semibold text-blue-600">+{transaction.quantity} EA</p>
-              </div>
-              <div className="rounded-lg bg-slate-50 px-3 py-3 text-center">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">등록자</p>
-                <p className="mt-1 text-sm font-medium text-slate-700">{transaction.createdByEmail ?? '-'}</p>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => openEditInbound(transaction)}
-                  className="admin-btn inline-flex h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap px-2.5 text-xs font-semibold text-slate-600"
-                >
-                  <PencilLine size={14} />
-                  수정
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openRepeatInbound(transaction)}
-                  className="admin-btn inline-flex h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap px-2.5 text-xs font-semibold text-slate-600"
-                >
-                  <Plus size={14} />
-                  다시 등록
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleRevert(transaction.id)}
-                  className="admin-btn inline-flex h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap px-2.5 text-xs font-semibold text-slate-600"
-                >
-                  <RotateCcw size={14} />
-                  취소하기
-                </button>
-              </div>
-            </article>
+                <div className="rounded-lg bg-slate-50 px-3 py-3 text-center">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">수량</p>
+                  <p className="mt-1 text-lg font-semibold text-blue-600">+{transaction.quantity} EA</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 px-3 py-3 text-center">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">등록자</p>
+                  <p className="mt-1 text-sm font-medium text-slate-700">{transaction.createdByEmail ?? '-'}</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openEditInbound(transaction)}
+                    className="admin-btn inline-flex h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap px-2.5 text-xs font-semibold text-slate-600"
+                  >
+                    <PencilLine size={14} />
+                    수정
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openRepeatInbound(transaction)}
+                    className="admin-btn inline-flex h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap px-2.5 text-xs font-semibold text-slate-600"
+                  >
+                    <Plus size={14} />
+                    다시 등록
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleRevert(transaction.id)}
+                    className="admin-btn inline-flex h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap px-2.5 text-xs font-semibold text-slate-600"
+                  >
+                    <RotateCcw size={14} />
+                    취소하기
+                  </button>
+                </div>
+              </article>
             );
           })}
           {pagedTransactions.length === 0 && !loading && (
@@ -586,10 +599,18 @@ const Inbound = () => {
               총 {totalElements}건 중 {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, totalElements)}건
             </span>
             <div className="flex gap-1">
-              <button onClick={() => setPage((current) => Math.max(0, current - 1))} disabled={page === 0} className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30">
+              <button
+                onClick={() => setPage((current) => Math.max(0, current - 1))}
+                disabled={page === 0}
+                className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
+              >
                 <ChevronLeft size={14} />
               </button>
-              <button onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))} disabled={page >= totalPages - 1} className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30">
+              <button
+                onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
+                disabled={page >= totalPages - 1}
+                className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
+              >
                 <ChevronRight size={14} />
               </button>
             </div>
@@ -597,213 +618,259 @@ const Inbound = () => {
         )}
       </div>
 
-      {showModal && createPortal(
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-[680px] max-h-[90dvh] overflow-y-auto rounded-[20px] bg-white p-5 shadow-2xl ring-1 ring-black/5">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">{editingTransaction ? '입고 내역 수정' : '신규 입고 등록'}</h3>
-                <p className="mt-1 text-sm text-slate-500">자재, 수량, 사업장, 위치를 확인한 뒤 저장합니다.</p>
-              </div>
-              <button type="button" aria-label="닫기" onClick={closeModal} className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100">
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">자재</label>
-                <MaterialLookupField
-                  materials={materials}
-                  accent="blue"
-                  inputValue={materialQuery}
-                  selectedCode={materialCode}
-                  onInputValueChange={setMaterialQuery}
-                  onSelectionChange={(material) => {
-                    setMaterialCode(material?.materialCode ?? '');
-                    setLocationDraft(material?.location ?? '');
-                  }}
-                />
+      {showModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-[680px] max-h-[90dvh] overflow-y-auto rounded-[20px] bg-white p-5 shadow-2xl ring-1 ring-black/5">
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {editingTransaction ? '입고 내역 수정' : '신규 입고 등록'}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">자재, 수량, 사업장, 위치를 확인한 뒤 저장합니다.</p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="닫기"
+                  onClick={closeModal}
+                  className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100"
+                >
+                  <X size={18} />
+                </button>
               </div>
 
-              {resolvedMaterial && (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{resolvedMaterial.materialName}</p>
-                      <p className="mt-1 text-sm text-slate-500">{resolvedMaterial.materialCode}</p>
-                      {resolvedMaterial.description && (
-                        <p className="mt-2 text-sm text-slate-400">{resolvedMaterial.description}</p>
-                      )}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">자재</label>
+                  <MaterialLookupField
+                    materials={materials}
+                    accent="blue"
+                    inputValue={materialQuery}
+                    selectedCode={materialCode}
+                    onInputValueChange={setMaterialQuery}
+                    onSelectionChange={(material) => {
+                      setMaterialCode(material?.materialCode ?? '');
+                      setLocationDraft(material?.location ?? '');
+                    }}
+                  />
+                </div>
+
+                {resolvedMaterial && (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{resolvedMaterial.materialName}</p>
+                        <p className="mt-1 text-sm text-slate-500">{resolvedMaterial.materialCode}</p>
+                        {resolvedMaterial.description && (
+                          <p className="mt-2 text-sm text-slate-400">{resolvedMaterial.description}</p>
+                        )}
+                      </div>
+                      <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">
+                        선택됨
+                      </span>
                     </div>
-                    <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">선택됨</span>
+                    <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 text-sm">
+                      <span className="font-medium text-slate-600">
+                        현재 재고{' '}
+                        <strong className="ml-1 text-slate-900">{editableBaseStock.toLocaleString()} EA</strong>
+                      </span>
+                      <span className="font-medium text-slate-600">
+                        안전 재고{' '}
+                        <strong className="ml-1 text-slate-900">
+                          {(resolvedMaterial.safeStockQty ?? 0).toLocaleString()} EA
+                        </strong>
+                      </span>
+                      <span className="font-medium text-slate-600">
+                        입고 후 예상{' '}
+                        <strong className="ml-1 text-slate-900">{projectedQuantity.toLocaleString()} EA</strong>
+                      </span>
+                    </div>
                   </div>
-                  <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 text-sm">
-                    <span className="font-medium text-slate-600">현재 재고 <strong className="ml-1 text-slate-900">{editableBaseStock.toLocaleString()} EA</strong></span>
-                    <span className="font-medium text-slate-600">안전 재고 <strong className="ml-1 text-slate-900">{(resolvedMaterial.safeStockQty ?? 0).toLocaleString()} EA</strong></span>
-                    <span className="font-medium text-slate-600">입고 후 예상 <strong className="ml-1 text-slate-900">{projectedQuantity.toLocaleString()} EA</strong></span>
+                )}
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">보관 위치</label>
+                    <input
+                      type="text"
+                      value={locationDraft}
+                      onChange={(event) => setLocationDraft(event.target.value)}
+                      className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                      placeholder="예: QA-T1 선반 A"
+                      maxLength={120}
+                    />
+                    <p className="mt-2 text-xs text-slate-400">필요하면 여기서 자재 위치를 함께 수정합니다.</p>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">수량</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      value={quantity}
+                      onChange={(event) => setQuantity(event.target.value)}
+                      className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                      placeholder="예: 24"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">사업장</label>
+                    <select
+                      required
+                      value={businessUnit}
+                      onChange={(event) => setBusinessUnit(event.target.value)}
+                      className="admin-select h-10 rounded-lg"
+                    >
+                      <option value="">사업장을 선택하세요</option>
+                      {businessUnits.map((item) => (
+                        <option key={item.id} value={item.name}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                    {businessUnits.length === 0 && (
+                      <p className="mt-2 text-sm text-amber-600">
+                        등록된 사업장이 없습니다. 먼저 기준 정보에서 사업장을 등록해주세요.
+                      </p>
+                    )}
                   </div>
                 </div>
-              )}
 
-              <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">보관 위치</label>
-                  <input
-                    type="text"
-                    value={locationDraft}
-                    onChange={(event) => setLocationDraft(event.target.value)}
-                    className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
-                    placeholder="예: QA-T1 선반 A"
-                    maxLength={120}
-                  />
-                  <p className="mt-2 text-xs text-slate-400">필요하면 여기서 자재 위치를 함께 수정합니다.</p>
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">수량</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    value={quantity}
-                    onChange={(event) => setQuantity(event.target.value)}
-                    className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
-                    placeholder="예: 24"
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">비고</label>
+                  <textarea
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                    rows={3}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                    placeholder="필요한 메모가 있으면 남겨주세요."
                   />
                 </div>
 
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">사업장</label>
-                  <select
-                    required
-                    value={businessUnit}
-                    onChange={(event) => setBusinessUnit(event.target.value)}
-                    className="admin-select h-10 rounded-lg"
+                <div className="flex justify-end gap-2.5 border-t border-slate-100 pt-4">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="inline-flex h-9 items-center rounded-lg px-3.5 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50"
                   >
-                    <option value="">사업장을 선택하세요</option>
-                    {businessUnits.map((item) => (
-                      <option key={item.id} value={item.name}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                  {businessUnits.length === 0 && (
-                    <p className="mt-2 text-sm text-amber-600">등록된 사업장이 없습니다. 먼저 기준 정보에서 사업장을 등록해주세요.</p>
-                  )}
+                    <X size={14} className="mr-1.5" />
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitLoading || businessUnits.length === 0}
+                    className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <CheckCircle2 size={14} className="mr-1.5" />
+                    {submitLoading ? '처리 중...' : editingTransaction ? '수정 저장' : '입고 등록'}
+                  </button>
                 </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">비고</label>
-                <textarea
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                  rows={3}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
-                  placeholder="필요한 메모가 있으면 남겨주세요."
-                />
-              </div>
-
-              <div className="flex justify-end gap-2.5 border-t border-slate-100 pt-4">
-                <button type="button" onClick={closeModal} className="inline-flex h-9 items-center rounded-lg px-3.5 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50">
-                  <X size={14} className="mr-1.5" />
-                  취소
-                </button>
-                <button type="submit" disabled={submitLoading || businessUnits.length === 0} className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
-                  <CheckCircle2 size={14} className="mr-1.5" />
-                  {submitLoading ? '처리 중...' : editingTransaction ? '수정 저장' : '입고 등록'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body,
-      )}
-
-      {showUploadModal && createPortal(
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-2xl ring-1 ring-black/5">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="flex items-center text-lg font-extrabold text-slate-800">
-                <FileSpreadsheet size={20} className="mr-2 text-emerald-500" />
-                입고 일괄 업로드
-              </h3>
-              <button type="button" aria-label="닫기" onClick={() => setShowUploadModal(false)} className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100">
-                <X size={18} />
-              </button>
+              </form>
             </div>
-            <p className="mb-4 text-xs leading-relaxed text-slate-400">
-              엑셀(.xlsx) 또는 CSV(.csv) 파일을 업로드하세요. 헤더에는 <b>자재코드</b>, <b>자재명</b>, <b>수량</b>, <b>사업장</b> 컬럼이 포함되어야 하며 사업장은 등록된 값만 사용할 수 있습니다.
-            </p>
-            <div className="mb-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleInboundTemplateDownload}
-                className="chat-focus-ring inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
-              >
-                <Download size={14} />
-                샘플 양식 다운로드
-              </button>
-              <span className="inline-flex min-h-10 items-center rounded-full bg-slate-100 px-3 text-[11px] font-semibold text-slate-500">
-                업로드 전에 양식 헤더를 그대로 유지하세요.
-              </span>
-            </div>
-            <form onSubmit={handleFileUpload} className="space-y-4">
-              <div
-                className={`rounded-xl border-2 border-dashed p-6 text-center transition-colors ${
-                  uploadDragActive
-                    ? 'border-emerald-400 bg-emerald-50/70'
-                    : 'border-slate-200 hover:border-emerald-300'
-                }`}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  setUploadDragActive(true);
-                }}
-                onDragEnter={(event) => {
-                  event.preventDefault();
-                  setUploadDragActive(true);
-                }}
-                onDragLeave={(event) => {
-                  event.preventDefault();
-                  if (event.currentTarget === event.target) {
+          </div>,
+          document.body,
+        )}
+
+      {showUploadModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-2xl ring-1 ring-black/5">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="flex items-center text-lg font-extrabold text-slate-800">
+                  <FileSpreadsheet size={20} className="mr-2 text-emerald-500" />
+                  입고 일괄 업로드
+                </h3>
+                <button
+                  type="button"
+                  aria-label="닫기"
+                  onClick={() => setShowUploadModal(false)}
+                  className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="mb-4 text-xs leading-relaxed text-slate-400">
+                엑셀(.xlsx) 또는 CSV(.csv) 파일을 업로드하세요. 헤더에는 <b>자재코드</b>, <b>자재명</b>, <b>수량</b>,{' '}
+                <b>사업장</b> 컬럼이 포함되어야 하며 사업장은 등록된 값만 사용할 수 있습니다.
+              </p>
+              <div className="mb-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleInboundTemplateDownload}
+                  className="chat-focus-ring inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                >
+                  <Download size={14} />
+                  샘플 양식 다운로드
+                </button>
+                <span className="inline-flex min-h-10 items-center rounded-full bg-slate-100 px-3 text-[11px] font-semibold text-slate-500">
+                  업로드 전에 양식 헤더를 그대로 유지하세요.
+                </span>
+              </div>
+              <form onSubmit={handleFileUpload} className="space-y-4">
+                <div
+                  className={`rounded-xl border-2 border-dashed p-6 text-center transition-colors ${
+                    uploadDragActive
+                      ? 'border-emerald-400 bg-emerald-50/70'
+                      : 'border-slate-200 hover:border-emerald-300'
+                  }`}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setUploadDragActive(true);
+                  }}
+                  onDragEnter={(event) => {
+                    event.preventDefault();
+                    setUploadDragActive(true);
+                  }}
+                  onDragLeave={(event) => {
+                    event.preventDefault();
+                    if (event.currentTarget === event.target) {
+                      setUploadDragActive(false);
+                    }
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
                     setUploadDragActive(false);
-                  }
-                }}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  setUploadDragActive(false);
-                  const droppedFile = event.dataTransfer.files?.[0] ?? null;
-                  if (droppedFile) {
-                    setUploadFile(droppedFile);
-                  }
-                }}
-              >
-                <Upload size={28} className="mx-auto mb-2 text-slate-300" />
-                <p className="mb-2 text-xs font-semibold text-slate-500">파일을 끌어다 놓거나 직접 선택하세요.</p>
-                <input
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  required
-                  onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
-                  className="w-full cursor-pointer text-xs text-slate-500 file:mr-3 file:rounded-full file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-emerald-600 hover:file:bg-emerald-100"
-                />
-                {uploadFile && <p className="mt-2 text-xs font-bold text-emerald-600">{uploadFile.name}</p>}
-              </div>
-              <div className="flex justify-end gap-2.5 border-t border-slate-100 pt-3">
-                <button type="button" onClick={() => setShowUploadModal(false)} className="inline-flex h-9 items-center rounded-lg px-3.5 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50">
-                  <X size={14} className="mr-1.5" />
-                  취소
-                </button>
-                <button type="submit" disabled={uploadLoading || !uploadFile} className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-white shadow-sm shadow-emerald-500/20 transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40">
-                  <Upload size={14} className="mr-1.5" />
-                  {uploadLoading ? '업로드 중...' : '업로드'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body,
-      )}
+                    const droppedFile = event.dataTransfer.files?.[0] ?? null;
+                    if (droppedFile) {
+                      setUploadFile(droppedFile);
+                    }
+                  }}
+                >
+                  <Upload size={28} className="mx-auto mb-2 text-slate-300" />
+                  <p className="mb-2 text-xs font-semibold text-slate-500">파일을 끌어다 놓거나 직접 선택하세요.</p>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    required
+                    onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
+                    className="w-full cursor-pointer text-xs text-slate-500 file:mr-3 file:rounded-full file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-emerald-600 hover:file:bg-emerald-100"
+                  />
+                  {uploadFile && <p className="mt-2 text-xs font-bold text-emerald-600">{uploadFile.name}</p>}
+                </div>
+                <div className="flex justify-end gap-2.5 border-t border-slate-100 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowUploadModal(false)}
+                    className="inline-flex h-9 items-center rounded-lg px-3.5 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50"
+                  >
+                    <X size={14} className="mr-1.5" />
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={uploadLoading || !uploadFile}
+                    className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-white shadow-sm shadow-emerald-500/20 transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Upload size={14} className="mr-1.5" />
+                    {uploadLoading ? '업로드 중...' : '업로드'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };

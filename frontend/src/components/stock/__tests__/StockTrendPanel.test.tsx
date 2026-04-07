@@ -1,9 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import StockTrendPanel from '../StockTrendPanel';
 import api from '../../../api/axios';
 import type { MaterialDto, StockTrendResponse } from '../../../types/api';
+import StockTrendPanel from '../StockTrendPanel';
 
 vi.mock('../../../api/axios', () => ({
   default: {
@@ -14,10 +14,38 @@ vi.mock('../../../api/axios', () => ({
 const mockedGet = vi.mocked(api.get);
 
 const materials: MaterialDto[] = [
-  { materialCode: 'MAT-001', materialName: '알루미늄 코일', description: null, location: 'A-01', safeStockQty: 80, currentStockQty: 420 },
-  { materialCode: 'MAT-002', materialName: '스테인리스 판재', description: null, location: 'A-03', safeStockQty: 120, currentStockQty: 280 },
-  { materialCode: 'MAT-003', materialName: '구리 배선', description: null, location: 'B-04', safeStockQty: 40, currentStockQty: 510 },
-  { materialCode: 'MAT-004', materialName: '절연 튜브', description: null, location: 'B-07', safeStockQty: 25, currentStockQty: 160 },
+  {
+    materialCode: 'MAT-001',
+    materialName: '알루미늄 코일',
+    description: null,
+    location: 'A-01',
+    safeStockQty: 80,
+    currentStockQty: 420,
+  },
+  {
+    materialCode: 'MAT-002',
+    materialName: '스테인리스 판재',
+    description: null,
+    location: 'A-03',
+    safeStockQty: 120,
+    currentStockQty: 280,
+  },
+  {
+    materialCode: 'MAT-003',
+    materialName: '구리 배선',
+    description: null,
+    location: 'B-04',
+    safeStockQty: 40,
+    currentStockQty: 510,
+  },
+  {
+    materialCode: 'MAT-004',
+    materialName: '절연 튜브',
+    description: null,
+    location: 'B-07',
+    safeStockQty: 25,
+    currentStockQty: 160,
+  },
 ];
 
 const trendResponse: StockTrendResponse = {
@@ -131,7 +159,10 @@ describe('StockTrendPanel', () => {
 
     await waitFor(() => expect(mockedGet).toHaveBeenCalled());
 
-    const [lastPath, lastConfig] = mockedGet.mock.calls.at(-1) as [string, { params: { materialCodes: string; from: string; to: string } }];
+    const [lastPath, lastConfig] = mockedGet.mock.calls.at(-1) as [
+      string,
+      { params: { materialCodes: string; from: string; to: string } },
+    ];
     expect(lastPath).toBe('/inventory/stock-trends');
     expect(lastConfig).toMatchObject({
       params: {

@@ -1,5 +1,3 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
   CalendarDays,
@@ -13,6 +11,9 @@ import {
   TrendingUp,
   X,
 } from 'lucide-react';
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../api/axios';
 import type {
   InventoryCalendarDay,
@@ -21,7 +22,7 @@ import type {
   TransactionType,
 } from '../../types/api';
 import { formatBusinessUnit, sanitizeBusinessUnit } from '../../utils/inventory-display';
-import { formatNumber, formatCompactNumber } from '../../utils/number-format';
+import { formatCompactNumber, formatNumber } from '../../utils/number-format';
 
 type TransactionFilter = 'ALL' | 'INBOUND' | 'OUTBOUND' | 'OTHER';
 
@@ -59,9 +60,10 @@ function getCurrentMonthKey() {
   return toMonthKey(new Date());
 }
 
-
 function formatDate(date: string, options?: Intl.DateTimeFormatOptions) {
-  return new Intl.DateTimeFormat('ko-KR', options ?? { month: 'long', day: 'numeric' }).format(new Date(`${date}T00:00:00`));
+  return new Intl.DateTimeFormat('ko-KR', options ?? { month: 'long', day: 'numeric' }).format(
+    new Date(`${date}T00:00:00`),
+  );
 }
 
 function formatMonthLabel(month: string) {
@@ -81,7 +83,10 @@ function isSameDate(left: string, right: string) {
 
 function isToday(date: string) {
   const today = new Date();
-  return date === `${today.getFullYear()}-${`${today.getMonth() + 1}`.padStart(2, '0')}-${`${today.getDate()}`.padStart(2, '0')}`;
+  return (
+    date ===
+    `${today.getFullYear()}-${`${today.getMonth() + 1}`.padStart(2, '0')}-${`${today.getDate()}`.padStart(2, '0')}`
+  );
 }
 
 function matchesTransactionFilter(transaction: InventoryCalendarTransaction, filter: TransactionFilter) {
@@ -195,7 +200,8 @@ function supportsWideDetailLayout() {
   return window.matchMedia('(min-width: 1536px)').matches;
 }
 
-const SURFACE_CARD_CLASS = 'rounded-[28px] border border-white/80 bg-white/88 p-5 shadow-[0_20px_45px_rgba(15,23,42,0.06)]';
+const SURFACE_CARD_CLASS =
+  'rounded-[28px] border border-white/80 bg-white/88 p-5 shadow-[0_20px_45px_rgba(15,23,42,0.06)]';
 
 interface SelectedDayDetailBodyProps {
   selectedDate: string | null;
@@ -232,10 +238,14 @@ function SelectedDayDetailBody({
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Selected Day</p>
           <h4 className="mt-3 text-2xl font-black tracking-tight text-slate-900">
-            {selectedDate ? formatDate(selectedDate, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }) : '날짜를 선택하세요'}
+            {selectedDate
+              ? formatDate(selectedDate, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
+              : '날짜를 선택하세요'}
           </h4>
           <p className="mt-2 text-sm text-slate-500">
-            {hasSelectedDateActivity ? '이 날짜의 원장 흐름과 작업 메모를 바로 확인할 수 있습니다.' : '선택한 날짜에는 아직 기록된 거래가 없습니다.'}
+            {hasSelectedDateActivity
+              ? '이 날짜의 원장 흐름과 작업 메모를 바로 확인할 수 있습니다.'
+              : '선택한 날짜에는 아직 기록된 거래가 없습니다.'}
           </p>
         </div>
 
@@ -324,34 +334,50 @@ function SelectedDayDetailBody({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${resolveTagClasses(transaction.transactionType)}`}>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${resolveTagClasses(transaction.transactionType)}`}
+                    >
                       {transaction.transactionLabel}
                     </span>
                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-400">
                       <Clock3 size={12} />
-                      {new Intl.DateTimeFormat('ko-KR', { hour: 'numeric', minute: '2-digit' }).format(new Date(transaction.transactionDate))}
+                      {new Intl.DateTimeFormat('ko-KR', { hour: 'numeric', minute: '2-digit' }).format(
+                        new Date(transaction.transactionDate),
+                      )}
                     </span>
                   </div>
                   <p className="mt-3 truncate text-sm font-black text-slate-900">{transaction.materialName}</p>
                   <p className="mt-1 text-xs text-slate-500">{transaction.materialCode}</p>
                 </div>
-                <p className={`text-right text-lg font-black ${
-                  transaction.transactionType === 'OUT'
-                    ? 'text-amber-600'
-                    : transaction.transactionType === 'EXCHANGE'
+                <p
+                  className={`text-right text-lg font-black ${
+                    transaction.transactionType === 'OUT'
                       ? 'text-amber-600'
-                      : 'text-blue-700'
-                }`}>
+                      : transaction.transactionType === 'EXCHANGE'
+                        ? 'text-amber-600'
+                        : 'text-blue-700'
+                  }`}
+                >
                   {transaction.transactionType === 'OUT' ? '-' : transaction.transactionType === 'EXCHANGE' ? '±' : '+'}
                   {formatNumber(transaction.quantity)}
                 </p>
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-medium text-slate-500">
-                {transaction.manager && <span className="rounded-full bg-slate-100 px-2.5 py-1">담당 {transaction.manager}</span>}
-                {sanitizeBusinessUnit(transaction.businessUnit) && <span className="rounded-full bg-slate-100 px-2.5 py-1">사업장 {formatBusinessUnit(transaction.businessUnit)}</span>}
-                {transaction.createdByEmail && <span className="rounded-full bg-slate-100 px-2.5 py-1">등록 {transaction.createdByEmail}</span>}
-                {transaction.reference && <span className="rounded-full bg-slate-100 px-2.5 py-1">참조 {transaction.reference}</span>}
+                {transaction.manager && (
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1">담당 {transaction.manager}</span>
+                )}
+                {sanitizeBusinessUnit(transaction.businessUnit) && (
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1">
+                    사업장 {formatBusinessUnit(transaction.businessUnit)}
+                  </span>
+                )}
+                {transaction.createdByEmail && (
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1">등록 {transaction.createdByEmail}</span>
+                )}
+                {transaction.reference && (
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1">참조 {transaction.reference}</span>
+                )}
               </div>
 
               {transaction.note && (
@@ -515,7 +541,10 @@ const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
   const filteredMonthTransactions = useMemo(
     () =>
       (calendarData?.transactions ?? []).filter((transaction) => {
-        if (normalizedBusinessUnitFilter && sanitizeBusinessUnit(transaction.businessUnit) !== normalizedBusinessUnitFilter) {
+        if (
+          normalizedBusinessUnitFilter &&
+          sanitizeBusinessUnit(transaction.businessUnit) !== normalizedBusinessUnitFilter
+        ) {
           return false;
         }
 
@@ -606,7 +635,7 @@ const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
               Operational Calendar
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-                <h3 className="text-[26px] font-black tracking-tight text-slate-900">{currentMonthLabel}</h3>
+              <h3 className="text-[26px] font-black tracking-tight text-slate-900">{currentMonthLabel}</h3>
               <span className="rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-xs font-semibold text-slate-600">
                 활성일 {activeDays.length}일
               </span>
@@ -689,7 +718,9 @@ const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
                       }`}
                     >
                       <span>{formatDate(day.date)}</span>
-                      <span className={isActiveQuickJump ? 'text-white/70' : 'text-slate-400'}>{day.transactionCount}건</span>
+                      <span className={isActiveQuickJump ? 'text-white/70' : 'text-slate-400'}>
+                        {day.transactionCount}건
+                      </span>
                     </button>
                   );
                 })
@@ -738,11 +769,15 @@ const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
               </div>
               <div className="rounded-[18px] bg-slate-50 px-3 py-3">
                 <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">출고</p>
-                <p className="mt-1.5 text-lg font-black text-amber-700">{formatNumber(selectedDay?.outboundQty ?? 0)}</p>
+                <p className="mt-1.5 text-lg font-black text-amber-700">
+                  {formatNumber(selectedDay?.outboundQty ?? 0)}
+                </p>
               </div>
               <div className="rounded-[18px] bg-slate-50 px-3 py-3">
                 <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">거래</p>
-                <p className="mt-1.5 text-lg font-black text-slate-900">{formatNumber(selectedDay?.transactionCount ?? 0)}</p>
+                <p className="mt-1.5 text-lg font-black text-slate-900">
+                  {formatNumber(selectedDay?.transactionCount ?? 0)}
+                </p>
               </div>
             </div>
           </div>
@@ -757,7 +792,9 @@ const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
                 <p className="mt-1 text-sm text-slate-500">거래가 있는 날짜만 강하게 드러나도록 표시합니다.</p>
               </div>
               <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5">활성일 {activeDays.length}</span>
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5">
+                  활성일 {activeDays.length}
+                </span>
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5">
                   입고일 {inboundDays}
                 </span>
@@ -770,7 +807,7 @@ const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
               </div>
             </div>
 
-            {(loading && !calendarData) && (
+            {loading && !calendarData && (
               <div className="mt-5 flex min-h-[560px] flex-col items-center justify-center rounded-[24px] border border-dashed border-slate-200 bg-slate-50/80 text-slate-500">
                 <LoaderCircle size={28} className="animate-spin text-slate-500" />
                 <p className="mt-4 text-sm font-semibold">월간 캘린더를 불러오는 중입니다.</p>
@@ -824,13 +861,17 @@ const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
                         style={isSelected ? { background: 'var(--calendar-day-selected)' } : undefined}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <span className={`text-lg font-black ${isSelected ? 'text-white' : cell.inCurrentMonth ? 'text-slate-900' : 'text-slate-300'}`}>
+                          <span
+                            className={`text-lg font-black ${isSelected ? 'text-white' : cell.inCurrentMonth ? 'text-slate-900' : 'text-slate-300'}`}
+                          >
                             {dayNumber}
                           </span>
                           {isCurrentDay && (
-                            <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${
-                              isSelected ? 'bg-white/16 text-white' : 'bg-slate-100 text-slate-700'
-                            }`}>
+                            <span
+                              className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+                                isSelected ? 'bg-white/16 text-white' : 'bg-slate-100 text-slate-700'
+                              }`}
+                            >
                               Today
                             </span>
                           )}
@@ -840,17 +881,25 @@ const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
                           <>
                             <div className="mt-6 space-y-2">
                               {inbound > 0 && (
-                                <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                  isSelected ? 'bg-white/12 text-white/90' : 'bg-[var(--calendar-day-inbound)] text-blue-700'
-                                }`}>
+                                <div
+                                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                    isSelected
+                                      ? 'bg-white/12 text-white/90'
+                                      : 'bg-[var(--calendar-day-inbound)] text-blue-700'
+                                  }`}
+                                >
                                   <TrendingUp size={12} />
                                   입고 {formatCompactNumber(inbound)}
                                 </div>
                               )}
                               {outbound > 0 && (
-                                <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                  isSelected ? 'bg-white/10 text-white/80' : 'bg-[var(--calendar-day-outbound)] text-amber-700'
-                                }`}>
+                                <div
+                                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                    isSelected
+                                      ? 'bg-white/10 text-white/80'
+                                      : 'bg-[var(--calendar-day-outbound)] text-amber-700'
+                                  }`}
+                                >
                                   <TrendingDown size={12} />
                                   출고 {formatCompactNumber(outbound)}
                                 </div>
@@ -864,16 +913,20 @@ const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
                                   style={{ width: `${Math.min(100, transactionCount * 14)}%` }}
                                 />
                               </div>
-                              <p className={`mt-2 text-[11px] font-semibold ${isSelected ? 'text-white/80' : 'text-slate-500'}`}>
+                              <p
+                                className={`mt-2 text-[11px] font-semibold ${isSelected ? 'text-white/80' : 'text-slate-500'}`}
+                              >
                                 {transactionCount}건의 거래
                               </p>
                             </div>
                           </>
                         ) : (
                           <div className="mt-10 flex h-[40px] items-end">
-                            <span className={`h-1.5 w-1.5 rounded-full ${
-                              isSelected ? 'bg-white/70' : cell.inCurrentMonth ? 'bg-slate-200' : 'bg-transparent'
-                            }`} />
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                isSelected ? 'bg-white/70' : cell.inCurrentMonth ? 'bg-slate-200' : 'bg-transparent'
+                              }`}
+                            />
                           </div>
                         )}
                       </button>
@@ -906,16 +959,19 @@ const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
           )}
         </div>
       </div>
-      {!isWideDetailLayout && detailDrawerOpen && typeof document !== 'undefined' &&
+      {!isWideDetailLayout &&
+        detailDrawerOpen &&
+        typeof document !== 'undefined' &&
         createPortal(
-          <div
+          <button
+            type="button"
             className="fixed inset-0 z-[90] bg-slate-950/45 backdrop-blur-[2px]"
-            onClick={() => setDetailDrawerOpen(false)}
+            aria-label="상세 닫기"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) setDetailDrawerOpen(false);
+            }}
           >
-            <div
-              className="absolute inset-x-0 bottom-0 mx-auto max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-t-[32px] border border-white/70 bg-[linear-gradient(180deg,rgba(244,248,255,0.98),rgba(255,255,255,0.98))] shadow-[0_-20px_60px_rgba(15,23,42,0.24)]"
-              onClick={(event) => event.stopPropagation()}
-            >
+            <div className="absolute inset-x-0 bottom-0 mx-auto max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-t-[32px] border border-white/70 bg-[linear-gradient(180deg,rgba(244,248,255,0.98),rgba(255,255,255,0.98))] shadow-[0_-20px_60px_rgba(15,23,42,0.24)]">
               <div className="max-h-[88vh] overflow-y-auto p-4 sm:p-5">
                 <SelectedDayDetailBody
                   selectedDate={selectedDate}
@@ -938,7 +994,7 @@ const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
                 />
               </div>
             </div>
-          </div>,
+          </button>,
           document.body,
         )}
     </section>

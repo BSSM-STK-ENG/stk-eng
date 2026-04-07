@@ -1,5 +1,6 @@
-import React, { useRef } from 'react';
 import { Search, X } from 'lucide-react';
+import type React from 'react';
+import { useRef } from 'react';
 
 type AdminSearchFieldProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> & {
   value: string;

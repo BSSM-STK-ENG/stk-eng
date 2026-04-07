@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
 import api from '../api/axios';
 
@@ -110,7 +110,17 @@ describe('App', () => {
     setSession({
       email: 'superadmin@test.com',
       role: 'SUPER_ADMIN',
-      pagePermissions: ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY', 'INBOUND', 'OUTBOUND', 'CLOSING', 'MASTER_DATA', 'ADMIN_ACCOUNTS'],
+      pagePermissions: [
+        'DASHBOARD',
+        'CURRENT_STOCK',
+        'STOCK_LEDGER',
+        'HISTORY',
+        'INBOUND',
+        'OUTBOUND',
+        'CLOSING',
+        'MASTER_DATA',
+        'ADMIN_ACCOUNTS',
+      ],
       permissionPreset: 'SUPER_ADMIN',
     });
     mockedGet.mockImplementation(async (url) => ({
@@ -123,13 +133,13 @@ describe('App', () => {
                 pages: [],
                 presets: [],
               }
-          : url === '/ai/preferences'
-            ? {
-                provider: 'openai',
-                model: 'gpt-5',
-                chatPanelEnabled: false,
-              }
-            : [],
+            : url === '/ai/preferences'
+              ? {
+                  provider: 'openai',
+                  model: 'gpt-5',
+                  chatPanelEnabled: false,
+                }
+              : [],
       status: 200,
       statusText: 'OK',
       headers: {},
@@ -163,7 +173,16 @@ describe('App', () => {
     setSession({
       email: 'admin@test.com',
       role: 'ADMIN',
-      pagePermissions: ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY', 'INBOUND', 'OUTBOUND', 'CLOSING', 'MASTER_DATA'],
+      pagePermissions: [
+        'DASHBOARD',
+        'CURRENT_STOCK',
+        'STOCK_LEDGER',
+        'HISTORY',
+        'INBOUND',
+        'OUTBOUND',
+        'CLOSING',
+        'MASTER_DATA',
+      ],
       permissionPreset: 'MANAGER',
     });
     window.history.pushState({}, '', '/master-data');

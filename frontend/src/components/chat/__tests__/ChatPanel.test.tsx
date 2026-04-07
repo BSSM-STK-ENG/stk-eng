@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ChatMessage, ProviderDescriptor } from '../../../types/chat';
 import ChatPanel from '../ChatPanel';
 import { useChatWorkspace } from '../useChatWorkspace';
-import type { ChatMessage, ProviderDescriptor } from '../../../types/chat';
 
 vi.mock('../useChatWorkspace', () => ({
   useChatWorkspace: vi.fn(),
@@ -90,13 +90,7 @@ describe('ChatPanel', () => {
     mockedUseChatWorkspace.mockReturnValue(createWorkspace());
 
     render(
-      <ChatPanel
-        mobileOpen={false}
-        onCloseMobile={vi.fn()}
-        collapsed={false}
-        onToggleCollapse={vi.fn()}
-        width={400}
-      />,
+      <ChatPanel mobileOpen={false} onCloseMobile={vi.fn()} collapsed={false} onToggleCollapse={vi.fn()} width={400} />,
     );
 
     expect(screen.queryByText('모델과 API 키 설정')).not.toBeInTheDocument();
@@ -109,31 +103,27 @@ describe('ChatPanel', () => {
   });
 
   it('renders user messages on the right and assistant messages on the left', () => {
-    mockedUseChatWorkspace.mockReturnValue(createWorkspace([
-      {
-        id: 'm1',
-        sessionId: 'runtime',
-        role: 'user',
-        content: '내가 보낸 질문',
-        createdAt: '2026-03-22T10:00:00.000Z',
-      },
-      {
-        id: 'm2',
-        sessionId: 'runtime',
-        role: 'assistant',
-        content: 'AI 응답',
-        createdAt: '2026-03-22T10:01:00.000Z',
-      },
-    ]));
+    mockedUseChatWorkspace.mockReturnValue(
+      createWorkspace([
+        {
+          id: 'm1',
+          sessionId: 'runtime',
+          role: 'user',
+          content: '내가 보낸 질문',
+          createdAt: '2026-03-22T10:00:00.000Z',
+        },
+        {
+          id: 'm2',
+          sessionId: 'runtime',
+          role: 'assistant',
+          content: 'AI 응답',
+          createdAt: '2026-03-22T10:01:00.000Z',
+        },
+      ]),
+    );
 
     render(
-      <ChatPanel
-        mobileOpen={false}
-        onCloseMobile={vi.fn()}
-        collapsed={false}
-        onToggleCollapse={vi.fn()}
-        width={400}
-      />,
+      <ChatPanel mobileOpen={false} onCloseMobile={vi.fn()} collapsed={false} onToggleCollapse={vi.fn()} width={400} />,
     );
 
     const userBubble = screen.getByTestId('message-user-m1');
@@ -144,32 +134,28 @@ describe('ChatPanel', () => {
   });
 
   it('shows evidence collapsed by default and keeps session/toolbars hidden', () => {
-    mockedUseChatWorkspace.mockReturnValue(createWorkspace([
-      {
-        id: 'm2',
-        sessionId: 'runtime',
-        role: 'assistant',
-        content: '근거가 있는 응답',
-        createdAt: '2026-03-22T10:01:00.000Z',
-        toolTrace: [
-          {
-            kind: 'sql',
-            title: 'SQL Query',
-            summary: '입고 데이터를 집계했습니다.',
-            sql: 'select * from inventory_transaction_facts',
-          },
-        ],
-      },
-    ]));
+    mockedUseChatWorkspace.mockReturnValue(
+      createWorkspace([
+        {
+          id: 'm2',
+          sessionId: 'runtime',
+          role: 'assistant',
+          content: '근거가 있는 응답',
+          createdAt: '2026-03-22T10:01:00.000Z',
+          toolTrace: [
+            {
+              kind: 'sql',
+              title: 'SQL Query',
+              summary: '입고 데이터를 집계했습니다.',
+              sql: 'select * from inventory_transaction_facts',
+            },
+          ],
+        },
+      ]),
+    );
 
     render(
-      <ChatPanel
-        mobileOpen={false}
-        onCloseMobile={vi.fn()}
-        collapsed={false}
-        onToggleCollapse={vi.fn()}
-        width={400}
-      />,
+      <ChatPanel mobileOpen={false} onCloseMobile={vi.fn()} collapsed={false} onToggleCollapse={vi.fn()} width={400} />,
     );
 
     expect(screen.getAllByText('조회 근거 보기').length).toBeGreaterThan(0);

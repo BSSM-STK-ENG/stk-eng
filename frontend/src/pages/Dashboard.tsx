@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Activity,
   ArrowDownRight,
@@ -14,6 +12,8 @@ import {
   TriangleAlert,
   Warehouse,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import InfoTooltip from '../components/common/InfoTooltip';
 import type { DashboardSummary } from '../types/api';
@@ -43,7 +43,6 @@ function formatSignedQty(value: number) {
   return `${value > 0 ? '+' : '-'}${Math.abs(value).toLocaleString()} EA`;
 }
 
-
 function getMetricToneClasses(tone: 'slate' | 'blue' | 'amber') {
   switch (tone) {
     case 'blue':
@@ -58,7 +57,6 @@ function getMetricToneClasses(tone: 'slate' | 'blue' | 'amber') {
         icon: 'bg-amber-50 text-amber-600',
         value: 'text-slate-900',
       };
-    case 'slate':
     default:
       return {
         card: 'border-slate-200 bg-white',
@@ -87,9 +85,7 @@ function MetricCard({
 
   const content = (
     <>
-      <div className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${toneClasses.icon}`}>
-        {icon}
-      </div>
+      <div className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${toneClasses.icon}`}>{icon}</div>
       <div className="mt-3 flex items-center gap-1.5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
         {helpText ? <InfoTooltip label={helpText} /> : null}
@@ -163,15 +159,23 @@ function TrendLineChart({
   const chartHeight = 240;
   const values = days.flatMap((day) => [day.inboundQty, day.outboundQty]);
   const maxValue = Math.max(1, ...values);
-  const inboundPoints = buildLinePoints(days.map((day) => day.inboundQty), chartWidth, chartHeight);
-  const outboundPoints = buildLinePoints(days.map((day) => day.outboundQty), chartWidth, chartHeight);
+  const inboundPoints = buildLinePoints(
+    days.map((day) => day.inboundQty),
+    chartWidth,
+    chartHeight,
+  );
+  const outboundPoints = buildLinePoints(
+    days.map((day) => day.outboundQty),
+    chartWidth,
+    chartHeight,
+  );
   const activeDays = days.filter((day) => day.count > 0).length;
   const guideValues = [0, 0.33, 0.66, 1];
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const activeIndex = hoveredIndex;
-  const activeDay = activeIndex !== null ? days[activeIndex] ?? null : null;
-  const activeInboundPoint = activeIndex !== null ? inboundPoints[activeIndex] ?? null : null;
-  const activeOutboundPoint = activeIndex !== null ? outboundPoints[activeIndex] ?? null : null;
+  const activeDay = activeIndex !== null ? (days[activeIndex] ?? null) : null;
+  const activeInboundPoint = activeIndex !== null ? (inboundPoints[activeIndex] ?? null) : null;
+  const activeOutboundPoint = activeIndex !== null ? (outboundPoints[activeIndex] ?? null) : null;
   const hoverStepWidth = days.length > 1 ? inboundPoints[1]!.x - inboundPoints[0]!.x : chartWidth - 40;
   const tooltipWidth = 176;
   const tooltipX =
@@ -238,84 +242,97 @@ function TrendLineChart({
               <polygon fill="url(#dashboard-inbound-fill)" points={toAreaString(inboundPoints, chartHeight)} />
               <polygon fill="url(#dashboard-outbound-fill)" points={toAreaString(outboundPoints, chartHeight)} />
 
-	              <polyline fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" points={toPointString(inboundPoints)} />
-	              <polyline fill="none" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" points={toPointString(outboundPoints)} />
+              <polyline
+                fill="none"
+                stroke="#3b82f6"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points={toPointString(inboundPoints)}
+              />
+              <polyline
+                fill="none"
+                stroke="#f59e0b"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points={toPointString(outboundPoints)}
+              />
 
-	              {activeDay && activeInboundPoint && activeOutboundPoint ? (
-	                <g>
-	                  <line
-	                    x1={activeInboundPoint.x}
-	                    y1="16"
-	                    x2={activeInboundPoint.x}
-	                    y2={chartHeight - 28}
-	                    stroke="#cbd5e1"
-	                    strokeDasharray="4 4"
-	                  />
-	                  <rect
-	                    x={tooltipX}
-	                    y={tooltipY}
-	                    width={tooltipWidth}
-	                    height="74"
-	                    rx="16"
-	                    fill="#ffffff"
-	                    stroke="#cbd5e1"
-	                    strokeWidth="1"
-	                  />
-	                  <text x={tooltipX + 16} y={tooltipY + 22} fill="#0f172a" fontSize="12" fontWeight="700">
-	                    {activeDay.label}
-	                  </text>
-	                  <text x={tooltipX + 16} y={tooltipY + 42} fill="#2563eb" fontSize="12" fontWeight="600">
-	                    입고 {activeDay.inboundQty.toLocaleString()} EA
-	                  </text>
-	                  <text x={tooltipX + 16} y={tooltipY + 60} fill="#d97706" fontSize="12" fontWeight="600">
-	                    출고 {activeDay.outboundQty.toLocaleString()} EA
-	                  </text>
-	                </g>
-	              ) : null}
+              {activeDay && activeInboundPoint && activeOutboundPoint ? (
+                <g>
+                  <line
+                    x1={activeInboundPoint.x}
+                    y1="16"
+                    x2={activeInboundPoint.x}
+                    y2={chartHeight - 28}
+                    stroke="#cbd5e1"
+                    strokeDasharray="4 4"
+                  />
+                  <rect
+                    x={tooltipX}
+                    y={tooltipY}
+                    width={tooltipWidth}
+                    height="74"
+                    rx="16"
+                    fill="#ffffff"
+                    stroke="#cbd5e1"
+                    strokeWidth="1"
+                  />
+                  <text x={tooltipX + 16} y={tooltipY + 22} fill="#0f172a" fontSize="12" fontWeight="700">
+                    {activeDay.label}
+                  </text>
+                  <text x={tooltipX + 16} y={tooltipY + 42} fill="#2563eb" fontSize="12" fontWeight="600">
+                    입고 {activeDay.inboundQty.toLocaleString()} EA
+                  </text>
+                  <text x={tooltipX + 16} y={tooltipY + 60} fill="#d97706" fontSize="12" fontWeight="600">
+                    출고 {activeDay.outboundQty.toLocaleString()} EA
+                  </text>
+                </g>
+              ) : null}
 
-	              {days.map((day, index) => {
-	                const inboundPoint = inboundPoints[index]!;
-	                const outboundPoint = outboundPoints[index]!;
-	                const segmentStart =
-	                  index === 0 ? 20 : Math.max(20, inboundPoint.x - hoverStepWidth / 2);
-	                const segmentEnd =
-	                  index === days.length - 1
-	                    ? chartWidth - 20
-	                    : Math.min(chartWidth - 20, inboundPoint.x + hoverStepWidth / 2);
+              {days.map((day, index) => {
+                const inboundPoint = inboundPoints[index]!;
+                const outboundPoint = outboundPoints[index]!;
+                const segmentStart = index === 0 ? 20 : Math.max(20, inboundPoint.x - hoverStepWidth / 2);
+                const segmentEnd =
+                  index === days.length - 1
+                    ? chartWidth - 20
+                    : Math.min(chartWidth - 20, inboundPoint.x + hoverStepWidth / 2);
 
-	                return (
-	                  <g key={day.key}>
-	                    <rect
-	                      x={segmentStart}
-	                      y="16"
-	                      width={segmentEnd - segmentStart}
-	                      height={chartHeight - 44}
-	                      fill="transparent"
-	                      tabIndex={0}
-	                      aria-label={`${day.label} 입고 ${day.inboundQty.toLocaleString()}개, 출고 ${day.outboundQty.toLocaleString()}개`}
-	                      onMouseEnter={() => setHoveredIndex(index)}
-	                      onFocus={() => setHoveredIndex(index)}
-	                      onBlur={() => setHoveredIndex((current) => (current === index ? null : current))}
-	                    />
-	                    <circle
-	                      cx={inboundPoint.x}
-	                      cy={inboundPoint.y}
-	                      r={activeIndex === index ? '6' : '4.5'}
-	                      fill="#3b82f6"
-	                      stroke="#ffffff"
-	                      strokeWidth="2"
-	                    />
-	                    <circle
-	                      cx={outboundPoint.x}
-	                      cy={outboundPoint.y}
-	                      r={activeIndex === index ? '6' : '4.5'}
-	                      fill="#f59e0b"
-	                      stroke="#ffffff"
-	                      strokeWidth="2"
-	                    />
-	                  </g>
-	                );
-	              })}
+                return (
+                  <g key={day.key}>
+                    <rect
+                      x={segmentStart}
+                      y="16"
+                      width={segmentEnd - segmentStart}
+                      height={chartHeight - 44}
+                      fill="transparent"
+                      tabIndex={0}
+                      aria-label={`${day.label} 입고 ${day.inboundQty.toLocaleString()}개, 출고 ${day.outboundQty.toLocaleString()}개`}
+                      onMouseEnter={() => setHoveredIndex(index)}
+                      onFocus={() => setHoveredIndex(index)}
+                      onBlur={() => setHoveredIndex((current) => (current === index ? null : current))}
+                    />
+                    <circle
+                      cx={inboundPoint.x}
+                      cy={inboundPoint.y}
+                      r={activeIndex === index ? '6' : '4.5'}
+                      fill="#3b82f6"
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                    />
+                    <circle
+                      cx={outboundPoint.x}
+                      cy={outboundPoint.y}
+                      r={activeIndex === index ? '6' : '4.5'}
+                      fill="#f59e0b"
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                    />
+                  </g>
+                );
+              })}
             </svg>
           </div>
         </div>
@@ -401,12 +418,50 @@ const Dashboard = () => {
       )}
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-        <MetricCard icon={<Warehouse size={18} />} label="현재 총 재고" value={formatQty(summary?.totalStockQty ?? 0)} tone="slate" helpText="등록된 모든 자재의 현재 재고 수량 합계입니다." onClick={() => moveToCurrentStock('ALL')} />
-        <MetricCard icon={<Boxes size={18} />} label="관리 중인 자재" value={`${(summary?.totalMaterials ?? 0).toLocaleString()}개`} tone="slate" helpText="현재 시스템에 등록되어 관리 중인 자재 개수입니다." onClick={() => moveToCurrentStock('ALL')} />
-        <MetricCard icon={<ArrowUpRight size={18} />} label="오늘 입고" value={formatQty(todayInboundQty)} tone="blue" />
-        <MetricCard icon={<ArrowDownRight size={18} />} label="오늘 출고" value={formatQty(todayOutboundQty)} tone="amber" />
-        <MetricCard icon={<ShieldAlert size={18} />} label="안전재고 이하" value={`${(summary?.lowCount ?? 0).toLocaleString()}개`} tone="slate" helpText="현재 재고가 설정한 안전재고 이하로 내려간 자재 수입니다." onClick={() => moveToCurrentStock('LOW')} />
-        <MetricCard icon={<PackageX size={18} />} label="재고 없음" value={`${(summary?.zeroCount ?? 0).toLocaleString()}개`} tone="slate" helpText="현재 재고 수량이 0개인 자재 수입니다." onClick={() => moveToCurrentStock('ZERO')} />
+        <MetricCard
+          icon={<Warehouse size={18} />}
+          label="현재 총 재고"
+          value={formatQty(summary?.totalStockQty ?? 0)}
+          tone="slate"
+          helpText="등록된 모든 자재의 현재 재고 수량 합계입니다."
+          onClick={() => moveToCurrentStock('ALL')}
+        />
+        <MetricCard
+          icon={<Boxes size={18} />}
+          label="관리 중인 자재"
+          value={`${(summary?.totalMaterials ?? 0).toLocaleString()}개`}
+          tone="slate"
+          helpText="현재 시스템에 등록되어 관리 중인 자재 개수입니다."
+          onClick={() => moveToCurrentStock('ALL')}
+        />
+        <MetricCard
+          icon={<ArrowUpRight size={18} />}
+          label="오늘 입고"
+          value={formatQty(todayInboundQty)}
+          tone="blue"
+        />
+        <MetricCard
+          icon={<ArrowDownRight size={18} />}
+          label="오늘 출고"
+          value={formatQty(todayOutboundQty)}
+          tone="amber"
+        />
+        <MetricCard
+          icon={<ShieldAlert size={18} />}
+          label="안전재고 이하"
+          value={`${(summary?.lowCount ?? 0).toLocaleString()}개`}
+          tone="slate"
+          helpText="현재 재고가 설정한 안전재고 이하로 내려간 자재 수입니다."
+          onClick={() => moveToCurrentStock('LOW')}
+        />
+        <MetricCard
+          icon={<PackageX size={18} />}
+          label="재고 없음"
+          value={`${(summary?.zeroCount ?? 0).toLocaleString()}개`}
+          tone="slate"
+          helpText="현재 재고 수량이 0개인 자재 수입니다."
+          onClick={() => moveToCurrentStock('ZERO')}
+        />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
@@ -418,35 +473,61 @@ const Dashboard = () => {
           </div>
           <div className="divide-y divide-slate-100">
             <div className="flex items-center justify-between px-5 py-4 text-sm">
-              <span className="inline-flex items-center gap-2 text-slate-600"><ArrowUpRight size={16} className="text-blue-600" />오늘 입고</span>
+              <span className="inline-flex items-center gap-2 text-slate-600">
+                <ArrowUpRight size={16} className="text-blue-600" />
+                오늘 입고
+              </span>
               <span className="font-semibold text-slate-900">{formatQty(todayInboundQty)}</span>
             </div>
             <div className="flex items-center justify-between px-5 py-4 text-sm">
-              <span className="inline-flex items-center gap-2 text-slate-600"><ArrowDownRight size={16} className="text-amber-600" />오늘 출고</span>
+              <span className="inline-flex items-center gap-2 text-slate-600">
+                <ArrowDownRight size={16} className="text-amber-600" />
+                오늘 출고
+              </span>
               <span className="font-semibold text-slate-900">{formatQty(todayOutboundQty)}</span>
             </div>
             <div className="flex items-center justify-between px-5 py-4 text-sm">
-              <span className="inline-flex items-center gap-2 text-slate-600"><Activity size={16} className="text-slate-500" />오늘 순변화</span>
-              <span className={`font-semibold ${todayNetQty >= 0 ? 'text-blue-700' : 'text-amber-700'}`}>{formatSignedQty(todayNetQty)}</span>
+              <span className="inline-flex items-center gap-2 text-slate-600">
+                <Activity size={16} className="text-slate-500" />
+                오늘 순변화
+              </span>
+              <span className={`font-semibold ${todayNetQty >= 0 ? 'text-blue-700' : 'text-amber-700'}`}>
+                {formatSignedQty(todayNetQty)}
+              </span>
             </div>
             <div className="flex items-center justify-between px-5 py-4 text-sm">
-              <span className="inline-flex items-center gap-2 text-slate-600"><ShieldCheck size={16} className="text-slate-500" />정상 재고</span>
+              <span className="inline-flex items-center gap-2 text-slate-600">
+                <ShieldCheck size={16} className="text-slate-500" />
+                정상 재고
+              </span>
               <span className="font-semibold text-slate-900">{(summary?.stableCount ?? 0).toLocaleString()}개</span>
             </div>
             <div className="flex items-center justify-between px-5 py-4 text-sm">
-              <span className="inline-flex items-center gap-2 text-slate-600"><ShieldAlert size={16} className="text-slate-500" />안전재고 이하</span>
+              <span className="inline-flex items-center gap-2 text-slate-600">
+                <ShieldAlert size={16} className="text-slate-500" />
+                안전재고 이하
+              </span>
               <span className="font-semibold text-slate-900">{(summary?.lowCount ?? 0).toLocaleString()}개</span>
             </div>
             <div className="flex items-center justify-between px-5 py-4 text-sm">
-              <span className="inline-flex items-center gap-2 text-slate-600"><PackageX size={16} className="text-slate-500" />재고 없음</span>
+              <span className="inline-flex items-center gap-2 text-slate-600">
+                <PackageX size={16} className="text-slate-500" />
+                재고 없음
+              </span>
               <span className="font-semibold text-slate-900">{(summary?.zeroCount ?? 0).toLocaleString()}개</span>
             </div>
             <div className="flex items-center justify-between px-5 py-4 text-sm">
-              <span className="inline-flex items-center gap-2 text-slate-600"><ArrowUpRight size={16} className="text-blue-600" />최근 7일 입고</span>
+              <span className="inline-flex items-center gap-2 text-slate-600">
+                <ArrowUpRight size={16} className="text-blue-600" />
+                최근 7일 입고
+              </span>
               <span className="font-semibold text-slate-900">{formatQty(weekInboundQty)}</span>
             </div>
             <div className="flex items-center justify-between px-5 py-4 text-sm">
-              <span className="inline-flex items-center gap-2 text-slate-600"><ArrowDownRight size={16} className="text-amber-600" />최근 7일 출고</span>
+              <span className="inline-flex items-center gap-2 text-slate-600">
+                <ArrowDownRight size={16} className="text-amber-600" />
+                최근 7일 출고
+              </span>
               <span className="font-semibold text-slate-900">{formatQty(weekOutboundQty)}</span>
             </div>
           </div>

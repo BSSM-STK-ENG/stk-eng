@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
-import Login from '../Login';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from '../../api/axios';
+import Login from '../Login';
 
 vi.mock('../../api/axios', () => ({
   default: { post: vi.fn(), get: vi.fn(), delete: vi.fn() },
@@ -14,7 +14,7 @@ const renderLogin = () =>
   render(
     <BrowserRouter>
       <Login />
-    </BrowserRouter>
+    </BrowserRouter>,
   );
 
 describe('Login', () => {
@@ -87,7 +87,9 @@ describe('Login', () => {
       expect(localStorage.getItem('email')).toBe('test@test.com');
       expect(localStorage.getItem('role')).toBe('USER');
       expect(localStorage.getItem('permissionPreset')).toBe('VIEWER');
-      expect(localStorage.getItem('pagePermissions')).toBe(JSON.stringify(['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY']));
+      expect(localStorage.getItem('pagePermissions')).toBe(
+        JSON.stringify(['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY']),
+      );
       expect(localStorage.getItem('passwordChangeRequired')).toBe('true');
     });
   });

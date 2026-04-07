@@ -1,12 +1,12 @@
+import { Check, ChevronLeft, ChevronRight, Download, PencilLine, RefreshCw, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Check, ChevronLeft, ChevronRight, Download, PencilLine, RefreshCw, X } from 'lucide-react';
 import api from '../api/axios';
-import { MaterialDto } from '../types/api';
+import AdminSearchField from '../components/common/AdminSearchField';
+import type { MaterialDto } from '../types/api';
+import { getErrorMessage } from '../utils/api-error';
 import { downloadExcel } from '../utils/excel';
 import { formatLocation, sanitizeLocation } from '../utils/inventory-display';
-import AdminSearchField from '../components/common/AdminSearchField';
-import { getErrorMessage } from '../utils/api-error';
 
 const PAGE_SIZE = 25;
 type StockFocusScope = 'ALL' | 'LOW' | 'ZERO' | 'AVAILABLE';
@@ -191,7 +191,9 @@ const CurrentStock = () => {
           <div className="min-w-0">
             <p className="admin-kicker">현재 재고</p>
             <h2 className="admin-page-title">현재 재고 조회</h2>
-            <p className="admin-page-description">지금 재고가 남아 있는 자재를 먼저 보여주고, 필요하면 품절 자재까지 함께 확인합니다.</p>
+            <p className="admin-page-description">
+              지금 재고가 남아 있는 자재를 먼저 보여주고, 필요하면 품절 자재까지 함께 확인합니다.
+            </p>
           </div>
 
           <div className="admin-toolbar">
@@ -377,7 +379,9 @@ const CurrentStock = () => {
                   <td colSpan={4} className="px-5 py-16 text-center text-sm font-medium text-slate-400">
                     <div className="flex flex-col items-center gap-3">
                       <p className="text-base font-semibold text-slate-700">
-                        {searchTerm.trim() ? `"${searchTerm.trim()}"에 맞는 자재가 없습니다.` : '현재 조건에 맞는 자재가 없습니다.'}
+                        {searchTerm.trim()
+                          ? `"${searchTerm.trim()}"에 맞는 자재가 없습니다.`
+                          : '현재 조건에 맞는 자재가 없습니다.'}
                       </p>
                       <div className="flex flex-wrap items-center justify-center gap-2">
                         {searchTerm.trim() && (
