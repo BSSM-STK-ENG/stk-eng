@@ -140,7 +140,7 @@ export default function MaterialLookupField({
       </label>
 
       {open && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-2 rounded-lg border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_rgba(15,23,42,0.08)]">
+        <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_rgba(15,23,42,0.08)]">
           {filteredMaterials.length > 0 ? (
             <ul role="listbox" className="max-h-72 space-y-1 overflow-y-auto">
               {filteredMaterials.map((material, index) => {
