@@ -1,9 +1,10 @@
 import { ChevronLeft, ChevronRight, Download, RefreshCw } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import api from '../api/axios';
+import { useQueryClient } from '@tanstack/react-query';
+import { usePagedLedger, useBusinessUnits } from '../api/queries';
 import AdminSearchField from '../components/common/AdminSearchField';
-import type { MasterDataItem, PagedLedger, TransactionResponse, TransactionType } from '../types/api';
+import type { TransactionType } from '../types/api';
 import { formatAppDate, formatAppDateTime } from '../utils/date-format';
 import { downloadExcel } from '../utils/excel';
 import { formatBusinessUnit, formatTransactionTypeLabel, sanitizeBusinessUnit } from '../utils/inventory-display';
@@ -12,73 +13,35 @@ const PAGE_SIZE = 25;
 
 const Ledger = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
-  const [totalPages, setTotalPages] = useState<number>(0);
-  const [totalElements, setTotalElements] = useState<number>(0);
-  const [businessUnits, setBusinessUnits] = useState<MasterDataItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState<string>(() => searchParams.get('material') ?? '');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>(() => searchParams.get('material') ?? '');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [businessUnitFilter, setBusinessUnitFilter] = useState<string>(() => searchParams.get('unit') ?? 'ALL');
   const [dayFilter, setDayFilter] = useState<string>(() => searchParams.get('day') ?? '');
   const [page, setPage] = useState<number>(0);
-  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const fetchLedger = async (
-    currentPage: number,
-    currentSearchTerm: string,
-    currentTypeFilter: string,
-    currentBusinessUnitFilter: string,
-    currentDayFilter: string,
-  ) => {
-    setLoading(true);
-    setErrorMsg(null);
-    try {
-      const response = await api.get<PagedLedger>('/inventory/ledger', {
-        params: {
-          type: currentTypeFilter !== 'ALL' ? currentTypeFilter : undefined,
-          from: currentDayFilter || undefined,
-          unit: currentBusinessUnitFilter !== 'ALL' ? currentBusinessUnitFilter : undefined,
-          q: currentSearchTerm.trim() || undefined,
-          page: currentPage,
-          size: PAGE_SIZE,
-        },
-      });
-      setTransactions(response.data.content);
-      setTotalPages(response.data.totalPages);
-      setTotalElements(response.data.totalElements);
-    } catch {
-      setErrorMsg('수불부 데이터를 불러오지 못했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
-    void api.get<MasterDataItem[]>('/master-data/business-units').then((response) => {
-      setBusinessUnits(response.data);
-    });
-  }, []);
-
-  useEffect(() => {
-    void fetchLedger(page, searchTerm, typeFilter, businessUnitFilter, dayFilter);
-  }, [page, typeFilter, businessUnitFilter, dayFilter]);
-
-  useEffect(() => {
-    if (searchDebounceRef.current) {
-      clearTimeout(searchDebounceRef.current);
-    }
-    searchDebounceRef.current = setTimeout(() => {
-      setPage(0);
-      void fetchLedger(0, searchTerm, typeFilter, businessUnitFilter, dayFilter);
-    }, 300);
-    return () => {
-      if (searchDebounceRef.current) {
-        clearTimeout(searchDebounceRef.current);
-      }
-    };
+    const timer = setTimeout(() => setDebouncedSearchTerm(searchTerm), 300);
+    return () => clearTimeout(timer);
   }, [searchTerm]);
+
+  const { data: ledgerData, isLoading: loading, error } = usePagedLedger({
+    type: typeFilter !== 'ALL' ? typeFilter : undefined,
+    page,
+    size: PAGE_SIZE,
+    q: debouncedSearchTerm.trim() || undefined,
+    from: dayFilter || undefined,
+    unit: businessUnitFilter !== 'ALL' ? businessUnitFilter : undefined,
+  });
+
+  const { data: businessUnitsData = [] } = useBusinessUnits();
+
+  const transactions = ledgerData?.content ?? [];
+  const totalPages = ledgerData?.totalPages ?? 0;
+  const totalElements = ledgerData?.totalElements ?? 0;
+  const businessUnits = businessUnitsData;
+  const errorMsg = error ? '수불부 데이터를 불러오지 못했습니다.' : null;
 
   useEffect(() => {
     setSearchTerm(searchParams.get('material') ?? '');
@@ -188,7 +151,7 @@ const Ledger = () => {
           <div className="admin-toolbar">
             <button
               type="button"
-              onClick={() => void fetchLedger(page, searchTerm, typeFilter, businessUnitFilter, dayFilter)}
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['ledger'] })}
               className="admin-btn chat-focus-ring"
             >
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
@@ -260,7 +223,6 @@ const Ledger = () => {
                 onClick={() => {
                   setTypeFilter(option.value);
                   setPage(0);
-                  void fetchLedger(0, searchTerm, option.value, businessUnitFilter, dayFilter);
                 }}
                 className={`chat-focus-ring admin-pill ${typeFilter === option.value ? 'admin-pill-active' : ''}`}
               >

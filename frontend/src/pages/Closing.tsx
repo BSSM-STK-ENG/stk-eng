@@ -1,14 +1,17 @@
 import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Download, Lock, RefreshCw, Unlock } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios';
+import { useClosings, queryKeys } from '../api/queries';
 import type { MonthlyClosing } from '../types/api';
 import { formatAppDateTime } from '../utils/date-format';
 import { downloadExcel } from '../utils/excel';
 
 const Closing = () => {
-  const [closings, setClosings] = useState<MonthlyClosing[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const queryClient = useQueryClient();
+  const { data: rawClosings = [], isLoading: loading } = useClosings();
+  const closings = (rawClosings as MonthlyClosing[]).slice().sort((a, b) => b.closingMonth.localeCompare(a.closingMonth));
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [monthInput, setMonthInput] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -17,20 +20,7 @@ const Closing = () => {
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchClosings = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/closing');
-      setClosings((res.data as MonthlyClosing[]).sort((a, b) => b.closingMonth.localeCompare(a.closingMonth)));
-    } catch {
-      setErrorMsg('데이터를 불러오지 못했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    void fetchClosings();
     setMonthInput(new Date().toISOString().substring(0, 7));
   }, []);
 
@@ -62,7 +52,7 @@ const Closing = () => {
       if (targetMonth) {
         setMonthInput(month);
       }
-      await fetchClosings();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.closings });
     } catch {
       showError('마감 처리 실패. 이전 월의 마감 상태를 확인해주세요.');
     } finally {
@@ -76,7 +66,7 @@ const Closing = () => {
     try {
       await api.post(`/closing/${month}/unclose`);
       showSuccess(`${month} 마감이 취소되었습니다.`);
-      await fetchClosings();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.closings });
     } catch {
       showError('마감 취소 실패. 이후 월이 마감된 경우 취소할 수 없습니다.');
     } finally {
@@ -107,7 +97,7 @@ const Closing = () => {
             <p className="admin-page-description">월별 마감 상태를 확인하고 처리합니다.</p>
           </div>
           <div className="admin-toolbar">
-            <button type="button" onClick={fetchClosings} className="admin-btn">
+            <button type="button" onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.closings })} className="admin-btn">
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
               새로고침
             </button>

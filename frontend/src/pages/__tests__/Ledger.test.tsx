@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -71,14 +72,26 @@ const businessUnitsResponse = [
   { id: 2, category: 'BUSINESS_UNIT', value: '인천항' },
 ];
 
-const renderLedger = (initialEntry = '/ledger') =>
-  render(
-    <MemoryRouter initialEntries={[initialEntry]}>
-      <Routes>
-        <Route path="/ledger" element={<Ledger />} />
-      </Routes>
-    </MemoryRouter>,
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+    },
+  });
+}
+
+const renderLedger = (initialEntry = '/ledger') => {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <Routes>
+          <Route path="/ledger" element={<Ledger />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
+};
 
 describe('Ledger', () => {
   beforeEach(() => {

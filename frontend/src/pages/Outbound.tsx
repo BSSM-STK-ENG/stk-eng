@@ -16,11 +16,13 @@ import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios';
+import { usePagedLedger, useMaterials, useBusinessUnits, queryKeys } from '../api/queries';
 import AdminSearchField from '../components/common/AdminSearchField';
 import MaterialLookupField from '../components/inventory/MaterialLookupField';
 import { buildMaterialLookupLabel } from '../components/inventory/material-lookup-utils';
-import type { MasterDataItem, MaterialDto, PagedLedger, TransactionResponse, UserOption } from '../types/api';
+import type { TransactionResponse, UserOption } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
 import { formatAppDateTime } from '../utils/date-format';
 import { downloadCsv, downloadExcel } from '../utils/excel';
@@ -42,13 +44,7 @@ type Notice = {
 const Outbound = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const consumedPrefillKeyRef = useRef<string | null>(null);
-  const [pagedTransactions, setPagedTransactions] = useState<TransactionResponse[]>([]);
-  const [totalPages, setTotalPages] = useState<number>(0);
-  const [totalElements, setTotalElements] = useState<number>(0);
-  const [materials, setMaterials] = useState<MaterialDto[]>([]);
-  const [businessUnits, setBusinessUnits] = useState<MasterDataItem[]>([]);
-  const [userOptions, setUserOptions] = useState<UserOption[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState<string>(() => searchParams.get('q') ?? '');
   const [dayFilter, setDayFilter] = useState<string>(() => searchParams.get('day') ?? '');
   const [businessUnitFilter, setBusinessUnitFilter] = useState<string>(() => searchParams.get('unit') ?? 'ALL');
@@ -56,6 +52,32 @@ const Outbound = () => {
   const [page, setPage] = useState<number>(0);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<TransactionResponse | null>(null);
+
+  const { data: materialsData = [], isLoading: materialsLoading } = useMaterials();
+  const { data: businessUnitsData = [] } = useBusinessUnits();
+  const { data: userOptionsData = [] } = useQuery({
+    queryKey: ['users', 'options'],
+    queryFn: async () => {
+      const response = await api.get<UserOption[]>('/users/options');
+      return response.data;
+    },
+  });
+  const { data: ledgerData, isLoading: ledgerLoading } = usePagedLedger({
+    type: 'OUT',
+    page,
+    size: PAGE_SIZE,
+    q: searchTerm.trim() || undefined,
+    from: dayFilter || undefined,
+    unit: businessUnitFilter !== 'ALL' ? businessUnitFilter : undefined,
+  });
+
+  const materials = materialsData;
+  const businessUnits = businessUnitsData;
+  const userOptions = userOptionsData;
+  const pagedTransactions = ledgerData?.content ?? [];
+  const totalPages = ledgerData?.totalPages ?? 0;
+  const totalElements = ledgerData?.totalElements ?? 0;
+  const loading = materialsLoading || ledgerLoading;
 
   const [materialCode, setMaterialCode] = useState<string>('');
   const [materialQuery, setMaterialQuery] = useState<string>('');
@@ -70,68 +92,11 @@ const Outbound = () => {
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
   const [uploadDragActive, setUploadDragActive] = useState<boolean>(false);
 
-  const fetchLedger = async (
-    currentPage: number,
-    currentSearchTerm: string,
-    currentDayFilter: string,
-    currentBusinessUnitFilter: string,
-  ) => {
-    setLoading(true);
-    try {
-      const ledgerResponse = await api.get<PagedLedger>('/inventory/ledger', {
-        params: {
-          type: 'OUT',
-          page: currentPage,
-          size: PAGE_SIZE,
-          q: currentSearchTerm.trim() || undefined,
-          from: currentDayFilter || undefined,
-          unit: currentBusinessUnitFilter !== 'ALL' ? currentBusinessUnitFilter : undefined,
-        },
-      });
-      setPagedTransactions(ledgerResponse.data.content);
-      setTotalPages(ledgerResponse.data.totalPages);
-      setTotalElements(ledgerResponse.data.totalElements);
-    } catch (error) {
-      setNotice({ tone: 'error', message: `데이터를 불러오지 못했습니다. ${getErrorMessage(error)}` });
-    } finally {
-      setLoading(false);
-    }
+  const refreshAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['ledger'] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.materials });
+    queryClient.invalidateQueries({ queryKey: queryKeys.businessUnits });
   };
-
-  const fetchPageData = async () => {
-    try {
-      const [materialsResponse, businessUnitResponse, userOptionsResponse] = await Promise.all([
-        api.get<MaterialDto[]>('/materials'),
-        api.get<MasterDataItem[]>('/master-data/business-units'),
-        api.get<UserOption[]>('/users/options'),
-      ]);
-      setMaterials(materialsResponse.data);
-      setBusinessUnits(businessUnitResponse.data);
-      setUserOptions(userOptionsResponse.data);
-    } catch (error) {
-      setNotice({ tone: 'error', message: `데이터를 불러오지 못했습니다. ${getErrorMessage(error)}` });
-    }
-  };
-
-  const refreshAll = async (
-    currentPage: number,
-    currentSearchTerm: string,
-    currentDayFilter: string,
-    currentBusinessUnitFilter: string,
-  ) => {
-    await Promise.all([
-      fetchPageData(),
-      fetchLedger(currentPage, currentSearchTerm, currentDayFilter, currentBusinessUnitFilter),
-    ]);
-  };
-
-  useEffect(() => {
-    void fetchPageData();
-  }, []);
-
-  useEffect(() => {
-    void fetchLedger(page, searchTerm, dayFilter, businessUnitFilter);
-  }, [page, searchTerm, dayFilter, businessUnitFilter]);
 
   useEffect(() => {
     setSearchTerm(searchParams.get('q') ?? '');
@@ -368,7 +333,7 @@ const Outbound = () => {
         await api.post('/inventory/outbound', payload);
       }
       registerRecentMaterialCode(selectedMaterial.materialCode);
-      await refreshAll(page, searchTerm, dayFilter, businessUnitFilter);
+      refreshAll();
       closeModal();
       setNotice({
         tone: 'success',
@@ -390,7 +355,7 @@ const Outbound = () => {
     setNotice(null);
     try {
       await api.post(`/inventory/${id}/revert`);
-      await refreshAll(page, searchTerm, dayFilter, businessUnitFilter);
+      refreshAll();
       setNotice({ tone: 'success', message: '출고 내역을 취소했습니다.' });
     } catch (error) {
       setNotice({ tone: 'error', message: `취소하기에 실패했습니다. ${getErrorMessage(error)}` });
@@ -414,7 +379,7 @@ const Outbound = () => {
       });
       setShowUploadModal(false);
       setUploadFile(null);
-      await refreshAll(page, searchTerm, dayFilter, businessUnitFilter);
+      refreshAll();
       setNotice({ tone: 'success', message: '출고 파일 업로드를 완료했습니다.' });
     } catch (error) {
       setNotice({ tone: 'error', message: `업로드에 실패했습니다. ${getErrorMessage(error)}` });
@@ -453,7 +418,7 @@ const Outbound = () => {
           <div className="admin-toolbar">
             <button
               type="button"
-              onClick={() => void refreshAll(page, searchTerm, dayFilter, businessUnitFilter)}
+              onClick={refreshAll}
               className="admin-btn"
               title="새로고침"
             >

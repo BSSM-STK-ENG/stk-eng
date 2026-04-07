@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
@@ -34,6 +35,23 @@ const setSession = (options: {
   }
 };
 
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+    },
+  });
+}
+
+function renderApp() {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>,
+  );
+}
+
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -55,20 +73,20 @@ describe('App', () => {
   });
 
   it('renders login page at /login', () => {
-    render(<App />);
+    renderApp();
     expect(screen.getByText('STK-ENG')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('name@company.com')).toBeInTheDocument();
   });
 
   it('renders register page at /register', () => {
     window.history.pushState({}, '', '/register');
-    render(<App />);
+    renderApp();
     expect(screen.getByRole('heading', { name: '회원가입' })).toBeInTheDocument();
   });
 
   it('redirects to /login when not authenticated', () => {
     window.history.pushState({}, '', '/stock/current');
-    render(<App />);
+    renderApp();
     // Should redirect to login since no token
     expect(screen.getByPlaceholderText('name@company.com')).toBeInTheDocument();
   });
@@ -81,7 +99,7 @@ describe('App', () => {
       permissionPreset: 'VIEWER',
     });
     window.history.pushState({}, '', '/dashboard');
-    render(<App />);
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getAllByText('STK-ENG').length).toBeGreaterThan(0);
@@ -100,7 +118,7 @@ describe('App', () => {
       permissionPreset: 'VIEWER',
     });
     window.history.pushState({}, '', '/stock/current');
-    render(<App />);
+    renderApp();
     await waitFor(() => {
       expect(screen.getByText('초기 비밀번호 변경')).toBeInTheDocument();
     });
@@ -146,7 +164,7 @@ describe('App', () => {
       config: {} as never,
     }));
     window.history.pushState({}, '', '/admin/accounts');
-    render(<App />);
+    renderApp();
     await waitFor(() => {
       expect(screen.getAllByText('사용자 관리').length).toBeGreaterThan(0);
     });
@@ -163,7 +181,7 @@ describe('App', () => {
       permissionPreset: 'VIEWER',
     });
     window.history.pushState({}, '', '/account/password');
-    render(<App />);
+    renderApp();
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: '비밀번호 변경' })).toBeInTheDocument();
     });
@@ -187,7 +205,7 @@ describe('App', () => {
     });
     window.history.pushState({}, '', '/master-data');
 
-    render(<App />);
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getAllByRole('heading', { name: '사업장 관리' }).length).toBeGreaterThan(0);
@@ -204,7 +222,7 @@ describe('App', () => {
     });
     window.history.pushState({}, '', '/inbound');
 
-    render(<App />);
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: '재고 현황' })).toBeInTheDocument();
@@ -221,7 +239,7 @@ describe('App', () => {
     });
     window.history.pushState({}, '', '/admin/accounts');
 
-    render(<App />);
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: '재고 현황' })).toBeInTheDocument();
@@ -252,7 +270,7 @@ describe('App', () => {
     }));
     window.history.pushState({}, '', '/stock/current');
 
-    render(<App />);
+    renderApp();
 
     await waitFor(() => {
       expect(screen.queryByLabelText('채팅 패널')).not.toBeInTheDocument();
@@ -284,7 +302,7 @@ describe('App', () => {
     }));
     window.history.pushState({}, '', '/dashboard');
 
-    render(<App />);
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: '재고 현황' })).toBeInTheDocument();
