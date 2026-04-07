@@ -1,9 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { Building2, RefreshCw } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios';
-import { useBusinessUnits, queryKeys } from '../api/queries';
+import { queryKeys, useBusinessUnits } from '../api/queries';
 import type { MasterDataItem } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
 
@@ -209,7 +209,11 @@ export default function MasterData() {
             <h2 className="admin-page-title">사업장 관리</h2>
             <p className="admin-page-description">입고와 출고에서 선택할 사업장을 등록하고 이름을 수정합니다.</p>
           </div>
-          <button type="button" onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.businessUnits })} className="admin-btn">
+          <button
+            type="button"
+            onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.businessUnits })}
+            className="admin-btn"
+          >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             새로고침
           </button>

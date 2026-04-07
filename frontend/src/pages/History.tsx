@@ -1,6 +1,6 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Download, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios';
 import AdminSearchField from '../components/common/AdminSearchField';
 import type { InventoryTransaction } from '../types/api';
@@ -12,7 +12,11 @@ const PAGE_SIZE = 25;
 
 const History = () => {
   const queryClient = useQueryClient();
-  const { data: transactions = [], isLoading: loading, error: queryError } = useQuery({
+  const {
+    data: transactions = [],
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
     queryKey: ['history'],
     queryFn: async () => {
       const res = await api.get('/inventory/history');
@@ -58,7 +62,11 @@ const History = () => {
             <p className="admin-page-description">재고 변경 기록을 조회합니다.</p>
           </div>
           <div className="admin-toolbar">
-            <button type="button" onClick={() => queryClient.invalidateQueries({ queryKey: ['history'] })} className="admin-btn">
+            <button
+              type="button"
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['history'] })}
+              className="admin-btn"
+            >
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             </button>
             <button type="button" onClick={handleExport} className="admin-btn admin-btn-primary">

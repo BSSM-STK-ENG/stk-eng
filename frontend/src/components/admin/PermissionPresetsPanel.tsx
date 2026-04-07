@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { Loader2, Plus, Settings2, Trash2, X } from 'lucide-react';
 import type { AdminPermissionOptionsResponse, AdminUserSummary, PagePermissionKey } from '../../types/api';
@@ -225,11 +225,7 @@ export function PermissionPresetsPanel({
             disabled={isProcessing}
             className="inline-flex h-10 items-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isProcessing ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Settings2 size={16} />
-            )}
+            {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <Settings2 size={16} />}
             저장
           </button>
         </div>

@@ -1,9 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Download, Lock, RefreshCw, Unlock } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios';
-import { useClosings, queryKeys } from '../api/queries';
+import { queryKeys, useClosings } from '../api/queries';
 import type { MonthlyClosing } from '../types/api';
 import { formatAppDateTime } from '../utils/date-format';
 import { downloadExcel } from '../utils/excel';
@@ -11,7 +11,9 @@ import { downloadExcel } from '../utils/excel';
 const Closing = () => {
   const queryClient = useQueryClient();
   const { data: rawClosings = [], isLoading: loading } = useClosings();
-  const closings = (rawClosings as MonthlyClosing[]).slice().sort((a, b) => b.closingMonth.localeCompare(a.closingMonth));
+  const closings = (rawClosings as MonthlyClosing[])
+    .slice()
+    .sort((a, b) => b.closingMonth.localeCompare(a.closingMonth));
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [monthInput, setMonthInput] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -97,7 +99,11 @@ const Closing = () => {
             <p className="admin-page-description">월별 마감 상태를 확인하고 처리합니다.</p>
           </div>
           <div className="admin-toolbar">
-            <button type="button" onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.closings })} className="admin-btn">
+            <button
+              type="button"
+              onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.closings })}
+              className="admin-btn"
+            >
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
               새로고침
             </button>

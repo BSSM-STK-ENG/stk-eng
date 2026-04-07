@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { Loader2, Settings2 } from 'lucide-react';
 import type { AdminPermissionOptionsResponse, AdminUserSummary } from '../../types/api';
@@ -46,13 +46,7 @@ interface UserListTableProps {
   onManage: (userId: string) => void;
 }
 
-export function UserListTable({
-  users,
-  loading,
-  currentUserEmail,
-  permissionOptions,
-  onManage,
-}: UserListTableProps) {
+export function UserListTable({ users, loading, currentUserEmail, permissionOptions, onManage }: UserListTableProps) {
   const resolvePresetLabel = (presetKey: string | null) =>
     permissionOptions?.presets.find((item) => item.key === presetKey)?.label ?? presetKey ?? '권한 미설정';
 

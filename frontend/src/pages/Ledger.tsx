@@ -1,8 +1,8 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Download, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { usePagedLedger, useBusinessUnits } from '../api/queries';
+import { useBusinessUnits, usePagedLedger } from '../api/queries';
 import AdminSearchField from '../components/common/AdminSearchField';
 import type { TransactionType } from '../types/api';
 import { formatAppDate, formatAppDateTime } from '../utils/date-format';
@@ -26,7 +26,11 @@ const Ledger = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const { data: ledgerData, isLoading: loading, error } = usePagedLedger({
+  const {
+    data: ledgerData,
+    isLoading: loading,
+    error,
+  } = usePagedLedger({
     type: typeFilter !== 'ALL' ? typeFilter : undefined,
     page,
     size: PAGE_SIZE,

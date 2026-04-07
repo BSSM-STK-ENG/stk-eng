@@ -1,12 +1,8 @@
-"use client";
+'use client';
 
 import { Loader2, Plus, Settings2, Shield, UserPlus } from 'lucide-react';
 import type React from 'react';
-import type {
-  AdminCreateUserRequest,
-  AdminPermissionOptionsResponse,
-  Role,
-} from '../../types/api';
+import type { AdminCreateUserRequest, AdminPermissionOptionsResponse, Role } from '../../types/api';
 
 interface UserCreateFormProps {
   form: AdminCreateUserRequest;
@@ -19,7 +15,9 @@ interface UserCreateFormProps {
   onOpenRoleProfileModal: () => void;
   getRoleProfiles: () => AdminPermissionOptionsResponse['roleProfiles'];
   getDefaultPresetKeyForRole: (role: AdminCreateUserRequest['role']) => string;
-  getRoleProfile: (key: string | null | undefined) => AdminPermissionOptionsResponse['roleProfiles'][number] | undefined;
+  getRoleProfile: (
+    key: string | null | undefined,
+  ) => AdminPermissionOptionsResponse['roleProfiles'][number] | undefined;
   emailInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
@@ -39,10 +37,7 @@ export function UserCreateForm({
 }: UserCreateFormProps) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-      <form
-        onSubmit={onSubmit}
-        className="grid gap-3 md:grid-cols-2 xl:grid-cols-[180px_minmax(0,1fr)_200px_140px]"
-      >
+      <form onSubmit={onSubmit} className="grid gap-3 md:grid-cols-2 xl:grid-cols-[180px_minmax(0,1fr)_200px_140px]">
         <div className="min-w-0">
           <label className="mb-2 block text-sm font-medium text-slate-700">이름</label>
           <input
