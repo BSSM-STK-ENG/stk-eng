@@ -1,7 +1,9 @@
 import { Building2, RefreshCw } from 'lucide-react';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios';
+import { useBusinessUnits, queryKeys } from '../api/queries';
 import type { MasterDataItem } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
 
@@ -146,31 +148,14 @@ function SectionCard({
 }
 
 export default function MasterData() {
-  const [businessUnits, setBusinessUnits] = useState<MasterDataItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const queryClient = useQueryClient();
+  const { data: businessUnits = [], isLoading: loading } = useBusinessUnits();
   const [notice, setNotice] = useState<Notice | null>(null);
   const [businessUnitName, setBusinessUnitName] = useState<string>('');
   const [businessUnitSubmitting, setBusinessUnitSubmitting] = useState<boolean>(false);
   const [editingBusinessUnitId, setEditingBusinessUnitId] = useState<number | null>(null);
   const [editingBusinessUnitName, setEditingBusinessUnitName] = useState<string>('');
   const [savingBusinessUnitId, setSavingBusinessUnitId] = useState<number | null>(null);
-
-  const loadData = async () => {
-    setLoading(true);
-    setNotice(null);
-    try {
-      const businessUnitResponse = await api.get<MasterDataItem[]>('/master-data/business-units');
-      setBusinessUnits(businessUnitResponse.data);
-    } catch (error) {
-      setNotice({ tone: 'error', message: `사업장 정보를 불러오지 못했습니다. ${getErrorMessage(error)}` });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadData();
-  }, []);
 
   const handleBusinessUnitSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -179,7 +164,7 @@ export default function MasterData() {
     try {
       await api.post<MasterDataItem>('/master-data/business-units', { name: businessUnitName });
       setBusinessUnitName('');
-      await loadData();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.businessUnits });
       setNotice({ tone: 'success', message: '사업장을 등록했습니다.' });
     } catch (error) {
       setNotice({ tone: 'error', message: `사업장 등록에 실패했습니다. ${getErrorMessage(error)}` });
@@ -204,7 +189,7 @@ export default function MasterData() {
     setSavingBusinessUnitId(item.id);
     try {
       await api.put<MasterDataItem>(`/master-data/business-units/${item.id}`, { name: nextName });
-      await loadData();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.businessUnits });
       setEditingBusinessUnitId(null);
       setEditingBusinessUnitName('');
       setNotice({ tone: 'success', message: '사업장 이름을 수정했습니다.' });
@@ -224,7 +209,7 @@ export default function MasterData() {
             <h2 className="admin-page-title">사업장 관리</h2>
             <p className="admin-page-description">입고와 출고에서 선택할 사업장을 등록하고 이름을 수정합니다.</p>
           </div>
-          <button type="button" onClick={() => void loadData()} className="admin-btn">
+          <button type="button" onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.businessUnits })} className="admin-btn">
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             새로고침
           </button>

@@ -1,7 +1,9 @@
 import { Package, PencilLine, RefreshCw, Trash2, X } from 'lucide-react';
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios';
+import { useMaterials, queryKeys } from '../api/queries';
 import AdminSearchField from '../components/common/AdminSearchField';
 import type { MaterialDto } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
@@ -12,8 +14,8 @@ type Notice = {
 };
 
 export default function Materials() {
-  const [materials, setMaterials] = useState<MaterialDto[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const queryClient = useQueryClient();
+  const { data: materials = [], isLoading: loading } = useMaterials();
   const [notice, setNotice] = useState<Notice | null>(null);
   const [materialForm, setMaterialForm] = useState({
     materialCode: '',
@@ -25,23 +27,6 @@ export default function Materials() {
   const [editingMaterialCode, setEditingMaterialCode] = useState<string | null>(null);
   const [deletingMaterialCode, setDeletingMaterialCode] = useState<string | null>(null);
   const [materialSearch, setMaterialSearch] = useState('');
-
-  const loadMaterials = async () => {
-    setLoading(true);
-    setNotice(null);
-    try {
-      const materialResponse = await api.get<MaterialDto[]>('/materials');
-      setMaterials(materialResponse.data);
-    } catch (error) {
-      setNotice({ tone: 'error', message: `자재 정보를 불러오지 못했습니다. ${getErrorMessage(error)}` });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadMaterials();
-  }, []);
 
   const resetMaterialForm = () => {
     setMaterialForm({
@@ -87,7 +72,7 @@ export default function Materials() {
       }
 
       resetMaterialForm();
-      await loadMaterials();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.materials });
     } catch (error) {
       setNotice({ tone: 'error', message: `자재 저장에 실패했습니다. ${getErrorMessage(error)}` });
     } finally {
@@ -120,7 +105,7 @@ export default function Materials() {
       if (editingMaterialCode === item.materialCode) {
         resetMaterialForm();
       }
-      await loadMaterials();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.materials });
       setNotice({ tone: 'success', message: '자재를 삭제했습니다.' });
     } catch (error) {
       setNotice({ tone: 'error', message: `자재 삭제에 실패했습니다. ${getErrorMessage(error)}` });
@@ -153,7 +138,7 @@ export default function Materials() {
             <h2 className="admin-page-title">자재 관리</h2>
             <p className="admin-page-description">입고와 출고에서 선택할 자재 기본 정보만 관리합니다.</p>
           </div>
-          <button type="button" onClick={() => void loadMaterials()} className="admin-btn">
+          <button type="button" onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.materials })} className="admin-btn">
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             새로고침
           </button>

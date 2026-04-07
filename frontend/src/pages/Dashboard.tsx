@@ -12,11 +12,11 @@ import {
   TriangleAlert,
   Warehouse,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import api from '../api/axios';
+import { useDashboardSummary, queryKeys } from '../api/queries';
 import InfoTooltip from '../components/common/InfoTooltip';
-import type { DashboardSummary } from '../types/api';
 import { formatAppDateTime } from '../utils/date-format';
 import { formatBusinessUnit, formatTransactionTypeLabel, isInboundType } from '../utils/inventory-display';
 
@@ -343,28 +343,14 @@ function TrendLineChart({
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
-  const [lastUpdatedAt, setLastUpdatedAt] = useState<string>('');
+  const queryClient = useQueryClient();
+  const { data: summary, isLoading: loading, error: queryError, dataUpdatedAt } = useDashboardSummary();
+  const error = queryError ? '대시보드 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.' : null;
+  const lastUpdatedAt = dataUpdatedAt ? new Date(dataUpdatedAt).toISOString() : '';
 
-  const loadDashboard = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await api.get<DashboardSummary>('/dashboard/summary');
-      setSummary(response.data);
-      setLastUpdatedAt(new Date().toISOString());
-    } catch {
-      setError('대시보드 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
-    } finally {
-      setLoading(false);
-    }
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.dashboardSummary });
   };
-
-  useEffect(() => {
-    void loadDashboard();
-  }, []);
 
   const recentWeekDays: DayMetric[] = (summary?.recentWeek ?? []).map((day) => ({
     key: day.date,
@@ -402,7 +388,7 @@ const Dashboard = () => {
             <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
               마지막 갱신 {lastUpdatedAt ? formatAppDateTime(lastUpdatedAt) : '-'}
             </div>
-            <button type="button" onClick={() => void loadDashboard()} className="admin-btn chat-focus-ring">
+            <button type="button" onClick={handleRefresh} className="admin-btn chat-focus-ring">
               {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               새로고침
             </button>

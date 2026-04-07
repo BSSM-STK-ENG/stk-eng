@@ -1,7 +1,9 @@
 import { Check, ChevronLeft, ChevronRight, Download, PencilLine, RefreshCw, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios';
+import { useMaterials, queryKeys } from '../api/queries';
 import AdminSearchField from '../components/common/AdminSearchField';
 import type { MaterialDto } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
@@ -20,8 +22,7 @@ function resolveScope(raw: string | null): StockFocusScope {
 
 const CurrentStock = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [materials, setMaterials] = useState<MaterialDto[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const queryClient = useQueryClient();
   const [notice, setNotice] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>(() => searchParams.get('q') ?? '');
   const [scope, setScope] = useState<StockFocusScope>(() => resolveScope(searchParams.get('scope')));
@@ -30,21 +31,8 @@ const CurrentStock = () => {
   const [locationDraft, setLocationDraft] = useState<string>('');
   const [locationSaving, setLocationSaving] = useState<boolean>(false);
 
-  const fetchStock = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get<MaterialDto[]>('/materials');
-      setMaterials(res.data);
-    } catch (err) {
-      setNotice({ tone: 'error', message: `재고 정보를 불러오지 못했습니다. ${getErrorMessage(err)}` });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void fetchStock();
-  }, []);
+  const { data: materialsData = [], isLoading: loading } = useMaterials();
+  const materials = materialsData;
 
   const searchedMaterials = useMemo(
     () =>
@@ -133,7 +121,7 @@ const CurrentStock = () => {
         safeStockQty: material.safeStockQty ?? 0,
         currentStockQty: material.currentStockQty ?? 0,
       });
-      await fetchStock();
+      queryClient.invalidateQueries({ queryKey: queryKeys.materials });
       setNotice({ tone: 'success', message: `${material.materialName} 위치를 수정했습니다.` });
       cancelLocationEdit();
     } catch (error) {
@@ -197,7 +185,7 @@ const CurrentStock = () => {
           </div>
 
           <div className="admin-toolbar">
-            <button type="button" onClick={() => void fetchStock()} className="admin-btn chat-focus-ring">
+            <button type="button" onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.materials })} className="admin-btn chat-focus-ring">
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
               새로고침
             </button>
