@@ -195,7 +195,7 @@ const CurrentStock = () => {
             </button>
             <button type="button" onClick={handleExport} className="admin-btn admin-btn-primary chat-focus-ring">
               <Download size={16} />
-              엑셀
+              엑셀 다운로드
             </button>
           </div>
         </div>
@@ -207,7 +207,7 @@ const CurrentStock = () => {
             placeholder="자재명, 자재코드, 위치, 설명 검색"
             wrapperClassName="max-w-2xl"
           />
-          <span className="inline-flex min-h-10 items-center rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-medium text-slate-600">
+          <span className="inline-flex min-h-10 items-center justify-center whitespace-nowrap rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-medium text-slate-600">
             조회 결과 {filtered.length.toLocaleString()}건
           </span>
         </div>
@@ -237,7 +237,7 @@ const CurrentStock = () => {
               key={option.value}
               type="button"
               onClick={() => handleScopeChange(option.value)}
-              className={`chat-focus-ring inline-flex min-h-10 items-center gap-2 rounded-full px-3.5 text-xs font-semibold transition ${
+              className={`chat-focus-ring inline-flex min-h-10 items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-xs font-semibold transition ${
                 scope === option.value
                   ? 'bg-slate-900 text-white'
                   : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
@@ -258,7 +258,7 @@ const CurrentStock = () => {
             <button
               type="button"
               onClick={handleResetFilters}
-              className="chat-focus-ring ml-auto inline-flex min-h-10 items-center rounded-full border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+              className="chat-focus-ring ml-auto inline-flex min-h-10 items-center whitespace-nowrap rounded-full border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
             >
               필터 초기화
             </button>
@@ -266,19 +266,19 @@ const CurrentStock = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-100">
+          <table className="min-w-full table-fixed divide-y divide-slate-100">
             <thead>
               <tr className="bg-slate-50/85">
-                <th className="px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">
+                <th className="w-[26%] whitespace-nowrap px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">
                   자재코드
                 </th>
-                <th className="px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">
+                <th className="w-[38%] whitespace-nowrap px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">
                   자재명
                 </th>
-                <th className="px-4 py-3.5 text-right text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">
+                <th className="w-[12%] whitespace-nowrap px-4 py-3.5 text-right text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">
                   재고수량
                 </th>
-                <th className="px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">
+                <th className="w-[24%] whitespace-nowrap px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">
                   자재위치
                 </th>
               </tr>
@@ -292,11 +292,11 @@ const CurrentStock = () => {
 
                 return (
                   <tr key={material.materialCode} className="transition-colors hover:bg-slate-50/60">
-                    <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-slate-900 md:px-6">
-                      {material.materialCode}
+                    <td className="px-4 py-4 text-sm font-semibold text-slate-900 md:px-6">
+                      <div className="truncate">{material.materialCode}</div>
                     </td>
                     <td className="px-4 py-4 text-sm text-slate-700 md:px-6">
-                      <div className="max-w-[520px]">
+                      <div className="min-w-0">
                         <p className="truncate font-medium text-slate-900">{material.materialName}</p>
                         {material.description && (
                           <p className="mt-1 truncate text-xs text-slate-400">{material.description}</p>
@@ -332,7 +332,7 @@ const CurrentStock = () => {
                               type="button"
                               onClick={() => void handleLocationSave(material)}
                               disabled={locationSaving}
-                              className="chat-focus-ring inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-900 bg-slate-900 px-3 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="chat-focus-ring inline-flex min-h-9 items-center gap-1 whitespace-nowrap rounded-lg border border-slate-900 bg-slate-900 px-3 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               <Check size={13} />
                               저장
@@ -341,7 +341,7 @@ const CurrentStock = () => {
                               type="button"
                               onClick={cancelLocationEdit}
                               disabled={locationSaving}
-                              className="chat-focus-ring inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="chat-focus-ring inline-flex min-h-9 items-center gap-1 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               <X size={13} />
                               취소
@@ -349,12 +349,12 @@ const CurrentStock = () => {
                           </div>
                         </div>
                       ) : (
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                          <span>{formatLocation(material.location)}</span>
+                        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                          <span className="truncate">{formatLocation(material.location)}</span>
                           <button
                             type="button"
                             onClick={() => startLocationEdit(material)}
-                            className="chat-focus-ring inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                            className="chat-focus-ring inline-flex min-h-9 items-center gap-1 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
                           >
                             <PencilLine size={13} />
                             위치 수정
