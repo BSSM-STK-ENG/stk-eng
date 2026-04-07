@@ -87,7 +87,7 @@ public class InventoryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<InventoryTransaction> updateTransaction(@PathVariable Long id, @RequestBody TransactionRequest request) {
+    public ResponseEntity<TransactionResponse> updateTransaction(@PathVariable Long id, @RequestBody TransactionRequest request) {
         return ResponseEntity.ok(inventoryService.updateTransaction(id, request));
     }
 }
