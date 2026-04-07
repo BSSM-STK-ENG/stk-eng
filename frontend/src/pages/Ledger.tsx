@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Download, RefreshCw } from 'lucide-react';
 import api from '../api/axios';
-import type { InventoryTransaction } from '../types/api';
+import type { MasterDataItem, PagedLedger, TransactionResponse, TransactionType } from '../types/api';
 import { downloadExcel } from '../utils/excel';
 import { formatAppDate, formatAppDateTime } from '../utils/date-format';
 import { formatBusinessUnit, formatTransactionTypeLabel, sanitizeBusinessUnit } from '../utils/inventory-display';
@@ -12,7 +12,10 @@ const PAGE_SIZE = 25;
 
 const Ledger: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
+  const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
+  const [totalPages, setTotalPages] = useState<number>(0);
+  const [totalElements, setTotalElements] = useState<number>(0);
+  const [businessUnits, setBusinessUnits] = useState<MasterDataItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>(() => searchParams.get('material') ?? '');
@@ -20,18 +23,26 @@ const Ledger: React.FC = () => {
   const [businessUnitFilter, setBusinessUnitFilter] = useState<string>(() => searchParams.get('unit') ?? 'ALL');
   const [dayFilter, setDayFilter] = useState<string>(() => searchParams.get('day') ?? '');
   const [page, setPage] = useState<number>(0);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchLedger = async () => {
+  const fetchLedger = async (currentPage: number, currentSearchTerm: string, currentTypeFilter: string, currentBusinessUnitFilter: string, currentDayFilter: string) => {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const response = await api.get<InventoryTransaction[]>('/inventory/ledger');
-      setTransactions(
-        response.data
-          .slice()
-          .sort((left, right) => new Date(right.transactionDate).getTime() - new Date(left.transactionDate).getTime()),
-      );
-    } catch (error) {
+      const response = await api.get<PagedLedger>('/inventory/ledger', {
+        params: {
+          type: currentTypeFilter !== 'ALL' ? currentTypeFilter : undefined,
+          from: currentDayFilter || undefined,
+          unit: currentBusinessUnitFilter !== 'ALL' ? currentBusinessUnitFilter : undefined,
+          q: currentSearchTerm.trim() || undefined,
+          page: currentPage,
+          size: PAGE_SIZE,
+        },
+      });
+      setTransactions(response.data.content);
+      setTotalPages(response.data.totalPages);
+      setTotalElements(response.data.totalElements);
+    } catch {
       setErrorMsg('수불부 데이터를 불러오지 못했습니다.');
     } finally {
       setLoading(false);
@@ -39,8 +50,29 @@ const Ledger: React.FC = () => {
   };
 
   useEffect(() => {
-    void fetchLedger();
+    void api.get<MasterDataItem[]>('/master-data/business-units').then((response) => {
+      setBusinessUnits(response.data);
+    });
   }, []);
+
+  useEffect(() => {
+    void fetchLedger(page, searchTerm, typeFilter, businessUnitFilter, dayFilter);
+  }, [page, typeFilter, businessUnitFilter, dayFilter]);
+
+  useEffect(() => {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+    searchDebounceRef.current = setTimeout(() => {
+      setPage(0);
+      void fetchLedger(0, searchTerm, typeFilter, businessUnitFilter, dayFilter);
+    }, 300);
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [searchTerm]);
 
   useEffect(() => {
     setSearchTerm(searchParams.get('material') ?? '');
@@ -74,7 +106,6 @@ const Ledger: React.FC = () => {
 
   const updateSearchTerm = (nextSearchTerm: string) => {
     setSearchTerm(nextSearchTerm);
-    setPage(0);
     syncSearchParams(nextSearchTerm, dayFilter, businessUnitFilter);
   };
 
@@ -99,65 +130,28 @@ const Ledger: React.FC = () => {
     setSearchParams(new URLSearchParams(), { replace: true });
   };
 
-  const filteredTransactions = useMemo(
-    () =>
-      transactions
-        .filter((transaction) => !dayFilter || transaction.transactionDate.startsWith(dayFilter))
-        .filter((transaction) => businessUnitFilter === 'ALL' || sanitizeBusinessUnit(transaction.businessUnit) === businessUnitFilter)
-        .filter((transaction) => typeFilter === 'ALL' || transaction.transactionType === typeFilter)
-        .filter((transaction) =>
-          [
-            transaction.material.materialName,
-            transaction.material.materialCode,
-            transaction.material.description,
-            transaction.manager,
-            sanitizeBusinessUnit(transaction.businessUnit),
-            transaction.createdBy?.email,
-            transaction.note,
-            transaction.reference,
-          ]
-            .filter(Boolean)
-            .some((value) => value?.toLowerCase().includes(searchTerm.toLowerCase())),
-        ),
-    [businessUnitFilter, dayFilter, searchTerm, transactions, typeFilter],
-  );
+  const businessUnitOptions = businessUnits.map((item) => item.name).filter((value): value is string => Boolean(value)).sort((left, right) => left.localeCompare(right, 'ko'));
 
-  const businessUnits = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          transactions
-            .map((transaction) => sanitizeBusinessUnit(transaction.businessUnit))
-            .filter((value): value is string => Boolean(value)),
-        ),
-      ).sort((left, right) => left.localeCompare(right, 'ko')),
-    [transactions],
-  );
-
-  const handleExport = () => {
-    const rows = filteredTransactions.map((transaction) => ({
+  const handleExport = async () => {
+    const rows = transactions.map((transaction) => ({
       일자: formatAppDateTime(transaction.transactionDate),
       유형: formatTransactionTypeLabel(transaction.transactionType),
       사업장: sanitizeBusinessUnit(transaction.businessUnit) ?? '',
-      자재코드: transaction.material.materialCode,
-      자재명: transaction.material.materialName,
-      자재설명: transaction.material.description ?? '',
+      자재코드: transaction.materialCode,
       수량: transaction.transactionType === 'OUT' ? -transaction.quantity : transaction.quantity,
       담당자: transaction.manager ?? '',
       참조번호: transaction.reference ?? '',
       비고: transaction.note ?? '',
     }));
-    downloadExcel(rows, '수불_현황');
+    await downloadExcel(rows, '수불_현황');
   };
 
-  const totalPages = Math.ceil(filteredTransactions.length / PAGE_SIZE);
-  const pagedTransactions = filteredTransactions.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const hasActiveFilters = Boolean(searchTerm.trim()) || Boolean(dayFilter) || businessUnitFilter !== 'ALL' || typeFilter !== 'ALL';
   const activeDayLabel = dayFilter
     ? formatAppDate(`${dayFilter}T00:00:00`)
     : '모든 날짜';
   const activeBusinessUnitLabel = businessUnitFilter === 'ALL' ? '모든 사업장' : formatBusinessUnit(businessUnitFilter);
-  const activeTypeLabel = typeFilter === 'ALL' ? '모든 거래 유형' : formatTransactionTypeLabel(typeFilter as InventoryTransaction['transactionType']);
+  const activeTypeLabel = typeFilter === 'ALL' ? '모든 거래 유형' : formatTransactionTypeLabel(typeFilter as TransactionType);
   const emptyTitle = searchTerm.trim()
     ? `"${searchTerm.trim()}"에 맞는 거래가 없습니다.`
     : dayFilter
@@ -165,7 +159,7 @@ const Ledger: React.FC = () => {
       : businessUnitFilter !== 'ALL'
         ? `${formatBusinessUnit(businessUnitFilter)}에서 찾을 거래가 없습니다.`
         : typeFilter !== 'ALL'
-          ? `${formatTransactionTypeLabel(typeFilter as InventoryTransaction['transactionType'])} 거래가 없습니다.`
+          ? `${formatTransactionTypeLabel(typeFilter as TransactionType)} 거래가 없습니다.`
           : '아직 표시할 거래가 없습니다.';
 
   return (
@@ -179,7 +173,7 @@ const Ledger: React.FC = () => {
           </div>
 
           <div className="admin-toolbar">
-            <button type="button" onClick={() => void fetchLedger()} className="admin-btn chat-focus-ring">
+            <button type="button" onClick={() => void fetchLedger(page, searchTerm, typeFilter, businessUnitFilter, dayFilter)} className="admin-btn chat-focus-ring">
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
               새로고침
             </button>
@@ -212,7 +206,7 @@ const Ledger: React.FC = () => {
               className="admin-select chat-focus-ring"
             >
               <option value="ALL">전체 사업장</option>
-              {businessUnits.map((unit) => (
+              {businessUnitOptions.map((unit) => (
                 <option key={unit} value={unit}>
                   {unit}
                 </option>
@@ -249,6 +243,7 @@ const Ledger: React.FC = () => {
                 onClick={() => {
                   setTypeFilter(option.value);
                   setPage(0);
+                  void fetchLedger(0, searchTerm, option.value, businessUnitFilter, dayFilter);
                 }}
                 className={`chat-focus-ring admin-pill ${typeFilter === option.value ? 'admin-pill-active' : ''}`}
               >
@@ -257,7 +252,7 @@ const Ledger: React.FC = () => {
             ))}
 
             <span className="ml-auto inline-flex min-h-9 items-center rounded-full border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-600">
-              현재 결과 {filteredTransactions.length.toLocaleString()}건
+              현재 결과 {totalElements.toLocaleString()}건
             </span>
           </div>
         </div>
@@ -272,7 +267,7 @@ const Ledger: React.FC = () => {
         </div>
 
         <div className="divide-y divide-slate-100 md:hidden">
-          {pagedTransactions.map((transaction) => {
+          {transactions.map((transaction) => {
             const isInbound = transaction.transactionType === 'IN' || transaction.transactionType === 'RETURN';
             const typeTone = isInbound ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700';
             return (
@@ -285,11 +280,7 @@ const Ledger: React.FC = () => {
                       </span>
                       <span className="text-xs font-medium text-slate-500">{formatAppDateTime(transaction.transactionDate)}</span>
                     </div>
-                    <p className="mt-2 truncate text-sm font-semibold text-slate-900">{transaction.material.materialName}</p>
-                    <p className="mt-1 text-xs text-slate-500">{transaction.material.materialCode}</p>
-                    {transaction.material.description && (
-                      <p className="mt-1 line-clamp-2 text-xs text-slate-400">{transaction.material.description}</p>
-                    )}
+                    <p className="mt-2 truncate text-sm font-semibold text-slate-900">{transaction.materialCode}</p>
                   </div>
                   <span className={`shrink-0 text-base font-bold ${isInbound ? 'text-blue-700' : 'text-amber-600'}`}>
                     {isInbound ? '+' : '-'}
@@ -318,7 +309,7 @@ const Ledger: React.FC = () => {
             );
           })}
 
-          {pagedTransactions.length === 0 && !loading && (
+          {transactions.length === 0 && !loading && (
             <div className="px-5 py-16 text-center text-sm font-medium text-slate-400">
               <div className="flex flex-col items-center gap-3">
                 <p className="text-base font-semibold text-slate-700">{emptyTitle}</p>
@@ -348,7 +339,7 @@ const Ledger: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {pagedTransactions.map((transaction) => {
+              {transactions.map((transaction) => {
                 const isInbound = transaction.transactionType === 'IN' || transaction.transactionType === 'RETURN';
                 return (
                   <tr key={transaction.id} className="transition-colors hover:bg-slate-50/60">
@@ -372,11 +363,7 @@ const Ledger: React.FC = () => {
                     </td>
                     <td className="px-4 py-3.5 text-sm text-slate-700 md:px-6">
                       <div className="min-w-0">
-                        <p className="font-medium text-slate-900">{transaction.material.materialName}</p>
-                        <p className="mt-1 text-xs text-slate-400">{transaction.material.materialCode}</p>
-                        {transaction.material.description && (
-                          <p className="mt-1 line-clamp-2 text-xs text-slate-400">{transaction.material.description}</p>
-                        )}
+                        <p className="font-medium text-slate-900">{transaction.materialCode}</p>
                         {(transaction.reference || transaction.note) && (
                           <p className="mt-1 line-clamp-2 text-xs text-slate-400">
                             {[transaction.reference ? `참조 ${transaction.reference}` : null, transaction.note].filter(Boolean).join(' · ')}
@@ -398,7 +385,7 @@ const Ledger: React.FC = () => {
                 );
               })}
 
-              {pagedTransactions.length === 0 && !loading && (
+              {transactions.length === 0 && !loading && (
                 <tr>
                   <td colSpan={5} className="px-5 py-16 text-center text-sm font-medium text-slate-400">
                     <div className="flex flex-col items-center gap-3">
@@ -423,7 +410,7 @@ const Ledger: React.FC = () => {
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-4 py-3">
             <span className="text-xs font-medium text-slate-400">
-              총 {filteredTransactions.length}건 중 {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, filteredTransactions.length)}건
+              총 {totalElements}건 중 {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, totalElements)}건
             </span>
             <div className="flex gap-1">
               <button

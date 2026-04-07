@@ -19,7 +19,7 @@ import api from '../api/axios';
 import AdminSearchField from '../components/common/AdminSearchField';
 import MaterialLookupField from '../components/inventory/MaterialLookupField';
 import { buildMaterialLookupLabel } from '../components/inventory/material-lookup-utils';
-import type { InventoryTransaction, MasterDataItem, MaterialDto } from '../types/api';
+import type { MasterDataItem, MaterialDto, PagedLedger, TransactionResponse } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
 import { formatAppDateTime } from '../utils/date-format';
 import { downloadCsv, downloadExcel } from '../utils/excel';
@@ -36,7 +36,9 @@ type Notice = {
 const Inbound = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const consumedPrefillKeyRef = useRef<string | null>(null);
-  const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
+  const [pagedTransactions, setPagedTransactions] = useState<TransactionResponse[]>([]);
+  const [totalPages, setTotalPages] = useState<number>(0);
+  const [totalElements, setTotalElements] = useState<number>(0);
   const [materials, setMaterials] = useState<MaterialDto[]>([]);
   const [businessUnits, setBusinessUnits] = useState<MasterDataItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -46,7 +48,7 @@ const Inbound = () => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [page, setPage] = useState<number>(0);
   const [notice, setNotice] = useState<Notice | null>(null);
-  const [editingTransaction, setEditingTransaction] = useState<InventoryTransaction | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<TransactionResponse | null>(null);
 
   const [materialCode, setMaterialCode] = useState<string>('');
   const [materialQuery, setMaterialQuery] = useState<string>('');
@@ -61,21 +63,22 @@ const Inbound = () => {
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
   const [uploadDragActive, setUploadDragActive] = useState<boolean>(false);
 
-  const fetchPageData = async () => {
+  const fetchLedger = async (currentPage: number, currentSearchTerm: string, currentDayFilter: string, currentBusinessUnitFilter: string) => {
     setLoading(true);
     try {
-      const [ledgerResponse, materialsResponse, businessUnitResponse] = await Promise.all([
-        api.get<InventoryTransaction[]>('/inventory/ledger'),
-        api.get<MaterialDto[]>('/materials'),
-        api.get<MasterDataItem[]>('/master-data/business-units'),
-      ]);
-      setTransactions(
-        ledgerResponse.data
-          .filter((transaction) => transaction.transactionType === 'IN')
-          .sort((left, right) => right.id - left.id),
-      );
-      setMaterials(materialsResponse.data);
-      setBusinessUnits(businessUnitResponse.data);
+      const ledgerResponse = await api.get<PagedLedger>('/inventory/ledger', {
+        params: {
+          type: 'IN',
+          page: currentPage,
+          size: PAGE_SIZE,
+          q: currentSearchTerm.trim() || undefined,
+          from: currentDayFilter || undefined,
+          unit: currentBusinessUnitFilter !== 'ALL' ? currentBusinessUnitFilter : undefined,
+        },
+      });
+      setPagedTransactions(ledgerResponse.data.content);
+      setTotalPages(ledgerResponse.data.totalPages);
+      setTotalElements(ledgerResponse.data.totalElements);
     } catch (error) {
       setNotice({ tone: 'error', message: `데이터를 불러오지 못했습니다. ${getErrorMessage(error)}` });
     } finally {
@@ -83,9 +86,33 @@ const Inbound = () => {
     }
   };
 
+  const fetchPageData = async () => {
+    try {
+      const [materialsResponse, businessUnitResponse] = await Promise.all([
+        api.get<MaterialDto[]>('/materials'),
+        api.get<MasterDataItem[]>('/master-data/business-units'),
+      ]);
+      setMaterials(materialsResponse.data);
+      setBusinessUnits(businessUnitResponse.data);
+    } catch (error) {
+      setNotice({ tone: 'error', message: `데이터를 불러오지 못했습니다. ${getErrorMessage(error)}` });
+    }
+  };
+
+  const refreshAll = async (currentPage: number, currentSearchTerm: string, currentDayFilter: string, currentBusinessUnitFilter: string) => {
+    await Promise.all([
+      fetchPageData(),
+      fetchLedger(currentPage, currentSearchTerm, currentDayFilter, currentBusinessUnitFilter),
+    ]);
+  };
+
   useEffect(() => {
     void fetchPageData();
   }, []);
+
+  useEffect(() => {
+    void fetchLedger(page, searchTerm, dayFilter, businessUnitFilter);
+  }, [page, searchTerm, dayFilter, businessUnitFilter]);
 
   useEffect(() => {
     setSearchTerm(searchParams.get('q') ?? '');
@@ -123,33 +150,12 @@ const Inbound = () => {
     setShowModal(true);
   }, [materials, searchParams]);
 
-  const filtered = transactions
-    .filter((transaction) => !dayFilter || transaction.transactionDate.startsWith(dayFilter))
-    .filter((transaction) => businessUnitFilter === 'ALL' || sanitizeBusinessUnit(transaction.businessUnit) === businessUnitFilter)
-    .filter((transaction) =>
-      [
-        transaction.material.materialName,
-        transaction.material.materialCode,
-        transaction.material.description,
-        sanitizeBusinessUnit(transaction.businessUnit),
-        transaction.note,
-      ]
-        .filter(Boolean)
-        .some((value) => value?.toLowerCase().includes(searchTerm.toLowerCase())),
-    );
-
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const businessUnitOptions = useMemo(
     () =>
       Array.from(new Set(
-        [
-          ...businessUnits.map((item) => item.name),
-          ...transactions.map((transaction) => sanitizeBusinessUnit(transaction.businessUnit)),
-        ]
-          .filter((value): value is string => Boolean(value)),
+        businessUnits.map((item) => item.name).filter((value): value is string => Boolean(value)),
       )).sort((left, right) => left.localeCompare(right, 'ko-KR')),
-    [businessUnits, transactions],
+    [businessUnits],
   );
 
   const resolvedMaterial = useMemo(
@@ -162,7 +168,7 @@ const Inbound = () => {
   const parsedQuantity = Number.parseInt(quantity, 10);
   const safeQuantity = Number.isFinite(parsedQuantity) ? parsedQuantity : 0;
   const editableBaseStock = (resolvedMaterial?.currentStockQty ?? 0) - (
-    editingTransaction && editingTransaction.material.materialCode === resolvedMaterial?.materialCode
+    editingTransaction && editingTransaction.materialCode === resolvedMaterial?.materialCode
       ? editingTransaction.quantity
       : 0
   );
@@ -193,10 +199,11 @@ const Inbound = () => {
     setShowModal(true);
   };
 
-  const openRepeatInbound = (transaction: InventoryTransaction) => {
-    setMaterialCode(transaction.material.materialCode);
-    setMaterialQuery(buildMaterialLookupLabel(transaction.material));
-    setLocationDraft(transaction.material.location ?? '');
+  const openRepeatInbound = (transaction: TransactionResponse) => {
+    const matchedMaterial = materials.find((m) => m.materialCode === transaction.materialCode);
+    setMaterialCode(transaction.materialCode);
+    setMaterialQuery(matchedMaterial ? buildMaterialLookupLabel(matchedMaterial) : transaction.materialCode);
+    setLocationDraft(matchedMaterial?.location ?? '');
     setBusinessUnit(sanitizeBusinessUnit(transaction.businessUnit) ?? '');
     setQuantity('');
     setNote('');
@@ -205,11 +212,12 @@ const Inbound = () => {
     setShowModal(true);
   };
 
-  const openEditInbound = (transaction: InventoryTransaction) => {
+  const openEditInbound = (transaction: TransactionResponse) => {
+    const matchedMaterial = materials.find((m) => m.materialCode === transaction.materialCode);
     setEditingTransaction(transaction);
-    setMaterialCode(transaction.material.materialCode);
-    setMaterialQuery(buildMaterialLookupLabel(transaction.material));
-    setLocationDraft(transaction.material.location ?? '');
+    setMaterialCode(transaction.materialCode);
+    setMaterialQuery(matchedMaterial ? buildMaterialLookupLabel(matchedMaterial) : transaction.materialCode);
+    setLocationDraft(matchedMaterial?.location ?? '');
     setBusinessUnit(sanitizeBusinessUnit(transaction.businessUnit) ?? '');
     setQuantity(String(transaction.quantity));
     setNote(transaction.note ?? '');
@@ -258,18 +266,21 @@ const Inbound = () => {
     syncSearchParams(searchTerm, dayFilter, nextValue);
   };
 
-  const handleExport = () => {
-    const rows = filtered.map((transaction) => ({
-      입고일시: formatAppDateTime(transaction.transactionDate),
-      자재코드: transaction.material.materialCode,
-      자재명: transaction.material.materialName,
-      자재설명: transaction.material.description ?? '',
-      수량: transaction.quantity,
-      사업장: sanitizeBusinessUnit(transaction.businessUnit) ?? '',
-      비고: transaction.note ?? '',
-      등록자: transaction.createdBy?.email ?? '',
-    }));
-    downloadExcel(rows, '입고_내역');
+  const handleExport = async () => {
+    const rows = pagedTransactions.map((transaction) => {
+      const matchedMaterial = materials.find((m) => m.materialCode === transaction.materialCode);
+      return {
+        입고일시: formatAppDateTime(transaction.transactionDate),
+        자재코드: transaction.materialCode,
+        자재명: matchedMaterial?.materialName ?? transaction.materialCode,
+        자재설명: matchedMaterial?.description ?? '',
+        수량: transaction.quantity,
+        사업장: sanitizeBusinessUnit(transaction.businessUnit) ?? '',
+        비고: transaction.note ?? '',
+        등록자: transaction.createdByEmail ?? '',
+      };
+    });
+    await downloadExcel(rows, '입고_내역');
   };
 
   const handleResetFilters = () => {
@@ -328,14 +339,14 @@ const Inbound = () => {
             currentStockQty: selectedMaterial.currentStockQty ?? 0,
           });
         } catch {
-          await fetchPageData();
+          await refreshAll(page, searchTerm, dayFilter, businessUnitFilter);
           closeModal();
           setNotice({ tone: 'success', message: '입고가 등록되었지만 자재 위치 변경에 실패했습니다. 위치를 수동으로 확인해주세요.' });
           return;
         }
       }
 
-      await fetchPageData();
+      await refreshAll(page, searchTerm, dayFilter, businessUnitFilter);
       closeModal();
       setNotice({
         tone: 'success',
@@ -357,7 +368,7 @@ const Inbound = () => {
     setNotice(null);
     try {
       await api.post(`/inventory/${id}/revert`);
-      await fetchPageData();
+      await refreshAll(page, searchTerm, dayFilter, businessUnitFilter);
       setNotice({ tone: 'success', message: '입고 내역을 취소했습니다.' });
     } catch (error) {
       setNotice({ tone: 'error', message: `취소하기에 실패했습니다. ${getErrorMessage(error)}` });
@@ -381,7 +392,7 @@ const Inbound = () => {
       });
       setShowUploadModal(false);
       setUploadFile(null);
-      await fetchPageData();
+      await refreshAll(page, searchTerm, dayFilter, businessUnitFilter);
       setNotice({ tone: 'success', message: '입고 파일 업로드를 완료했습니다.' });
     } catch (error) {
       setNotice({ tone: 'error', message: `업로드에 실패했습니다. ${getErrorMessage(error)}` });
@@ -390,8 +401,8 @@ const Inbound = () => {
     }
   };
 
-  const handleInboundTemplateDownload = () => {
-    downloadCsv(
+  const handleInboundTemplateDownload = async () => {
+    await downloadCsv(
       [
         {
           자재코드: 'MAT-001',
@@ -416,7 +427,7 @@ const Inbound = () => {
         </div>
         <div className="admin-toolbar">
           <button
-            onClick={() => void fetchPageData()}
+            onClick={() => void refreshAll(page, searchTerm, dayFilter, businessUnitFilter)}
             className="admin-btn"
             title="새로고침"
           >
@@ -498,11 +509,13 @@ const Inbound = () => {
 
       <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
         <div className="divide-y divide-slate-100">
-          {paged.map((transaction) => (
+          {pagedTransactions.map((transaction) => {
+            const matchedMaterial = materials.find((m) => m.materialCode === transaction.materialCode);
+            return (
             <article key={transaction.id} className="grid items-center gap-4 px-4 py-4 md:grid-cols-[minmax(0,1.45fr)_112px_132px_264px] md:px-5">
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900">{transaction.material.materialName}</p>
-                <p className="mt-1 text-xs text-slate-500">{transaction.material.materialCode}</p>
+                <p className="truncate text-sm font-semibold text-slate-900">{matchedMaterial?.materialName ?? transaction.materialCode}</p>
+                <p className="mt-1 text-xs text-slate-500">{transaction.materialCode}</p>
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
                   <span>{formatAppDateTime(transaction.transactionDate)}</span>
                   <span>{formatBusinessUnit(transaction.businessUnit)}</span>
@@ -515,7 +528,7 @@ const Inbound = () => {
               </div>
               <div className="rounded-lg bg-slate-50 px-3 py-3 text-center">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">등록자</p>
-                <p className="mt-1 text-sm font-medium text-slate-700">{transaction.createdBy?.name ?? transaction.createdBy?.email ?? '-'}</p>
+                <p className="mt-1 text-sm font-medium text-slate-700">{transaction.createdByEmail ?? '-'}</p>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <button
@@ -544,8 +557,9 @@ const Inbound = () => {
                 </button>
               </div>
             </article>
-          ))}
-          {paged.length === 0 && !loading && (
+            );
+          })}
+          {pagedTransactions.length === 0 && !loading && (
             <div className="px-5 py-16 text-center text-sm font-medium text-slate-400">
               <div className="flex flex-col items-center gap-3">
                 <p>현재 조건에 맞는 입고 내역이 없습니다.</p>
@@ -565,7 +579,7 @@ const Inbound = () => {
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-4 py-3">
             <span className="text-xs font-medium text-slate-400">
-              총 {filtered.length}건 중 {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, filtered.length)}건
+              총 {totalElements}건 중 {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, totalElements)}건
             </span>
             <div className="flex gap-1">
               <button onClick={() => setPage((current) => Math.max(0, current - 1))} disabled={page === 0} className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30">

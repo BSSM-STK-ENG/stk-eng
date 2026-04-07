@@ -19,53 +19,56 @@ vi.mock('../../utils/material-worklist', () => ({
 
 const mockedGet = vi.mocked(api.get);
 
-const ledgerResponse = [
-  {
-    id: 1,
-    transactionType: 'IN',
-    material: {
+const pagedLedgerResponse = {
+  content: [
+    {
+      id: 1,
+      transactionType: 'IN',
       materialCode: 'MAT-001',
-      materialName: '관리자 등록 자재',
-      location: 'A-01',
-      safeStockQty: 10,
-      currentStockQty: 50,
+      quantity: 5,
+      transactionDate: '2026-03-24T08:30:00',
+      businessUnit: '부산항',
+      manager: '김현장',
+      note: '테스트 메모',
+      reference: 'REF-001',
+      createdByUserId: 'user-1',
+      createdByEmail: 'admin@stk.com',
+      reverted: false,
+      systemGenerated: false,
+      reversalOfTransactionId: null,
+      revertedByUserId: null,
+      revertedAt: null,
+      createdAt: '2026-03-24T08:30:00',
     },
-    quantity: 5,
-    transactionDate: '2026-03-24T08:30:00',
-    businessUnit: '부산항',
-    manager: '김현장',
-    note: '테스트 메모',
-    reference: 'REF-001',
-    createdBy: {
-      id: 'user-1',
-      email: 'admin@stk.com',
-      role: 'ADMIN',
-    },
-    createdAt: '2026-03-24T08:30:00',
-  },
-  {
-    id: 2,
-    transactionType: 'OUT',
-    material: {
+    {
+      id: 2,
+      transactionType: 'OUT',
       materialCode: 'MAT-002',
-      materialName: '다른 자재',
-      location: 'B-01',
-      safeStockQty: 8,
-      currentStockQty: 20,
+      quantity: 3,
+      transactionDate: '2026-03-23T10:00:00',
+      businessUnit: '인천항',
+      manager: '박작업',
+      note: null,
+      reference: null,
+      createdByUserId: 'user-2',
+      createdByEmail: 'worker@stk.com',
+      reverted: false,
+      systemGenerated: false,
+      reversalOfTransactionId: null,
+      revertedByUserId: null,
+      revertedAt: null,
+      createdAt: '2026-03-23T10:00:00',
     },
-    quantity: 3,
-    transactionDate: '2026-03-23T10:00:00',
-    businessUnit: '인천항',
-    manager: '박작업',
-    note: null,
-    reference: null,
-    createdBy: {
-      id: 'user-2',
-      email: 'worker@stk.com',
-      role: 'USER',
-    },
-    createdAt: '2026-03-23T10:00:00',
-  },
+  ],
+  page: 0,
+  size: 25,
+  totalElements: 2,
+  totalPages: 1,
+};
+
+const businessUnitsResponse = [
+  { id: 1, category: 'BUSINESS_UNIT', value: '부산항' },
+  { id: 2, category: 'BUSINESS_UNIT', value: '인천항' },
 ];
 
 const renderLedger = (initialEntry = '/ledger') =>
@@ -80,25 +83,23 @@ const renderLedger = (initialEntry = '/ledger') =>
 describe('Ledger', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedGet.mockResolvedValue({
-      data: ledgerResponse,
+    mockedGet.mockImplementation(async (url: string) => ({
+      data: url === '/master-data/business-units' ? businessUnitsResponse : pagedLedgerResponse,
       status: 200,
       statusText: 'OK',
       headers: {},
       config: {} as never,
-    });
+    }));
   });
 
-  it('finds transactions by createdBy email from the search field', async () => {
+  it('finds transactions by search term from URL params', async () => {
     renderLedger('/ledger?material=admin@stk.com');
 
     await waitFor(() => {
-      expect(screen.getAllByText('관리자 등록 자재').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('MAT-001').length).toBeGreaterThan(0);
     });
 
     expect(screen.getByDisplayValue('admin@stk.com')).toBeInTheDocument();
-    expect(screen.getByText(/현재 결과 1건/)).toBeInTheDocument();
-    expect(screen.queryByText(/맞는 거래가 없습니다/)).not.toBeInTheDocument();
   });
 
   it('shows a readable active-filter summary', async () => {
