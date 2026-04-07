@@ -597,7 +597,7 @@ const AdminAccounts = () => {
           className={`mb-4 rounded-xl border px-4 py-3 text-sm ${
             flash.kind === 'success'
               ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-              : 'border-red-200 bg-red-50 text-red-700'
+              : 'border-rose-200 bg-rose-50 text-rose-700'
           }`}
         >
           <div className="flex items-start justify-between gap-4">
@@ -643,7 +643,7 @@ const AdminAccounts = () => {
               type="text"
               value={form.name ?? ''}
               onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-              className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+              className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               placeholder="선택 입력"
               autoComplete="name"
             />
@@ -680,7 +680,7 @@ const AdminAccounts = () => {
                   permissionPreset: current.permissionPreset ?? getDefaultPresetKeyForRole(nextRole),
                 }));
               }}
-              className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+              className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             >
               {getRoleProfiles().map((profile) => (
                 <option key={profile.key} value={profile.key}>
@@ -724,7 +724,7 @@ const AdminAccounts = () => {
               <select
                 value={form.permissionPreset ?? 'VIEWER'}
                 onChange={(event) => setForm((current) => ({ ...current, permissionPreset: event.target.value }))}
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               >
                 {(permissionOptions?.presets ?? []).map((preset) => (
                   <option key={preset.key} value={preset.key}>
@@ -832,7 +832,7 @@ const AdminAccounts = () => {
       </section>
 
       {managingUser && (
-        <div className="fixed inset-0 z-50 bg-slate-950/30 p-4 md:flex md:items-center md:justify-center">
+        <div className="fixed inset-0 z-[200] bg-slate-950/30 p-4 md:flex md:items-center md:justify-center">
           <div className="mx-auto flex h-full w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl md:h-auto md:max-h-[92vh]">
             <div className="flex items-start justify-between border-b border-slate-200 px-4 py-4 md:px-5">
               <div>
@@ -858,7 +858,7 @@ const AdminAccounts = () => {
                       value={nameDrafts[managingUser.id] ?? ''}
                       onChange={(event) => setNameDrafts((current) => ({ ...current, [managingUser.id]: event.target.value }))}
                       disabled={processingUserId === managingUser.id}
-                      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
+                      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-100"
                       placeholder="이름 입력"
                     />
                     <button
@@ -898,7 +898,7 @@ const AdminAccounts = () => {
                       value={managingUser.roleProfileKey ?? managingUser.role}
                       onChange={(event) => void handleRoleChange(managingUser, event.target.value)}
                       disabled={processingUserId === managingUser.id}
-                      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
+                      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-100"
                     >
                       {getRoleProfiles().map((profile) => (
                         <option key={profile.key} value={profile.key}>
@@ -961,7 +961,7 @@ const AdminAccounts = () => {
       )}
 
       {roleProfileModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/30 p-4 md:flex md:items-center md:justify-center">
+        <div className="fixed inset-0 z-[200] bg-slate-950/30 p-4 md:flex md:items-center md:justify-center">
           <div className="mx-auto flex h-full w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl md:h-auto md:max-h-[90vh]">
             <div className="flex items-start justify-between border-b border-slate-200 px-4 py-4 md:px-5">
               <div>
@@ -986,7 +986,7 @@ const AdminAccounts = () => {
                       type="text"
                       value={roleProfileForm.label}
                       onChange={(event) => setRoleProfileForm((current) => ({ ...current, label: event.target.value }))}
-                      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                       placeholder="예: 현장 출고 담당"
                     />
                   </div>
@@ -995,7 +995,7 @@ const AdminAccounts = () => {
                     <select
                       value={roleProfileForm.baseRole}
                       onChange={(event) => setRoleProfileForm((current) => ({ ...current, baseRole: event.target.value as Exclude<Role, 'SUPER_ADMIN'> }))}
-                      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                     >
                       {ROLE_OPTIONS.map((role) => (
                         <option key={role} value={role}>
@@ -1011,7 +1011,7 @@ const AdminAccounts = () => {
                     type="text"
                     value={roleProfileForm.description ?? ''}
                     onChange={(event) => setRoleProfileForm((current) => ({ ...current, description: event.target.value }))}
-                    className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                    className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                     placeholder="어떤 사용자에게 쓰는 역할인지"
                   />
                 </div>
@@ -1072,7 +1072,7 @@ const AdminAccounts = () => {
       )}
 
       {permissionModalUser && (
-        <div className="fixed inset-0 z-50 bg-slate-950/30 md:flex md:items-center md:justify-center md:p-4">
+        <div className="fixed inset-0 z-[200] bg-slate-950/30 md:flex md:items-center md:justify-center md:p-4">
           <div className="flex h-full w-full flex-col bg-white md:h-auto md:max-h-[92vh] md:max-w-3xl md:rounded-2xl md:border md:border-slate-200 md:shadow-2xl">
             <div className="flex items-start justify-between border-b border-slate-200 px-4 py-4 md:px-5">
               <div>
@@ -1113,7 +1113,7 @@ const AdminAccounts = () => {
                         type="text"
                         value={presetForm.label}
                         onChange={(event) => setPresetForm((current) => ({ ...current, label: event.target.value }))}
-                        className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                        className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                         placeholder="예: 현장 조회 + 출고"
                       />
                     </div>
@@ -1123,7 +1123,7 @@ const AdminAccounts = () => {
                         type="text"
                         value={presetForm.description}
                         onChange={(event) => setPresetForm((current) => ({ ...current, description: event.target.value }))}
-                        className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                        className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                         placeholder="어떤 사용자에게 쓰는지"
                       />
                     </div>
