@@ -2,6 +2,7 @@ package com.stk.inventory.service;
 
 import com.stk.inventory.entity.InventoryTransaction;
 import com.stk.inventory.entity.Material;
+import com.stk.inventory.entity.MonthlyClosing;
 import com.stk.inventory.entity.TransactionType;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -69,6 +70,33 @@ public class ExcelService {
                 row.createCell(2).setCellValue(m.getLocation() != null ? m.getLocation() : "");
                 row.createCell(3).setCellValue(m.getSafeStockQty() != null ? m.getSafeStockQty() : 0);
                 row.createCell(4).setCellValue(m.getCurrentStockQty() != null ? m.getCurrentStockQty() : 0);
+            }
+
+            workbook.write(out);
+            return new ByteArrayInputStream(out.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException("failed to export data to Excel file: " + e.getMessage());
+        }
+    }
+
+    public ByteArrayInputStream exportClosingToExcel(List<MonthlyClosing> closings, String sheetName) {
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet(sheetName);
+
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"Closing Month", "Status", "Closed By", "Closed At"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+            }
+
+            int rowIdx = 1;
+            for (MonthlyClosing c : closings) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(c.getClosingMonth());
+                row.createCell(1).setCellValue(c.getStatus().name());
+                row.createCell(2).setCellValue(c.getClosedBy() != null ? c.getClosedBy().getEmail() : "");
+                row.createCell(3).setCellValue(c.getClosedAt() != null ? c.getClosedAt().toString() : "");
             }
 
             workbook.write(out);
