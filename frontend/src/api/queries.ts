@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import type { DashboardSummary, MasterDataItem, MaterialDto, PagedLedger } from '../types/api';
 import api from './axios';
-import type { DashboardSummary, MaterialDto, MasterDataItem, PagedLedger } from '../types/api';
 
 export const queryKeys = {
   dashboardSummary: ['dashboard', 'summary'] as const,

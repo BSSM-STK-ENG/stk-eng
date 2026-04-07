@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
   ArrowDownRight,
@@ -13,9 +14,8 @@ import {
   Warehouse,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { useDashboardSummary, queryKeys } from '../api/queries';
+import { queryKeys, useDashboardSummary } from '../api/queries';
 import InfoTooltip from '../components/common/InfoTooltip';
 import { formatAppDateTime } from '../utils/date-format';
 import { formatBusinessUnit, formatTransactionTypeLabel, isInboundType } from '../utils/inventory-display';

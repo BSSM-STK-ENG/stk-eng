@@ -1,9 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronLeft, ChevronRight, Download, PencilLine, RefreshCw, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios';
-import { useMaterials, queryKeys } from '../api/queries';
+import { queryKeys, useMaterials } from '../api/queries';
 import AdminSearchField from '../components/common/AdminSearchField';
 import type { MaterialDto } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
@@ -185,7 +185,11 @@ const CurrentStock = () => {
           </div>
 
           <div className="admin-toolbar">
-            <button type="button" onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.materials })} className="admin-btn chat-focus-ring">
+            <button
+              type="button"
+              onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.materials })}
+              className="admin-btn chat-focus-ring"
+            >
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
               새로고침
             </button>

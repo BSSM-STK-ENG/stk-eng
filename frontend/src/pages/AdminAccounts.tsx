@@ -1,8 +1,8 @@
 import { RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
-import { FlashBanner } from '../components/admin/FlashBanner';
 import type { FlashMessage } from '../components/admin/FlashBanner';
+import { FlashBanner } from '../components/admin/FlashBanner';
 import { PermissionPresetsPanel } from '../components/admin/PermissionPresetsPanel';
 import { RoleProfilesPanel } from '../components/admin/RoleProfilesPanel';
 import { UserCreateForm } from '../components/admin/UserCreateForm';
@@ -94,7 +94,9 @@ const AdminAccounts = () => {
     }
   };
 
-  useEffect(() => { void loadUsers(); }, []);
+  useEffect(() => {
+    void loadUsers();
+  }, []);
 
   const loadPermissionOptions = async (silent = false) => {
     try {
@@ -119,7 +121,9 @@ const AdminAccounts = () => {
     }
   };
 
-  useEffect(() => { void loadPermissionOptions(); }, []);
+  useEffect(() => {
+    void loadPermissionOptions();
+  }, []);
 
   const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -127,7 +131,13 @@ const AdminAccounts = () => {
     setFlash(null);
     try {
       const response = await api.post<AdminCreatedUserResponse>('/admin/users', form);
-      setForm({ name: '', email: '', role: form.role, roleProfileKey: form.roleProfileKey, permissionPreset: form.permissionPreset });
+      setForm({
+        name: '',
+        email: '',
+        role: form.role,
+        roleProfileKey: form.roleProfileKey,
+        permissionPreset: form.permissionPreset,
+      });
       setFlash({
         kind: 'success',
         title: '계정을 발급했습니다.',
@@ -168,7 +178,10 @@ const AdminAccounts = () => {
 
   const handleNameSave = async (user: AdminUserSummary) => {
     const name = (nameDrafts[user.id] ?? '').trim();
-    if (!name) { setFlash({ kind: 'error', title: '이름을 입력해주세요.' }); return; }
+    if (!name) {
+      setFlash({ kind: 'error', title: '이름을 입력해주세요.' });
+      return;
+    }
     if (name === (user.name ?? '')) return;
     setProcessingUserId(user.id);
     setFlash(null);
@@ -224,8 +237,16 @@ const AdminAccounts = () => {
     try {
       await api.delete(`/admin/users/${user.id}`);
       setUsers((current) => current.filter((item) => item.id !== user.id));
-      setNameDrafts((current) => { const next = { ...current }; delete next[user.id]; return next; });
-      setFlash({ kind: 'success', title: '사용자 계정을 삭제했습니다.', description: `${user.email} 계정을 목록에서 제거했습니다.` });
+      setNameDrafts((current) => {
+        const next = { ...current };
+        delete next[user.id];
+        return next;
+      });
+      setFlash({
+        kind: 'success',
+        title: '사용자 계정을 삭제했습니다.',
+        description: `${user.email} 계정을 목록에서 제거했습니다.`,
+      });
       if (managingUserId === user.id) setManagingUserId(null);
     } catch (error) {
       setErrorFlash('사용자 계정을 삭제하지 못했습니다.', error);
@@ -298,7 +319,11 @@ const AdminAccounts = () => {
       if (nextOptions) applyPresetDraft(response.data.key, nextOptions);
       setPresetFormOpen(false);
       setPresetForm({ label: '', description: '' });
-      setFlash({ kind: 'success', title: '새 권한 프리셋을 저장했습니다.', description: `${response.data.label} 프리셋을 바로 사용할 수 있습니다.` });
+      setFlash({
+        kind: 'success',
+        title: '새 권한 프리셋을 저장했습니다.',
+        description: `${response.data.label} 프리셋을 바로 사용할 수 있습니다.`,
+      });
     } catch (error) {
       setErrorFlash('권한 프리셋을 저장하지 못했습니다.', error);
     } finally {
@@ -309,7 +334,9 @@ const AdminAccounts = () => {
   const handleDeletePermissionPreset = async (presetKey: string) => {
     const targetPreset = permissionOptions?.presets.find((preset) => preset.key === presetKey);
     if (!targetPreset || targetPreset.systemPreset) return;
-    const confirmed = window.confirm(`${targetPreset.label} 프리셋을 삭제하시겠습니까? 사용 중인 프리셋은 삭제되지 않습니다.`);
+    const confirmed = window.confirm(
+      `${targetPreset.label} 프리셋을 삭제하시겠습니까? 사용 중인 프리셋은 삭제되지 않습니다.`,
+    );
     if (!confirmed) return;
     setPresetProcessingKey(presetKey);
     setFlash(null);
@@ -350,7 +377,11 @@ const AdminAccounts = () => {
       }
       setRoleProfileModalOpen(false);
       setRoleProfileForm({ label: '', description: '', baseRole: 'USER' });
-      setFlash({ kind: 'success', title: '새 권한 역할을 저장했습니다.', description: `${response.data.label} 역할을 바로 사용할 수 있습니다.` });
+      setFlash({
+        kind: 'success',
+        title: '새 권한 역할을 저장했습니다.',
+        description: `${response.data.label} 역할을 바로 사용할 수 있습니다.`,
+      });
     } catch (error) {
       setErrorFlash('권한 역할을 저장하지 못했습니다.', error);
     } finally {
@@ -361,7 +392,9 @@ const AdminAccounts = () => {
   const handleDeleteRoleProfile = async (roleProfileKey: string) => {
     const targetRoleProfile = permissionOptions?.roleProfiles.find((profile) => profile.key === roleProfileKey);
     if (!targetRoleProfile || targetRoleProfile.systemProfile) return;
-    const confirmed = window.confirm(`${targetRoleProfile.label} 역할을 삭제하시겠습니까? 사용 중인 역할은 삭제되지 않습니다.`);
+    const confirmed = window.confirm(
+      `${targetRoleProfile.label} 역할을 삭제하시겠습니까? 사용 중인 역할은 삭제되지 않습니다.`,
+    );
     if (!confirmed) return;
     setRoleProfileProcessingKey(roleProfileKey);
     setFlash(null);
@@ -369,7 +402,12 @@ const AdminAccounts = () => {
       await api.delete(`/admin/users/role-profiles/${roleProfileKey}`);
       const nextOptions = await loadPermissionOptions(true);
       if (nextOptions && form.roleProfileKey === roleProfileKey) {
-        setForm((current) => ({ ...current, role: 'USER', roleProfileKey: 'USER', permissionPreset: getDefaultPresetKeyForRole('USER') }));
+        setForm((current) => ({
+          ...current,
+          role: 'USER',
+          roleProfileKey: 'USER',
+          permissionPreset: getDefaultPresetKeyForRole('USER'),
+        }));
       }
       setFlash({ kind: 'success', title: '권한 역할을 삭제했습니다.' });
     } catch (error) {
@@ -397,7 +435,9 @@ const AdminAccounts = () => {
       {flash && (
         <FlashBanner
           flash={flash}
-          onClipboardError={(description) => setFlash({ kind: 'error', title: '클립보드 복사에 실패했습니다.', description })}
+          onClipboardError={(description) =>
+            setFlash({ kind: 'error', title: '클립보드 복사에 실패했습니다.', description })
+          }
         />
       )}
 

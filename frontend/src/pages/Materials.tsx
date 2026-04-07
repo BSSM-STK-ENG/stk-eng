@@ -1,9 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { Package, PencilLine, RefreshCw, Trash2, X } from 'lucide-react';
 import type React from 'react';
 import { useMemo, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios';
-import { useMaterials, queryKeys } from '../api/queries';
+import { queryKeys, useMaterials } from '../api/queries';
 import AdminSearchField from '../components/common/AdminSearchField';
 import type { MaterialDto } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
@@ -138,7 +138,11 @@ export default function Materials() {
             <h2 className="admin-page-title">자재 관리</h2>
             <p className="admin-page-description">입고와 출고에서 선택할 자재 기본 정보만 관리합니다.</p>
           </div>
-          <button type="button" onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.materials })} className="admin-btn">
+          <button
+            type="button"
+            onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.materials })}
+            className="admin-btn"
+          >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             새로고침
           </button>

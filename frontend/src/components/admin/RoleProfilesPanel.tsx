@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { Loader2, Plus, Trash2, X } from 'lucide-react';
 import type { AdminCreateRoleProfileRequest, AdminPermissionOptionsResponse, Role } from '../../types/api';
@@ -38,9 +38,7 @@ export function RoleProfilesPanel({
         <div className="flex items-start justify-between border-b border-slate-200 px-4 py-4 md:px-5">
           <div>
             <h3 className="text-lg font-semibold text-slate-900">권한 역할 관리</h3>
-            <p className="mt-1 text-sm text-slate-500">
-              원하는 이름의 역할을 만들고 기준 권한을 연결할 수 있습니다.
-            </p>
+            <p className="mt-1 text-sm text-slate-500">원하는 이름의 역할을 만들고 기준 권한을 연결할 수 있습니다.</p>
           </div>
           <button
             type="button"
@@ -89,9 +87,7 @@ export function RoleProfilesPanel({
               <input
                 type="text"
                 value={roleProfileForm.description ?? ''}
-                onChange={(event) =>
-                  onRoleProfileFormChange({ ...roleProfileForm, description: event.target.value })
-                }
+                onChange={(event) => onRoleProfileFormChange({ ...roleProfileForm, description: event.target.value })}
                 className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="어떤 사용자에게 쓰는 역할인지"
               />

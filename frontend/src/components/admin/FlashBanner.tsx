@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { BadgeCheck, CheckCheck, Copy } from 'lucide-react';
 import { useState } from 'react';

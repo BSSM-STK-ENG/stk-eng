@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { Loader2, RotateCcw, Settings2, Trash2, X } from 'lucide-react';
 import type { AdminPermissionOptionsResponse, AdminUserSummary } from '../../types/api';
@@ -187,11 +187,7 @@ export function UserManageDrawer({
                   disabled={isProcessing}
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isProcessing ? (
-                    <Loader2 className="animate-spin" size={15} />
-                  ) : (
-                    <RotateCcw size={15} />
-                  )}
+                  {isProcessing ? <Loader2 className="animate-spin" size={15} /> : <RotateCcw size={15} />}
                   초기 비밀번호 재설정
                 </button>
                 <button
