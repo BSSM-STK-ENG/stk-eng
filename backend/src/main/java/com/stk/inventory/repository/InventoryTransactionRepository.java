@@ -1,6 +1,7 @@
 package com.stk.inventory.repository;
 
 import com.stk.inventory.entity.InventoryTransaction;
+import com.stk.inventory.entity.TransactionType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,6 +14,8 @@ import java.util.List;
 
 @Repository
 public interface InventoryTransactionRepository extends JpaRepository<InventoryTransaction, Long>, JpaSpecificationExecutor<InventoryTransaction> {
+    List<InventoryTransaction> findByTransactionType(TransactionType transactionType);
+
     boolean existsByMaterialMaterialCode(String materialCode);
 
     List<InventoryTransaction> findAllByRevertedFalseAndSystemGeneratedFalseOrderByTransactionDateDescIdDesc();

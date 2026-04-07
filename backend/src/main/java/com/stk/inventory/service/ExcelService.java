@@ -22,7 +22,7 @@ public class ExcelService {
 
             // Header Row
             Row headerRow = sheet.createRow(0);
-            String[] headers = {"Date", "Type", "Material Code", "Material Name", "Quantity", "Business Unit", "Manager", "Note", "Reference", "Registered By"};
+            String[] headers = {"일시", "유형", "자재코드", "자재명", "수량", "사업장", "담당자", "비고", "참조번호", "등록자"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -56,7 +56,7 @@ public class ExcelService {
             Sheet sheet = workbook.createSheet(sheetName);
 
             Row headerRow = sheet.createRow(0);
-            String[] headers = {"Material Code", "Material Name", "Location", "Safe Stock", "Current Stock"};
+            String[] headers = {"자재코드", "자재명", "자재위치", "안전재고", "현재재고"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -84,7 +84,7 @@ public class ExcelService {
             Sheet sheet = workbook.createSheet(sheetName);
 
             Row headerRow = sheet.createRow(0);
-            String[] headers = {"Closing Month", "Status", "Closed By", "Closed At"};
+            String[] headers = {"대상월", "상태", "처리자", "처리일시"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -95,7 +95,7 @@ public class ExcelService {
                 Row row = sheet.createRow(rowIdx++);
                 row.createCell(0).setCellValue(c.getClosingMonth());
                 row.createCell(1).setCellValue(c.getStatus().name());
-                row.createCell(2).setCellValue(c.getClosedBy() != null ? c.getClosedBy().getEmail() : "");
+                row.createCell(2).setCellValue(c.getClosedBy() != null ? (c.getClosedBy().getName() != null ? c.getClosedBy().getName() : c.getClosedBy().getEmail()) : "");
                 row.createCell(3).setCellValue(c.getClosedAt() != null ? c.getClosedAt().toString() : "");
             }
 

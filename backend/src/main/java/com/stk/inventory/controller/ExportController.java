@@ -1,13 +1,14 @@
 package com.stk.inventory.controller;
 
 import com.stk.inventory.entity.InventoryTransaction;
-import com.stk.inventory.entity.Material;
 import com.stk.inventory.entity.MonthlyClosing;
+import com.stk.inventory.entity.TransactionType;
 import com.stk.inventory.repository.InventoryTransactionRepository;
 import com.stk.inventory.repository.MaterialRepository;
 import com.stk.inventory.repository.MonthlyClosingRepository;
 import com.stk.inventory.service.ExcelService;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,10 +18,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/export")
@@ -41,46 +42,53 @@ public class ExportController {
     @GetMapping("/{type}")
     public ResponseEntity<InputStreamResource> exportData(@PathVariable String type) {
         String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String filename = type.toLowerCase() + "_" + dateStr + ".xlsx";
-        ByteArrayInputStream in = null;
-
-        List<InventoryTransaction> txs = transactionRepository.findAll();
-        List<Material> materials = materialRepository.findAll();
+        ByteArrayInputStream in;
+        String filename;
 
         switch (type.toLowerCase()) {
-            case "inbound":
-                List<InventoryTransaction> inbounds = txs.stream().filter(t -> t.getTransactionType().name().equals("IN")).collect(Collectors.toList());
-                in = excelService.exportTransactionsToExcel(inbounds, "Inbound");
+            case "inbound": {
+                List<InventoryTransaction> inbounds = transactionRepository.findByTransactionType(TransactionType.IN);
+                in = excelService.exportTransactionsToExcel(inbounds, "입고");
                 filename = "입고_내역_" + dateStr + ".xlsx";
                 break;
-            case "outbound":
-                List<InventoryTransaction> outbounds = txs.stream().filter(t -> t.getTransactionType().name().equals("OUT")).collect(Collectors.toList());
-                in = excelService.exportTransactionsToExcel(outbounds, "Outbound");
+            }
+            case "outbound": {
+                List<InventoryTransaction> outbounds = transactionRepository.findByTransactionType(TransactionType.OUT);
+                in = excelService.exportTransactionsToExcel(outbounds, "출고");
                 filename = "출고_내역_" + dateStr + ".xlsx";
                 break;
-            case "current":
-                in = excelService.exportCurrentStockToExcel(materials, "Current Stock");
+            }
+            case "current": {
+                in = excelService.exportCurrentStockToExcel(materialRepository.findAll(), "재고현황");
                 filename = "재고_현황_" + dateStr + ".xlsx";
                 break;
-            case "ledger":
-                in = excelService.exportTransactionsToExcel(txs, "Ledger");
+            }
+            case "ledger": {
+                in = excelService.exportTransactionsToExcel(transactionRepository.findAll(), "수불현황");
                 filename = "수불_현황_" + dateStr + ".xlsx";
                 break;
-            case "history":
-                in = excelService.exportTransactionsToExcel(txs, "History");
+            }
+            case "history": {
+                in = excelService.exportTransactionsToExcel(transactionRepository.findAll(), "변경이력");
                 filename = "변경_이력_" + dateStr + ".xlsx";
                 break;
-            case "closing":
+            }
+            case "closing": {
                 List<MonthlyClosing> closings = closingRepository.findAll();
-                in = excelService.exportClosingToExcel(closings, "Closing");
+                in = excelService.exportClosingToExcel(closings, "월마감");
                 filename = "월마감_현황_" + dateStr + ".xlsx";
                 break;
+            }
             default:
                 throw new IllegalArgumentException("Unknown export type: " + type);
         }
 
         HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Disposition", "attachment; filename=" + filename);
+        headers.setContentDisposition(
+                ContentDisposition.attachment()
+                        .filename(filename, StandardCharsets.UTF_8)
+                        .build()
+        );
 
         return ResponseEntity
                 .ok()
