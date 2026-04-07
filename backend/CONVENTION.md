@@ -25,3 +25,19 @@ Clean Architecture & OOP conventions
 - KISS/DRY: prefer readable, small methods; avoid premature abstraction.
 
 Apply these incrementally: start by extracting use case interfaces for services and updating controllers to depend on them. Refactor one bounded context at a time.
+
+Ports & Adapters (Guidelines)
+
+- Define gateway/port interfaces under com.stk.inventory.gateway or com.stk.inventory.domain for data access and external systems.
+- Implement adapters in com.stk.inventory.repository or com.stk.inventory.adapters that wrap Spring Data JPA repositories and other infra.
+- Use constructor injection for adapters and register with @Repository/@Component.
+- Services (use case interactors) depend only on ports (interfaces). Controllers depend on use case interfaces.
+- Keep entities in com.stk.inventory.entity as domain models; avoid returning entities from controllers — map to DTOs.
+
+Example:
+- Create UserGateway (interface) in com.stk.inventory.gateway.
+- Implement UserGatewayImpl in com.stk.inventory.repository that delegates to Spring Data UserRepository.
+- Inject UserGateway into use case interactor instead of UserRepository.
+
+This reduces coupling to Spring and makes business logic testable in isolation.
+
