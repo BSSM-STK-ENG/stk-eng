@@ -5,6 +5,7 @@ import com.stk.inventory.entity.TransactionType;
 import jakarta.persistence.criteria.JoinType;
 import org.springframework.data.jpa.domain.Specification;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public final class InventoryTransactionSpec {
     private InventoryTransactionSpec() {}
@@ -19,6 +20,10 @@ public final class InventoryTransactionSpec {
 
     public static Specification<InventoryTransaction> hasType(TransactionType type) {
         return (root, query, cb) -> cb.equal(root.get("transactionType"), type);
+    }
+
+    public static Specification<InventoryTransaction> hasTypes(List<TransactionType> types) {
+        return (root, query, cb) -> root.get("transactionType").in(types);
     }
 
     public static Specification<InventoryTransaction> dateFrom(LocalDateTime from) {

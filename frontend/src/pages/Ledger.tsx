@@ -113,7 +113,11 @@ const Ledger = () => {
   );
 
   const handleExport = async () => {
-    await downloadServerExcel('ledger');
+    await downloadServerExcel('ledger', {
+      q: debouncedSearchTerm.trim() || undefined,
+      from: dayFilter || undefined,
+      unit: businessUnitFilter !== 'ALL' ? businessUnitFilter : undefined,
+    });
   };
 
   const hasActiveFilters =

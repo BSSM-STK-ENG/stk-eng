@@ -28,7 +28,9 @@ const History = () => {
   const [page, setPage] = useState<number>(0);
 
   const handleExport = async () => {
-    await downloadServerExcel('history');
+    await downloadServerExcel('history', {
+      q: searchTerm.trim() || undefined,
+    });
   };
 
   const filtered = transactions.filter(
