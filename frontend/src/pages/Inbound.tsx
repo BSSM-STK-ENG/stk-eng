@@ -304,16 +304,6 @@ const Inbound = () => {
     try {
       const selectedMaterial = resolvedMaterial;
       const normalizedLocation = locationDraft.trim() || null;
-      if ((selectedMaterial.location ?? null) !== normalizedLocation) {
-        await api.put('/materials', {
-          materialCode: selectedMaterial.materialCode,
-          materialName: selectedMaterial.materialName,
-          description: selectedMaterial.description,
-          location: normalizedLocation,
-          safeStockQty: selectedMaterial.safeStockQty ?? 0,
-          currentStockQty: selectedMaterial.currentStockQty ?? 0,
-        });
-      }
       const payload = {
         materialCode: selectedMaterial.materialCode,
         quantity: parsedQuantity,
@@ -326,6 +316,25 @@ const Inbound = () => {
         await api.post('/inventory/inbound', payload);
       }
       registerRecentMaterialCode(selectedMaterial.materialCode);
+
+      if ((selectedMaterial.location ?? null) !== normalizedLocation) {
+        try {
+          await api.put('/materials', {
+            materialCode: selectedMaterial.materialCode,
+            materialName: selectedMaterial.materialName,
+            description: selectedMaterial.description,
+            location: normalizedLocation,
+            safeStockQty: selectedMaterial.safeStockQty ?? 0,
+            currentStockQty: selectedMaterial.currentStockQty ?? 0,
+          });
+        } catch {
+          await fetchPageData();
+          closeModal();
+          setNotice({ tone: 'success', message: '입고가 등록되었지만 자재 위치 변경에 실패했습니다. 위치를 수동으로 확인해주세요.' });
+          return;
+        }
+      }
+
       await fetchPageData();
       closeModal();
       setNotice({

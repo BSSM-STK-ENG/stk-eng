@@ -5,6 +5,7 @@ import { InventoryTransaction } from '../types/api';
 import { downloadExcel } from '../utils/excel';
 import AdminSearchField from '../components/common/AdminSearchField';
 import { formatAppDateTime } from '../utils/date-format';
+import { formatTransactionTypeLabel, isInboundType } from '../utils/inventory-display';
 
 const PAGE_SIZE = 25;
 
@@ -13,14 +14,16 @@ const History = () => {
     const [loading, setLoading] = useState<boolean>(false);
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [page, setPage] = useState<number>(0);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const fetchHistory = async () => {
+        setErrorMsg(null);
         setLoading(true);
         try {
             const res = await api.get('/inventory/history');
             setTransactions((res.data as InventoryTransaction[]).sort((a, b) => b.id - a.id));
-        } catch (err) {
-            console.error(err);
+        } catch {
+            setErrorMsg('데이터를 불러오지 못했습니다.');
         } finally {
             setLoading(false);
         }
@@ -32,11 +35,11 @@ const History = () => {
         const rows = transactions.map(t => ({
             '변경일시': formatAppDateTime(t.createdAt),
             'ID': t.id,
-            '유형': t.transactionType === 'IN' ? '입고' : '출고',
+            '유형': formatTransactionTypeLabel(t.transactionType),
             '자재코드': t.material.materialCode,
             '자재명': t.material.materialName,
             '자재설명': t.material.description ?? '',
-            '변경수량': t.transactionType === 'IN' ? t.quantity : -t.quantity,
+            '변경수량': isInboundType(t.transactionType) ? t.quantity : -t.quantity,
             '변경자': t.createdBy?.email ?? 'System',
         }));
         downloadExcel(rows, '변경_이력');
@@ -79,6 +82,12 @@ const History = () => {
                 wrapperClassName="max-w-md"
             />
 
+            {errorMsg && (
+                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-600">
+                    {errorMsg}
+                </div>
+            )}
+
             <div className="bg-white border border-slate-200/80 rounded-xl shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-slate-100">
@@ -101,15 +110,15 @@ const History = () => {
                                     </td>
                                     <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs text-slate-300 font-mono hidden md:table-cell">#{t.id}</td>
                                     <td className="px-3 md:px-5 py-3 whitespace-nowrap">
-                                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider ${t.transactionType === 'IN' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
-                                            {t.transactionType === 'IN' ? '입고' : '출고'}
+                                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider ${isInboundType(t.transactionType) ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                                            {formatTransactionTypeLabel(t.transactionType)}
                                         </span>
                                     </td>
                                     <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs md:text-sm font-bold text-slate-800">{t.material.materialCode}</td>
                                     <td className="px-3 md:px-5 py-3 text-xs md:text-sm text-slate-600 hidden md:table-cell max-w-[250px] truncate">{t.material.materialName}</td>
                                     <td className="px-3 md:px-5 py-3 whitespace-nowrap text-right">
-                                        <span className={`text-sm font-extrabold ${t.transactionType === 'IN' ? 'text-blue-600' : 'text-amber-600'}`}>
-                                            {t.transactionType === 'IN' ? `+${t.quantity}` : `-${t.quantity}`}
+                                        <span className={`text-sm font-extrabold ${isInboundType(t.transactionType) ? 'text-blue-600' : 'text-amber-600'}`}>
+                                            {isInboundType(t.transactionType) ? `+${t.quantity}` : `-${t.quantity}`}
                                         </span>
                                     </td>
                                     <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs text-slate-400 hidden lg:table-cell">
