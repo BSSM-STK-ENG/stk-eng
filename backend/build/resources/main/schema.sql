@@ -1,2 +1,0 @@
--- schema.sql removed: schema is now managed by JPA/Hibernate (spring.jpa.hibernate.ddl-auto = update)
--- If you intentionally used data/schema initialization via SQL, move necessary statements to a Flyway/Liquibase migration.
