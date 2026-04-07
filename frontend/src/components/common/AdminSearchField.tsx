@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { Search, X } from 'lucide-react';
 
 type AdminSearchFieldProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> & {
@@ -19,28 +19,20 @@ export default function AdminSearchField({
   onKeyDown,
   ...rest
 }: AdminSearchFieldProps) {
-  const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const hasValue = value.length > 0;
-  const showSearchIcon = !focused && !hasValue;
 
   return (
     <div className={`admin-search-field ${wrapperClassName}`.trim()}>
-      {showSearchIcon ? <Search size={16} aria-hidden="true" className="admin-search-icon" /> : null}
+      <Search size={16} aria-hidden="true" className="admin-search-icon" />
       <input
         {...rest}
         ref={inputRef}
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        onFocus={(event) => {
-          setFocused(true);
-          onFocus?.(event);
-        }}
-        onBlur={(event) => {
-          setFocused(false);
-          onBlur?.(event);
-        }}
+        onFocus={onFocus}
+        onBlur={onBlur}
         onKeyDown={(event) => {
           if (event.key === 'Escape' && hasValue) {
             onChange('');

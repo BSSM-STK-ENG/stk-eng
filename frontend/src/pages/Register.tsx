@@ -62,7 +62,7 @@ const Register = () => {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             {error ? (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">
                 {error}
               </div>
             ) : null}
