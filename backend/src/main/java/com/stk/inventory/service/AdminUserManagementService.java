@@ -15,7 +15,8 @@ import com.stk.inventory.dto.PermissionPresetResponse;
 import com.stk.inventory.dto.RoleProfileResponse;
 import com.stk.inventory.entity.Role;
 import com.stk.inventory.entity.User;
-import com.stk.inventory.repository.UserRepository;
+import com.stk.inventory.gateway.UserGateway;
+import com.stk.inventory.mapper.UserMapper;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -28,23 +29,25 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class AdminUserManagementService {
+public class AdminUserManagementService implements com.stk.inventory.usecase.AdminUserManagementUseCase {
 
     public static final String INITIAL_ISSUED_PASSWORD = "1234";
 
-    private final UserRepository userRepository;
+    private final UserGateway userGateway;
     private final PasswordEncoder passwordEncoder;
     private final UserPermissionService userPermissionService;
+    private final UserMapper userMapper;
 
-    public AdminUserManagementService(UserRepository userRepository, PasswordEncoder passwordEncoder, UserPermissionService userPermissionService) {
-        this.userRepository = userRepository;
+    public AdminUserManagementService(UserGateway userGateway, PasswordEncoder passwordEncoder, UserPermissionService userPermissionService, UserMapper userMapper) {
+        this.userGateway = userGateway;
         this.passwordEncoder = passwordEncoder;
         this.userPermissionService = userPermissionService;
+        this.userMapper = userMapper;
     }
 
     public List<AdminUserSummaryResponse> listUsers() {
         requireSuperAdmin();
-        return userRepository.findAllByOrderByCreatedAtDesc().stream()
+        return userGateway.findAllByOrderByCreatedAtDesc().stream()
                 .map(this::toSummary)
                 .toList();
     }
@@ -63,7 +66,7 @@ public class AdminUserManagementService {
         if (role == Role.SUPER_ADMIN) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "슈퍼 어드민 계정은 발급할 수 없습니다.");
         }
-        if (userRepository.existsByEmail(email)) {
+        if (userGateway.existsByEmail(email)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다.");
         }
         ensureNameAvailable(name, null);
@@ -72,18 +75,15 @@ public class AdminUserManagementService {
                 userPermissionService.normalizeAssignablePermissions(request.getPagePermissions(), permissionPreset, role)
         );
 
-        User savedUser = userRepository.save(User.builder()
-                .name(name)
-                .email(email)
-                .password(passwordEncoder.encode(INITIAL_ISSUED_PASSWORD))
-                .role(role)
-                .roleProfileKey(roleProfile.key())
-                .permissionPreset(permissionPreset)
-                .pagePermissions(serializedPermissions)
-                .chatPanelEnabled(false)
-                .passwordChangeRequired(true)
-                .emailVerified(true)
-                .build());
+        User savedUser = userGateway.save(userMapper.toEntityForCreate(
+                name,
+                email,
+                passwordEncoder.encode(INITIAL_ISSUED_PASSWORD),
+                role,
+                roleProfile.key(),
+                permissionPreset,
+                serializedPermissions
+        ));
 
         return AdminCreatedUserResponse.builder()
                 .name(savedUser.getName())
@@ -117,7 +117,7 @@ public class AdminUserManagementService {
 
         targetUser.setRole(nextRole);
         targetUser.setRoleProfileKey(roleProfile.key());
-        return toSummary(userRepository.save(targetUser));
+        return toSummary(userGateway.save(targetUser));
     }
 
     public AdminUserSummaryResponse updateUserName(UUID userId, AdminUpdateUserNameRequest request) {
@@ -126,7 +126,7 @@ public class AdminUserManagementService {
         String normalizedName = normalizeRequiredName(request.getName());
         ensureNameAvailable(normalizedName, targetUser.getId());
         targetUser.setName(normalizedName);
-        return toSummary(userRepository.save(targetUser));
+        return toSummary(userGateway.save(targetUser));
     }
 
     public AdminUserSummaryResponse updateUserPermissions(UUID userId, AdminUpdateUserPermissionsRequest request) {
@@ -140,7 +140,7 @@ public class AdminUserManagementService {
 
         targetUser.setPermissionPreset(permissionPreset);
         targetUser.setPagePermissions(serializedPermissions);
-        return toSummary(userRepository.save(targetUser));
+        return toSummary(userGateway.save(targetUser));
     }
 
     public AdminPasswordResetResponse resetUserPassword(UUID userId) {
@@ -149,7 +149,7 @@ public class AdminUserManagementService {
 
         targetUser.setPassword(passwordEncoder.encode(INITIAL_ISSUED_PASSWORD));
         targetUser.setPasswordChangeRequired(true);
-        User savedUser = userRepository.save(targetUser);
+        User savedUser = userGateway.save(targetUser);
 
         return AdminPasswordResetResponse.builder()
                 .email(savedUser.getEmail())
@@ -166,8 +166,8 @@ public class AdminUserManagementService {
         User targetUser = requireManageableUser(userId, currentUser);
 
         try {
-            userRepository.delete(targetUser);
-            userRepository.flush();
+            userGateway.delete(targetUser);
+            userGateway.flush();
         } catch (DataIntegrityViolationException exception) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 거래나 마감 이력에 사용된 계정은 삭제할 수 없습니다.");
         }
@@ -193,7 +193,7 @@ public class AdminUserManagementService {
 
     public void deletePermissionPreset(String presetKey) {
         requireSuperAdmin();
-        userPermissionService.deleteCustomPreset(presetKey, userRepository.existsByPermissionPreset(presetKey));
+        userPermissionService.deleteCustomPreset(presetKey, userGateway.existsByPermissionPreset(presetKey));
     }
 
     public RoleProfileResponse createRoleProfile(AdminCreateRoleProfileRequest request) {
@@ -207,7 +207,7 @@ public class AdminUserManagementService {
 
     public void deleteRoleProfile(String roleProfileKey) {
         requireSuperAdmin();
-        userPermissionService.deleteCustomRoleProfile(roleProfileKey, userRepository.existsByRoleProfileKey(roleProfileKey));
+        userPermissionService.deleteCustomRoleProfile(roleProfileKey, userGateway.existsByRoleProfileKey(roleProfileKey));
     }
 
     private User requireSuperAdmin() {
@@ -216,7 +216,7 @@ public class AdminUserManagementService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
         }
 
-        User currentUser = userRepository.findByEmail(authentication.getName())
+        User currentUser = userGateway.findByEmail(authentication.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
 
         if (currentUser.getRole() != Role.SUPER_ADMIN) {
@@ -227,7 +227,7 @@ public class AdminUserManagementService {
     }
 
     private User requireManageableUser(UUID userId, User currentUser) {
-        User targetUser = userRepository.findById(userId)
+        User targetUser = userGateway.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
 
         if (targetUser.getRole() == Role.SUPER_ADMIN) {
@@ -290,8 +290,8 @@ public class AdminUserManagementService {
             return;
         }
         boolean exists = currentUserId == null
-                ? userRepository.existsByNameIgnoreCase(name)
-                : userRepository.existsByNameIgnoreCaseAndIdNot(name, currentUserId);
+                ? userGateway.existsByNameIgnoreCase(name)
+                : userGateway.existsByNameIgnoreCaseAndIdNot(name, currentUserId);
         if (exists) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 사용 중인 이름입니다.");
         }
