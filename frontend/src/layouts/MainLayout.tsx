@@ -20,7 +20,8 @@ import {
 import ChatPanel from '../components/chat/ChatPanel';
 import { useChatWorkspace } from '../components/chat/useChatWorkspace';
 import type { PagePermissionKey } from '../types/api';
-import { clearAuthSession, getStoredEmail, getStoredName, getStoredRole, hasStoredPagePermission } from '../utils/auth-session';
+import { clearAuthSession, getStoredEmail, getStoredName, getStoredRole, getStoredToken, hasStoredPagePermission, updateStoredProfile } from '../utils/auth-session';
+import { getMe } from '../api/axios';
 import { getAiPreferences, saveAiPreferences } from '../api/chat';
 import type { AiPreferences } from '../types/chat';
 import { clearMaterialWorklist } from '../utils/material-worklist';
@@ -82,6 +83,7 @@ const MainLayout: React.FC = () => {
     ...managerNavItems,
     ...superAdminNavItems,
   ].filter((item) => !item.permission || hasStoredPagePermission(item.permission));
+  const [permissionDenied, setPermissionDenied] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [chatMobileOpen, setChatMobileOpen] = useState<boolean>(false);
   const [chatPreferences, setChatPreferences] = useState<AiPreferences | null>(null);
@@ -104,6 +106,39 @@ const MainLayout: React.FC = () => {
     clearAuthSession();
     navigate('/login');
   };
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      setPermissionDenied(detail?.message ?? '접근 권한이 없습니다.');
+    };
+    window.addEventListener('stk:permission-denied', handler);
+    return () => window.removeEventListener('stk:permission-denied', handler);
+  }, []);
+
+  useEffect(() => {
+    if (!permissionDenied) return;
+    const timer = setTimeout(() => setPermissionDenied(null), 3000);
+    return () => clearTimeout(timer);
+  }, [permissionDenied]);
+
+  useEffect(() => {
+    let lastSyncAt = 0;
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!getStoredToken()) return;
+      if (Date.now() - lastSyncAt < 30_000) return;
+      lastSyncAt = Date.now();
+      try {
+        const profile = await getMe();
+        updateStoredProfile(profile);
+      } catch {
+        // 401 is handled by interceptor, ignore others
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.collapsed, String(chatCollapsed));
@@ -301,6 +336,12 @@ const MainLayout: React.FC = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f3f4f6] text-slate-800 font-sans">
+      {permissionDenied && (
+        <div className="fixed top-4 right-4 z-[100] animate-in fade-in slide-in-from-top-2 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-medium text-amber-700 shadow-lg">
+          {permissionDenied}
+        </div>
+      )}
+
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/20 lg:hidden"

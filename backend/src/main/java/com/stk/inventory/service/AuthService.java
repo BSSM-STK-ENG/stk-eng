@@ -89,6 +89,24 @@ public class AuthService {
         return response;
     }
 
+    public AuthResponse getCurrentUserProfile() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+        User user = userRepository.findByEmail(auth.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+
+        AuthResponse response = new AuthResponse();
+        response.setName(user.getName());
+        response.setEmail(user.getEmail());
+        response.setRole(user.getRole());
+        response.setPermissionPreset(userPermissionService.resolvePresetKey(user));
+        response.setPagePermissions(userPermissionService.resolvePermissions(user).stream().map(PagePermission::getKey).toList());
+        response.setPasswordChangeRequired(user.isPasswordChangeRequired());
+        return response;
+    }
+
     public RegisterResponse register(RegisterRequest request) {
         String normalizedName = normalizeName(request.getName());
         String normalizedEmail = normalizeEmail(request.getEmail());

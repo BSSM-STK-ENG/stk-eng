@@ -63,6 +63,7 @@ public class PasswordChangeRequiredFilter extends OncePerRequestFilter {
                 || "/api/auth/register".equals(path)
                 || "/api/auth/verify-email".equals(path)
                 || "/api/auth/change-password".equals(path)
+                || "/api/auth/me".equals(path)
                 || "/error".equals(path);
     }
 }
