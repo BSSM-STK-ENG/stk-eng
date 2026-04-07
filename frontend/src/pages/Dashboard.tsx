@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -16,9 +16,9 @@ import {
 } from 'lucide-react';
 import api from '../api/axios';
 import InfoTooltip from '../components/common/InfoTooltip';
-import type { InventoryTransaction, MaterialDto } from '../types/api';
+import type { DashboardSummary } from '../types/api';
 import { formatAppDateTime } from '../utils/date-format';
-import { formatBusinessUnit, formatTransactionTypeLabel, isInboundType, isOutboundType } from '../utils/inventory-display';
+import { formatBusinessUnit, formatTransactionTypeLabel, isInboundType } from '../utils/inventory-display';
 
 type DayMetric = {
   key: string;
@@ -27,13 +27,6 @@ type DayMetric = {
   outboundQty: number;
   count: number;
 };
-
-function toDayKey(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
 
 function formatCompactDateLabel(dayKey: string) {
   return new Intl.DateTimeFormat('ko-KR', { month: 'numeric', day: 'numeric' }).format(new Date(`${dayKey}T00:00:00`));
@@ -50,21 +43,6 @@ function formatSignedQty(value: number) {
   return `${value > 0 ? '+' : '-'}${Math.abs(value).toLocaleString()} EA`;
 }
 
-
-function getMaterialStatus(material: MaterialDto) {
-  const currentStock = material.currentStockQty ?? 0;
-  const safeStock = material.safeStockQty ?? 0;
-
-  if (currentStock <= 0) {
-    return 'ZERO';
-  }
-
-  if (safeStock > 0 && currentStock <= safeStock) {
-    return 'LOW';
-  }
-
-  return 'STABLE';
-}
 
 function getMetricToneClasses(tone: 'slate' | 'blue' | 'amber' | 'rose' | 'emerald') {
   switch (tone) {
@@ -360,8 +338,7 @@ function TrendLineChart({
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [materials, setMaterials] = useState<MaterialDto[]>([]);
-  const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string>('');
@@ -370,17 +347,8 @@ const Dashboard = () => {
     setLoading(true);
     setError('');
     try {
-      const [materialsResponse, ledgerResponse] = await Promise.all([
-        api.get<MaterialDto[]>('/materials'),
-        api.get<InventoryTransaction[]>('/inventory/ledger'),
-      ]);
-
-      setMaterials(materialsResponse.data);
-      setTransactions(
-        ledgerResponse.data
-          .slice()
-          .sort((left, right) => new Date(right.transactionDate).getTime() - new Date(left.transactionDate).getTime()),
-      );
+      const response = await api.get<DashboardSummary>('/dashboard/summary');
+      setSummary(response.data);
       setLastUpdatedAt(new Date().toISOString());
     } catch {
       setError('대시보드 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
@@ -393,110 +361,21 @@ const Dashboard = () => {
     void loadDashboard();
   }, []);
 
-  const todayKey = toDayKey(new Date());
-
-  const dayMetrics = useMemo(() => {
-    const byDay = new Map<string, { inboundQty: number; outboundQty: number; count: number }>();
-
-    transactions.forEach((transaction) => {
-      const transactionDate = new Date(transaction.transactionDate);
-      const dayKey = toDayKey(transactionDate);
-      const currentDay = byDay.get(dayKey) ?? { inboundQty: 0, outboundQty: 0, count: 0 };
-
-      if (isInboundType(transaction.transactionType)) {
-        currentDay.inboundQty += transaction.quantity;
-      }
-
-      if (isOutboundType(transaction.transactionType)) {
-        currentDay.outboundQty += transaction.quantity;
-      }
-
-      currentDay.count += 1;
-      byDay.set(dayKey, currentDay);
-    });
-
-    return byDay;
-  }, [transactions]);
-
-  const summary = useMemo(() => {
-    let totalStockQty = 0;
-    let stableCount = 0;
-    let lowCount = 0;
-    let zeroCount = 0;
-
-    materials.forEach((material) => {
-      const currentStockQty = material.currentStockQty ?? 0;
-      totalStockQty += currentStockQty;
-
-      const status = getMaterialStatus(material);
-      if (status === 'ZERO') {
-        zeroCount += 1;
-        return;
-      }
-
-      if (status === 'LOW') {
-        lowCount += 1;
-        return;
-      }
-
-      stableCount += 1;
-    });
-
-    return {
-      totalMaterials: materials.length,
-      totalStockQty,
-      stableCount,
-      lowCount,
-      zeroCount,
-    };
-  }, [materials]);
-
-  const todayTransactions = useMemo(
-    () => transactions.filter((transaction) => transaction.transactionDate.startsWith(todayKey)),
-    [todayKey, transactions],
-  );
-
-  const todayInboundQty = useMemo(
-    () =>
-      todayTransactions.reduce(
-        (sum, transaction) => sum + (isInboundType(transaction.transactionType) ? transaction.quantity : 0),
-        0,
-      ),
-    [todayTransactions],
-  );
-
-  const todayOutboundQty = useMemo(
-    () =>
-      todayTransactions.reduce(
-        (sum, transaction) => sum + (isOutboundType(transaction.transactionType) ? transaction.quantity : 0),
-        0,
-      ),
-    [todayTransactions],
-  );
-
-  const todayNetQty = todayInboundQty - todayOutboundQty;
-
-  const recentWeekDays = useMemo(() => {
-    const today = new Date();
-    return Array.from({ length: 7 }, (_, index) => {
-      const current = new Date(today);
-      current.setDate(today.getDate() - (6 - index));
-      const dayKey = toDayKey(current);
-      const dayMetric = dayMetrics.get(dayKey) ?? { inboundQty: 0, outboundQty: 0, count: 0 };
-
-      return {
-        key: dayKey,
-        label: formatCompactDateLabel(dayKey),
-        inboundQty: dayMetric.inboundQty,
-        outboundQty: dayMetric.outboundQty,
-        count: dayMetric.count,
-      };
-    });
-  }, [dayMetrics]);
+  const recentWeekDays: DayMetric[] = (summary?.recentWeek ?? []).map((day) => ({
+    key: day.date,
+    label: formatCompactDateLabel(day.date),
+    inboundQty: day.inboundQty,
+    outboundQty: day.outboundQty,
+    count: day.count,
+  }));
 
   const weekInboundQty = recentWeekDays.reduce((sum, day) => sum + day.inboundQty, 0);
   const weekOutboundQty = recentWeekDays.reduce((sum, day) => sum + day.outboundQty, 0);
-  const recentTransactions = transactions.slice(0, 8);
+  const todayInboundQty = summary?.todayInboundQty ?? 0;
+  const todayOutboundQty = summary?.todayOutboundQty ?? 0;
+  const todayNetQty = todayInboundQty - todayOutboundQty;
+  const recentTransactions = summary?.recentTransactions ?? [];
+
   const moveToCurrentStock = (scope: 'ALL' | 'LOW' | 'ZERO' | 'AVAILABLE') => {
     const params = new URLSearchParams();
     if (scope !== 'ALL') {
@@ -534,12 +413,12 @@ const Dashboard = () => {
       )}
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-        <MetricCard icon={<Warehouse size={18} />} label="현재 총 재고" value={formatQty(summary.totalStockQty)} tone="slate" helpText="등록된 모든 자재의 현재 재고 수량 합계입니다." onClick={() => moveToCurrentStock('ALL')} />
-        <MetricCard icon={<Boxes size={18} />} label="관리 중인 자재" value={`${summary.totalMaterials.toLocaleString()}개`} tone="slate" helpText="현재 시스템에 등록되어 관리 중인 자재 개수입니다." onClick={() => moveToCurrentStock('ALL')} />
+        <MetricCard icon={<Warehouse size={18} />} label="현재 총 재고" value={formatQty(summary?.totalStockQty ?? 0)} tone="slate" helpText="등록된 모든 자재의 현재 재고 수량 합계입니다." onClick={() => moveToCurrentStock('ALL')} />
+        <MetricCard icon={<Boxes size={18} />} label="관리 중인 자재" value={`${(summary?.totalMaterials ?? 0).toLocaleString()}개`} tone="slate" helpText="현재 시스템에 등록되어 관리 중인 자재 개수입니다." onClick={() => moveToCurrentStock('ALL')} />
         <MetricCard icon={<ArrowUpRight size={18} />} label="오늘 입고" value={formatQty(todayInboundQty)} tone="blue" />
         <MetricCard icon={<ArrowDownRight size={18} />} label="오늘 출고" value={formatQty(todayOutboundQty)} tone="amber" />
-        <MetricCard icon={<ShieldAlert size={18} />} label="안전재고 이하" value={`${summary.lowCount.toLocaleString()}개`} tone="slate" helpText="현재 재고가 설정한 안전재고 이하로 내려간 자재 수입니다." onClick={() => moveToCurrentStock('LOW')} />
-        <MetricCard icon={<PackageX size={18} />} label="재고 없음" value={`${summary.zeroCount.toLocaleString()}개`} tone="slate" helpText="현재 재고 수량이 0개인 자재 수입니다." onClick={() => moveToCurrentStock('ZERO')} />
+        <MetricCard icon={<ShieldAlert size={18} />} label="안전재고 이하" value={`${(summary?.lowCount ?? 0).toLocaleString()}개`} tone="slate" helpText="현재 재고가 설정한 안전재고 이하로 내려간 자재 수입니다." onClick={() => moveToCurrentStock('LOW')} />
+        <MetricCard icon={<PackageX size={18} />} label="재고 없음" value={`${(summary?.zeroCount ?? 0).toLocaleString()}개`} tone="slate" helpText="현재 재고 수량이 0개인 자재 수입니다." onClick={() => moveToCurrentStock('ZERO')} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
@@ -564,15 +443,15 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center justify-between px-5 py-4 text-sm">
               <span className="inline-flex items-center gap-2 text-slate-600"><ShieldCheck size={16} className="text-slate-500" />정상 재고</span>
-              <span className="font-semibold text-slate-900">{summary.stableCount.toLocaleString()}개</span>
+              <span className="font-semibold text-slate-900">{(summary?.stableCount ?? 0).toLocaleString()}개</span>
             </div>
             <div className="flex items-center justify-between px-5 py-4 text-sm">
               <span className="inline-flex items-center gap-2 text-slate-600"><ShieldAlert size={16} className="text-slate-500" />안전재고 이하</span>
-              <span className="font-semibold text-slate-900">{summary.lowCount.toLocaleString()}개</span>
+              <span className="font-semibold text-slate-900">{(summary?.lowCount ?? 0).toLocaleString()}개</span>
             </div>
             <div className="flex items-center justify-between px-5 py-4 text-sm">
               <span className="inline-flex items-center gap-2 text-slate-600"><PackageX size={16} className="text-slate-500" />재고 없음</span>
-              <span className="font-semibold text-slate-900">{summary.zeroCount.toLocaleString()}개</span>
+              <span className="font-semibold text-slate-900">{(summary?.zeroCount ?? 0).toLocaleString()}개</span>
             </div>
             <div className="flex items-center justify-between px-5 py-4 text-sm">
               <span className="inline-flex items-center gap-2 text-slate-600"><ArrowUpRight size={16} className="text-blue-600" />최근 7일 입고</span>
@@ -604,10 +483,9 @@ const Dashboard = () => {
                 <div key={transaction.id} className="px-5 py-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-900">{transaction.material.materialName}</p>
+                      <p className="truncate text-sm font-medium text-slate-900">{transaction.materialCode}</p>
                       <p className="mt-1 text-xs text-slate-500">
-                        {transaction.material.materialCode}
-                        {transaction.businessUnit ? ` · ${formatBusinessUnit(transaction.businessUnit)}` : ''}
+                        {transaction.businessUnit ? formatBusinessUnit(transaction.businessUnit) : ''}
                       </p>
                     </div>
                     <span

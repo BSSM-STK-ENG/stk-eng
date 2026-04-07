@@ -273,6 +273,53 @@ export interface User {
   role: Role;
 }
 
+export interface DashboardDayMetric {
+  date: string;
+  inboundQty: number;
+  outboundQty: number;
+  count: number;
+}
+
+export interface TransactionResponse {
+  id: number;
+  transactionType: TransactionType;
+  materialCode: string;
+  quantity: number;
+  transactionDate: string;
+  businessUnit: string | null;
+  manager: string | null;
+  note: string | null;
+  reference: string | null;
+  createdByUserId: string | null;
+  createdByEmail: string | null;
+  reverted: boolean;
+  systemGenerated: boolean;
+  reversalOfTransactionId: number | null;
+  revertedByUserId: string | null;
+  revertedAt: string | null;
+  createdAt: string;
+}
+
+export interface DashboardSummary {
+  totalStockQty: number;
+  totalMaterials: number;
+  stableCount: number;
+  lowCount: number;
+  zeroCount: number;
+  todayInboundQty: number;
+  todayOutboundQty: number;
+  recentWeek: DashboardDayMetric[];
+  recentTransactions: TransactionResponse[];
+}
+
+export interface PagedLedger {
+  content: TransactionResponse[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
 export type TransactionType = 'IN' | 'OUT' | 'RETURN' | 'EXCHANGE';
 export type ClosingStatus = 'CLOSED' | 'UNCLOSED';
 export type Role = 'USER' | 'ADMIN' | 'SUPER_ADMIN';
