@@ -1,8 +1,14 @@
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+FROM eclipse-temurin:17-jdk AS build
 WORKDIR /app
-COPY pom.xml .
+COPY build.gradle settings.gradle ./
+COPY gradle ./gradle
+COPY gradlew .
 COPY src ./src
-RUN mvn clean package -DskipTests \
-    && cp target/*.jar /app/app.jar
+RUN chmod +x gradlew \
+    && ./gradlew bootJar -x test --no-daemon \
+    && cp build/libs/*.jar /app/app.jar
 
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+COPY --from=build /app/app.jar .
 ENTRYPOINT ["java", "-jar", "app.jar"]
