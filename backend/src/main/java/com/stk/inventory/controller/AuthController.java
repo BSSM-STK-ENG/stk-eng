@@ -36,6 +36,11 @@ public class AuthController {
         return ResponseEntity.ok(authService.verifyEmail(token));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<AuthResponse> me() {
+        return ResponseEntity.ok(authService.getCurrentUserProfile());
+    }
+
     @PostMapping("/change-password")
     public ResponseEntity<Void> changePassword(@Valid @RequestBody PasswordSetupRequest request) {
         authService.completePasswordSetup(request);

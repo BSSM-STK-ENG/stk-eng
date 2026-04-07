@@ -22,7 +22,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response: AxiosResponse) => response,
     (error: AxiosError) => {
-        if (error.response && error.response.status === 401) {
+        if (error.response?.status === 403) {
+            const data = error.response.data as Record<string, unknown> | undefined;
+            const message = typeof data?.message === 'string' ? data.message : '접근 권한이 없습니다.';
+            window.dispatchEvent(new CustomEvent('stk:permission-denied', { detail: { message } }));
+        }
+        if (error.response?.status === 401) {
             clearAuthSession();
             if (window.location.pathname !== '/login') {
                 window.location.href = '/login';
@@ -31,5 +36,10 @@ api.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
+export async function getMe() {
+    const response = await api.get('/auth/me');
+    return response.data;
+}
 
 export default api;
