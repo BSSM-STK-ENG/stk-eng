@@ -115,7 +115,10 @@ export function registerRecentMaterialCode(materialCode: string) {
   }
 
   const preferences = readPreferences();
-  const nextRecent = [normalizedCode, ...preferences.recent.filter((code) => code !== normalizedCode)].slice(0, MAX_RECENT_CODES);
+  const nextRecent = [normalizedCode, ...preferences.recent.filter((code) => code !== normalizedCode)].slice(
+    0,
+    MAX_RECENT_CODES,
+  );
 
   writePreferences({
     ...preferences,

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
 import { ArrowRight, Loader2, Lock, Mail, UserRound } from 'lucide-react';
+import type React from 'react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import type { RegisterResponse } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';

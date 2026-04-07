@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Download, Lock, RefreshCw, Unlock } from 'lucide-react';
+import type React from 'react';
+import { useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
-import { downloadExcel } from '../utils/excel';
+import type { MonthlyClosing } from '../types/api';
 import { formatAppDateTime } from '../utils/date-format';
-import {
-  Lock, Unlock, RefreshCw,
-  Download, AlertCircle, CheckCircle2, ChevronDown, ChevronUp
-} from 'lucide-react';
-import { MonthlyClosing } from '../types/api';
+import { downloadExcel } from '../utils/excel';
 
 const Closing: React.FC = () => {
   const [closings, setClosings] = useState<MonthlyClosing[]>([]);
@@ -23,11 +21,7 @@ const Closing: React.FC = () => {
     setLoading(true);
     try {
       const res = await api.get('/closing');
-      setClosings(
-        (res.data as MonthlyClosing[]).sort((a, b) =>
-          b.closingMonth.localeCompare(a.closingMonth)
-        )
-      );
+      setClosings((res.data as MonthlyClosing[]).sort((a, b) => b.closingMonth.localeCompare(a.closingMonth)));
     } catch {
       setErrorMsg('데이터를 불러오지 못했습니다.');
     } finally {
@@ -91,11 +85,11 @@ const Closing: React.FC = () => {
   };
 
   const handleExport = async () => {
-    const rows = closings.map(c => ({
-      '대상월': c.closingMonth,
-      '상태': c.status === 'CLOSED' ? '마감완료' : '미마감',
-      '처리일시': c.closedAt ? formatAppDateTime(c.closedAt) : '',
-      '처리자': c.closedBy?.email ?? '',
+    const rows = closings.map((c) => ({
+      대상월: c.closingMonth,
+      상태: c.status === 'CLOSED' ? '마감완료' : '미마감',
+      처리일시: c.closedAt ? formatAppDateTime(c.closedAt) : '',
+      처리자: c.closedBy?.email ?? '',
     }));
     await downloadExcel(rows, '월마감_현황');
   };
@@ -105,24 +99,23 @@ const Closing: React.FC = () => {
 
   return (
     <div className="admin-page">
-
       <section className="admin-header">
-      <div className="admin-header-row">
-        <div>
-          <p className="admin-kicker">월마감</p>
-          <h2 className="admin-page-title">월마감 관리</h2>
-          <p className="admin-page-description">월별 마감 상태를 확인하고 처리합니다.</p>
+        <div className="admin-header-row">
+          <div>
+            <p className="admin-kicker">월마감</p>
+            <h2 className="admin-page-title">월마감 관리</h2>
+            <p className="admin-page-description">월별 마감 상태를 확인하고 처리합니다.</p>
+          </div>
+          <div className="admin-toolbar">
+            <button type="button" onClick={fetchClosings} className="admin-btn">
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              새로고침
+            </button>
+            <button type="button" onClick={handleExport} className="admin-btn">
+              <Download size={16} /> 다운로드
+            </button>
+          </div>
         </div>
-        <div className="admin-toolbar">
-          <button onClick={fetchClosings} className="admin-btn">
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            새로고침
-          </button>
-          <button onClick={handleExport} className="admin-btn">
-            <Download size={16} /> 다운로드
-          </button>
-        </div>
-      </div>
       </section>
 
       {/* Toast messages */}
@@ -146,7 +139,8 @@ const Closing: React.FC = () => {
         </div>
         <div className="p-4">
           <p className="text-xs text-slate-400 mb-3 leading-relaxed">
-            마감은 <span className="font-bold text-slate-600">순서대로</span> 처리해야 합니다. 이전 월이 미마감이면 해당 월부터 먼저 처리하세요.
+            마감은 <span className="font-bold text-slate-600">순서대로</span> 처리해야 합니다. 이전 월이 미마감이면 해당
+            월부터 먼저 처리하세요.
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
@@ -158,14 +152,12 @@ const Closing: React.FC = () => {
               />
             </div>
             <button
+              type="button"
               onClick={() => void handleClose()}
               disabled={!monthInput || actionLoading === monthInput}
               className="flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition-colors shadow-sm shadow-slate-900/15 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {actionLoading === monthInput
-                ? <RefreshCw size={15} className="animate-spin" />
-                : <Lock size={15} />
-              }
+              {actionLoading === monthInput ? <RefreshCw size={15} className="animate-spin" /> : <Lock size={15} />}
               마감 처리
             </button>
           </div>
@@ -188,20 +180,28 @@ const Closing: React.FC = () => {
                 const isClosed = c.status === 'CLOSED';
                 const isProcessing = actionLoading === c.closingMonth;
                 return (
-                  <div key={c.closingMonth} className={`flex items-center gap-3 px-4 py-3.5 transition-colors ${isClosed ? 'hover:bg-slate-50/50' : 'bg-slate-50/80 hover:bg-slate-100/80'}`}>
+                  <div
+                    key={c.closingMonth}
+                    className={`flex items-center gap-3 px-4 py-3.5 transition-colors ${isClosed ? 'hover:bg-slate-50/50' : 'bg-slate-50/80 hover:bg-slate-100/80'}`}
+                  >
                     {/* Status icon */}
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isClosed ? 'bg-slate-900' : 'bg-slate-200'}`}>
-                      {isClosed
-                        ? <Lock size={14} className="text-white" />
-                        : <Unlock size={14} className="text-slate-700" />
-                      }
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isClosed ? 'bg-slate-900' : 'bg-slate-200'}`}
+                    >
+                      {isClosed ? (
+                        <Lock size={14} className="text-white" />
+                      ) : (
+                        <Unlock size={14} className="text-slate-700" />
+                      )}
                     </div>
 
                     {/* Month + status */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-extrabold text-slate-800">{c.closingMonth}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider ${isClosed ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider ${isClosed ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}
+                        >
                           {isClosed ? '마감완료' : '미마감'}
                         </span>
                       </div>
@@ -218,6 +218,7 @@ const Closing: React.FC = () => {
                     {/* Action button */}
                     {isClosed ? (
                       <button
+                        type="button"
                         onClick={() => handleUnclose(c.closingMonth)}
                         disabled={isProcessing}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200 transition-colors disabled:opacity-50"
@@ -227,6 +228,7 @@ const Closing: React.FC = () => {
                       </button>
                     ) : (
                       <button
+                        type="button"
                         onClick={() => void handleClose(c.closingMonth)}
                         disabled={isProcessing}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors shadow-sm"
@@ -242,10 +244,19 @@ const Closing: React.FC = () => {
 
             {closings.length > 6 && (
               <button
-                onClick={() => setShowAll(v => !v)}
+                type="button"
+                onClick={() => setShowAll((v) => !v)}
                 className="w-full py-3 text-xs font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1 border-t border-slate-100"
               >
-                {showAll ? <><ChevronUp size={14} /> 접기</> : <><ChevronDown size={14} /> 전체 보기 ({closings.length}건)</>}
+                {showAll ? (
+                  <>
+                    <ChevronUp size={14} /> 접기
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown size={14} /> 전체 보기 ({closings.length}건)
+                  </>
+                )}
               </button>
             )}
           </>

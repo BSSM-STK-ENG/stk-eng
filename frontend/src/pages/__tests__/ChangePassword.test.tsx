@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
-import ChangePassword from '../ChangePassword';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from '../../api/axios';
+import ChangePassword from '../ChangePassword';
 
 vi.mock('../../api/axios', () => ({
   default: { post: vi.fn(), get: vi.fn(), delete: vi.fn() },
@@ -15,7 +15,7 @@ const renderChangePassword = () =>
   render(
     <BrowserRouter>
       <ChangePassword />
-    </BrowserRouter>
+    </BrowserRouter>,
   );
 
 describe('ChangePassword', () => {

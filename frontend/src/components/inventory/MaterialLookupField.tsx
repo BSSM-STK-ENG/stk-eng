@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Search } from 'lucide-react';
+import type React from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MaterialDto } from '../../types/api';
 import { formatLocation, sanitizeLocation } from '../../utils/inventory-display';
 import { buildMaterialLookupLabel } from './material-lookup-utils';
@@ -32,8 +33,10 @@ const ACCENT_STYLES: Record<Accent, { ring: string; border: string; badge: strin
 };
 
 function sortMaterials(left: MaterialDto, right: MaterialDto) {
-  return left.materialName.localeCompare(right.materialName, 'ko-KR')
-    || left.materialCode.localeCompare(right.materialCode, 'ko-KR');
+  return (
+    left.materialName.localeCompare(right.materialName, 'ko-KR') ||
+    left.materialCode.localeCompare(right.materialCode, 'ko-KR')
+  );
 }
 
 export default function MaterialLookupField({
@@ -123,7 +126,9 @@ export default function MaterialLookupField({
 
   return (
     <div className="relative">
-      <label className={`flex min-h-10 items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3 transition ${accentStyles.border}`}>
+      <label
+        className={`flex min-h-10 items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3 transition ${accentStyles.border}`}
+      >
         <Search size={16} className="shrink-0 text-slate-400" />
         <input
           type="text"
@@ -135,10 +140,13 @@ export default function MaterialLookupField({
               setOpen(true);
             }
           }}
-          onBlur={() => { blurTimerRef.current = window.setTimeout(() => setOpen(false), 120); }}
+          onBlur={() => {
+            blurTimerRef.current = window.setTimeout(() => setOpen(false), 120);
+          }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={`w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400 ${accentStyles.ring}`}
+          role="combobox"
           aria-expanded={open}
           aria-haspopup="listbox"
           aria-label="자재 검색"
@@ -149,12 +157,12 @@ export default function MaterialLookupField({
       {open && (
         <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_rgba(15,23,42,0.08)]">
           {filteredMaterials.length > 0 ? (
-            <ul role="listbox" className="max-h-72 space-y-1 overflow-y-auto">
+            <div role="listbox" className="max-h-72 space-y-1 overflow-y-auto">
               {filteredMaterials.map((material, index) => {
                 const checked = material.materialCode === selectedCode;
                 const active = index === activeIndex;
                 return (
-                  <li key={material.materialCode}>
+                  <div key={material.materialCode}>
                     <button
                       type="button"
                       onMouseDown={(event) => event.preventDefault()}
@@ -173,23 +181,23 @@ export default function MaterialLookupField({
                         <Check size={13} />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-slate-800">{material.materialName}</span>
+                        <span className="block truncate text-sm font-semibold text-slate-800">
+                          {material.materialName}
+                        </span>
                         <span className="mt-1 block text-xs text-slate-500">
                           {material.materialCode}
                           {` · 현재 ${(material.currentStockQty ?? 0).toLocaleString()} EA`}
                           {sanitizeLocation(material.location) ? ` · 위치 ${formatLocation(material.location)}` : ''}
                         </span>
                         {material.description && (
-                          <span className="mt-1 block truncate text-[11px] text-slate-400">
-                            {material.description}
-                          </span>
+                          <span className="mt-1 block truncate text-[11px] text-slate-400">{material.description}</span>
                         )}
                       </span>
                     </button>
-                  </li>
+                  </div>
                 );
               })}
-            </ul>
+            </div>
           ) : (
             <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-400">
               검색어에 맞는 자재가 없습니다.

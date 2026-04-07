@@ -1,4 +1,4 @@
-import { AuthResponse, PagePermissionKey, Role } from '../types/api';
+import type { AuthResponse, PagePermissionKey, Role } from '../types/api';
 
 const AUTH_KEYS = {
   token: 'token',
@@ -104,7 +104,14 @@ export function completePasswordSetup() {
   localStorage.setItem(AUTH_KEYS.passwordChangeRequired, 'false');
 }
 
-export function updateStoredProfile(profile: { name?: string; email: string; role: Role; permissionPreset?: string; pagePermissions?: string[]; passwordChangeRequired: boolean }) {
+export function updateStoredProfile(profile: {
+  name?: string;
+  email: string;
+  role: Role;
+  permissionPreset?: string;
+  pagePermissions?: string[];
+  passwordChangeRequired: boolean;
+}) {
   localStorage.setItem(AUTH_KEYS.name, profile.name ?? '');
   localStorage.setItem(AUTH_KEYS.email, profile.email);
   localStorage.setItem(AUTH_KEYS.role, profile.role);
@@ -136,7 +143,17 @@ export function getDefaultRouteForRole(role: Role | null) {
 
 function defaultPermissionsForRole(role: Role | null): PagePermissionKey[] {
   if (role === 'SUPER_ADMIN') {
-    return ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY', 'INBOUND', 'OUTBOUND', 'CLOSING', 'MASTER_DATA', 'ADMIN_ACCOUNTS'];
+    return [
+      'DASHBOARD',
+      'CURRENT_STOCK',
+      'STOCK_LEDGER',
+      'HISTORY',
+      'INBOUND',
+      'OUTBOUND',
+      'CLOSING',
+      'MASTER_DATA',
+      'ADMIN_ACCOUNTS',
+    ];
   }
   if (role === 'ADMIN') {
     return ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY', 'INBOUND', 'OUTBOUND'];
@@ -145,15 +162,18 @@ function defaultPermissionsForRole(role: Role | null): PagePermissionKey[] {
 }
 
 function isPagePermissionKey(value: unknown): value is PagePermissionKey {
-  return typeof value === 'string' && [
-    'DASHBOARD',
-    'CURRENT_STOCK',
-    'STOCK_LEDGER',
-    'HISTORY',
-    'INBOUND',
-    'OUTBOUND',
-    'CLOSING',
-    'MASTER_DATA',
-    'ADMIN_ACCOUNTS',
-  ].includes(value);
+  return (
+    typeof value === 'string' &&
+    [
+      'DASHBOARD',
+      'CURRENT_STOCK',
+      'STOCK_LEDGER',
+      'HISTORY',
+      'INBOUND',
+      'OUTBOUND',
+      'CLOSING',
+      'MASTER_DATA',
+      'ADMIN_ACCOUNTS',
+    ].includes(value)
+  );
 }

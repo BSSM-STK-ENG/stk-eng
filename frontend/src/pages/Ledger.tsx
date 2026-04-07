@@ -1,12 +1,12 @@
+import { ChevronLeft, ChevronRight, Download, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Download, RefreshCw } from 'lucide-react';
 import api from '../api/axios';
-import type { MasterDataItem, PagedLedger, TransactionResponse, TransactionType } from '../types/api';
-import { downloadExcel } from '../utils/excel';
-import { formatAppDate, formatAppDateTime } from '../utils/date-format';
-import { formatBusinessUnit, formatTransactionTypeLabel, sanitizeBusinessUnit } from '../utils/inventory-display';
 import AdminSearchField from '../components/common/AdminSearchField';
+import type { MasterDataItem, PagedLedger, TransactionResponse, TransactionType } from '../types/api';
+import { formatAppDate, formatAppDateTime } from '../utils/date-format';
+import { downloadExcel } from '../utils/excel';
+import { formatBusinessUnit, formatTransactionTypeLabel, sanitizeBusinessUnit } from '../utils/inventory-display';
 
 const PAGE_SIZE = 25;
 
@@ -25,7 +25,13 @@ const Ledger: React.FC = () => {
   const [page, setPage] = useState<number>(0);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchLedger = async (currentPage: number, currentSearchTerm: string, currentTypeFilter: string, currentBusinessUnitFilter: string, currentDayFilter: string) => {
+  const fetchLedger = async (
+    currentPage: number,
+    currentSearchTerm: string,
+    currentTypeFilter: string,
+    currentBusinessUnitFilter: string,
+    currentDayFilter: string,
+  ) => {
     setLoading(true);
     setErrorMsg(null);
     try {
@@ -131,7 +137,11 @@ const Ledger: React.FC = () => {
   };
 
   const businessUnitOptions = useMemo(
-    () => businessUnits.map((item) => item.name).filter((value): value is string => Boolean(value)).sort((left, right) => left.localeCompare(right, 'ko')),
+    () =>
+      businessUnits
+        .map((item) => item.name)
+        .filter((value): value is string => Boolean(value))
+        .sort((left, right) => left.localeCompare(right, 'ko')),
     [businessUnits],
   );
 
@@ -149,12 +159,12 @@ const Ledger: React.FC = () => {
     await downloadExcel(rows, '수불_현황');
   };
 
-  const hasActiveFilters = Boolean(searchTerm.trim()) || Boolean(dayFilter) || businessUnitFilter !== 'ALL' || typeFilter !== 'ALL';
-  const activeDayLabel = dayFilter
-    ? formatAppDate(`${dayFilter}T00:00:00`)
-    : '모든 날짜';
+  const hasActiveFilters =
+    Boolean(searchTerm.trim()) || Boolean(dayFilter) || businessUnitFilter !== 'ALL' || typeFilter !== 'ALL';
+  const activeDayLabel = dayFilter ? formatAppDate(`${dayFilter}T00:00:00`) : '모든 날짜';
   const activeBusinessUnitLabel = businessUnitFilter === 'ALL' ? '모든 사업장' : formatBusinessUnit(businessUnitFilter);
-  const activeTypeLabel = typeFilter === 'ALL' ? '모든 거래 유형' : formatTransactionTypeLabel(typeFilter as TransactionType);
+  const activeTypeLabel =
+    typeFilter === 'ALL' ? '모든 거래 유형' : formatTransactionTypeLabel(typeFilter as TransactionType);
   const emptyTitle = searchTerm.trim()
     ? `"${searchTerm.trim()}"에 맞는 거래가 없습니다.`
     : dayFilter
@@ -176,7 +186,11 @@ const Ledger: React.FC = () => {
           </div>
 
           <div className="admin-toolbar">
-            <button type="button" onClick={() => void fetchLedger(page, searchTerm, typeFilter, businessUnitFilter, dayFilter)} className="admin-btn chat-focus-ring">
+            <button
+              type="button"
+              onClick={() => void fetchLedger(page, searchTerm, typeFilter, businessUnitFilter, dayFilter)}
+              className="admin-btn chat-focus-ring"
+            >
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
               새로고침
             </button>
@@ -264,7 +278,8 @@ const Ledger: React.FC = () => {
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">지금 보고 있는 조건</p>
             <p className="mt-1 text-sm font-medium text-slate-700">
-              {searchTerm.trim() ? `"${searchTerm.trim()}"` : '전체 거래'}, {activeDayLabel}, {activeBusinessUnitLabel}, {activeTypeLabel}
+              {searchTerm.trim() ? `"${searchTerm.trim()}"` : '전체 거래'}, {activeDayLabel}, {activeBusinessUnitLabel},{' '}
+              {activeTypeLabel}
             </p>
           </div>
         </div>
@@ -281,7 +296,9 @@ const Ledger: React.FC = () => {
                       <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${typeTone}`}>
                         {formatTransactionTypeLabel(transaction.transactionType)}
                       </span>
-                      <span className="text-xs font-medium text-slate-500">{formatAppDateTime(transaction.transactionDate)}</span>
+                      <span className="text-xs font-medium text-slate-500">
+                        {formatAppDateTime(transaction.transactionDate)}
+                      </span>
                     </div>
                     <p className="mt-2 truncate text-sm font-semibold text-slate-900">{transaction.materialCode}</p>
                   </div>
@@ -304,7 +321,9 @@ const Ledger: React.FC = () => {
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">비고</p>
                     <p className="mt-1 text-sm text-slate-500">
-                      {[transaction.reference ? `참조 ${transaction.reference}` : null, transaction.note].filter(Boolean).join(' · ')}
+                      {[transaction.reference ? `참조 ${transaction.reference}` : null, transaction.note]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </p>
                   </div>
                 )}
@@ -334,11 +353,21 @@ const Ledger: React.FC = () => {
           <table className="min-w-full table-fixed divide-y divide-slate-100">
             <thead>
               <tr className="bg-slate-50/85">
-                <th className="w-[190px] px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">일시</th>
-                <th className="w-[96px] px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">유형</th>
-                <th className="px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">자재</th>
-                <th className="w-[220px] px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">사업장 / 담당자</th>
-                <th className="w-[120px] px-4 py-3.5 text-right text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">수량</th>
+                <th className="w-[190px] px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">
+                  일시
+                </th>
+                <th className="w-[96px] px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">
+                  유형
+                </th>
+                <th className="px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">
+                  자재
+                </th>
+                <th className="w-[220px] px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">
+                  사업장 / 담당자
+                </th>
+                <th className="w-[120px] px-4 py-3.5 text-right text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">
+                  수량
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -369,7 +398,9 @@ const Ledger: React.FC = () => {
                         <p className="font-medium text-slate-900">{transaction.materialCode}</p>
                         {(transaction.reference || transaction.note) && (
                           <p className="mt-1 line-clamp-2 text-xs text-slate-400">
-                            {[transaction.reference ? `참조 ${transaction.reference}` : null, transaction.note].filter(Boolean).join(' · ')}
+                            {[transaction.reference ? `참조 ${transaction.reference}` : null, transaction.note]
+                              .filter(Boolean)
+                              .join(' · ')}
                           </p>
                         )}
                       </div>

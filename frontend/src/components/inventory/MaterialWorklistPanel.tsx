@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Check, ChevronDown, Sparkles, X } from 'lucide-react';
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { MaterialDto } from '../../types/api';
 import {
   clearMaterialWorklist,
@@ -60,7 +61,6 @@ function getAccentClasses(accent: Accent) {
         activeChip: 'border-slate-300 bg-slate-900 text-white',
         helper: 'bg-slate-100 text-slate-700',
       };
-    case 'blue':
     default:
       return {
         shell: 'border-blue-100 bg-[linear-gradient(145deg,rgba(255,255,255,0.96)_0%,rgba(240,247,255,0.98)_100%)]',
@@ -97,20 +97,22 @@ const MaterialWorklistPanel: React.FC<MaterialWorklistPanelProps> = ({
   useEffect(() => subscribeMaterialWorklist(setWorklistCodes), []);
 
   const resolvedItems = useMemo(
-    () => worklistCodes.map((code) => ({
-      code,
-      material: materials.find((material) => material.materialCode === code) ?? null,
-    })),
+    () =>
+      worklistCodes.map((code) => ({
+        code,
+        material: materials.find((material) => material.materialCode === code) ?? null,
+      })),
     [materials, worklistCodes],
   );
 
   const renderActionButton = (action: MaterialWorklistPanelAction) => {
     const tone = action.tone ?? 'secondary';
-    const className = tone === 'primary'
-      ? palette.primaryAction
-      : tone === 'ghost'
-        ? 'border border-transparent bg-transparent text-slate-500 hover:bg-white/70 hover:text-slate-900'
-        : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:text-slate-900';
+    const className =
+      tone === 'primary'
+        ? palette.primaryAction
+        : tone === 'ghost'
+          ? 'border border-transparent bg-transparent text-slate-500 hover:bg-white/70 hover:text-slate-900'
+          : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:text-slate-900';
 
     return (
       <button
@@ -126,22 +128,36 @@ const MaterialWorklistPanel: React.FC<MaterialWorklistPanelProps> = ({
     );
   };
 
-  const countLabel = resolvedItems.length > 0
-    ? `${itemLabel} ${resolvedItems.length}개`
-    : `${itemLabel} 없음`;
+  const countLabel = resolvedItems.length > 0 ? `${itemLabel} ${resolvedItems.length}개` : `${itemLabel} 없음`;
 
   return (
-    <section className={`overflow-hidden rounded-[28px] border p-4 shadow-[0_18px_42px_rgba(15,23,42,0.06)] ${palette.shell} ${compact ? 'sm:p-4' : 'sm:p-5'}`}>
-      <div className={`flex flex-col gap-4 ${compact ? 'lg:flex-row lg:items-start lg:justify-between' : 'xl:flex-row xl:items-start xl:justify-between'}`}>
+    <section
+      className={`overflow-hidden rounded-[28px] border p-4 shadow-[0_18px_42px_rgba(15,23,42,0.06)] ${palette.shell} ${compact ? 'sm:p-4' : 'sm:p-5'}`}
+    >
+      <div
+        className={`flex flex-col gap-4 ${compact ? 'lg:flex-row lg:items-start lg:justify-between' : 'xl:flex-row xl:items-start xl:justify-between'}`}
+      >
         <div className={compact ? 'max-w-2xl' : 'max-w-3xl'}>
-          <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold ${palette.badge}`}>
+          <div
+            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold ${palette.badge}`}
+          >
             <Sparkles size={13} />
             {badgeLabel}
           </div>
-          <h3 className={`mt-3 font-black tracking-tight text-slate-900 ${compact ? 'text-base md:text-lg' : 'text-xl md:text-2xl'}`}>{title}</h3>
-          <p className={`mt-1.5 max-w-2xl text-slate-600 ${compact ? 'text-sm leading-6' : 'text-sm leading-7 md:text-[15px]'}`}>{description}</p>
+          <h3
+            className={`mt-3 font-black tracking-tight text-slate-900 ${compact ? 'text-base md:text-lg' : 'text-xl md:text-2xl'}`}
+          >
+            {title}
+          </h3>
+          <p
+            className={`mt-1.5 max-w-2xl text-slate-600 ${compact ? 'text-sm leading-6' : 'text-sm leading-7 md:text-[15px]'}`}
+          >
+            {description}
+          </p>
           {resolvedItems.length > 0 && selectionHint && (
-            <div className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${palette.helper}`}>
+            <div
+              className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${palette.helper}`}
+            >
               <Check size={12} />
               {selectionHint}
             </div>
@@ -187,12 +203,8 @@ const MaterialWorklistPanel: React.FC<MaterialWorklistPanelProps> = ({
                     className={`chat-focus-ring inline-flex items-center gap-2 text-left text-xs font-semibold ${canPick ? '' : 'cursor-default'} ${isActive ? 'text-white' : ''} disabled:opacity-100`}
                   >
                     {isActive && <Check size={12} className="shrink-0" />}
-                    <span className="max-w-[220px] truncate">
-                      {material?.materialName ?? code}
-                    </span>
-                    <span className={`text-[11px] ${isActive ? 'text-white/80' : 'text-slate-400'}`}>
-                      {code}
-                    </span>
+                    <span className="max-w-[220px] truncate">{material?.materialName ?? code}</span>
+                    <span className={`text-[11px] ${isActive ? 'text-white/80' : 'text-slate-400'}`}>{code}</span>
                   </button>
                   <button
                     type="button"
@@ -208,19 +220,19 @@ const MaterialWorklistPanel: React.FC<MaterialWorklistPanelProps> = ({
             })}
           </div>
 
-          {actions.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {actions.map(renderActionButton)}
-            </div>
-          )}
+          {actions.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{actions.map(renderActionButton)}</div>}
         </>
       ) : (
-        <div className={`mt-4 rounded-[22px] ${compact ? 'border border-slate-200 bg-white/82 px-4 py-3.5' : 'border border-dashed border-slate-200 bg-white/78 px-4 py-4 sm:px-5'}`}>
+        <div
+          className={`mt-4 rounded-[22px] ${compact ? 'border border-slate-200 bg-white/82 px-4 py-3.5' : 'border border-dashed border-slate-200 bg-white/78 px-4 py-4 sm:px-5'}`}
+        >
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-2xl">
                 <p className={`${compact ? 'text-sm' : 'text-base'} font-black text-slate-800`}>{emptyTitle}</p>
-                <p className={`mt-1.5 ${compact ? 'text-sm leading-6' : 'text-sm leading-6'} text-slate-500`}>{emptyDescription}</p>
+                <p className={`mt-1.5 ${compact ? 'text-sm leading-6' : 'text-sm leading-6'} text-slate-500`}>
+                  {emptyDescription}
+                </p>
                 {emptySteps.length > 0 && (
                   <div className="mt-3 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-500">
                     {compact ? '필요한 경우만 사용법을 펼쳐 보세요.' : `사용법은 ${emptySteps.length}단계로 끝납니다.`}
@@ -253,7 +265,9 @@ const MaterialWorklistPanel: React.FC<MaterialWorklistPanelProps> = ({
                       compact ? 'px-4 py-3.5' : 'px-4 py-4'
                     }`}
                   >
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-black ${palette.badge}`}>
+                    <div
+                      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-black ${palette.badge}`}
+                    >
                       {index + 1}
                     </div>
                     <p className="mt-3 text-sm font-bold text-slate-800">{step.title}</p>

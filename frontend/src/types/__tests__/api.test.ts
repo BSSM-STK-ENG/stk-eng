@@ -1,18 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type {
   AuthRequest,
   AuthResponse,
-  RegisterRequest,
-  RegisterResponse,
-  MaterialDto,
-  TransactionRequest,
+  ClosingStatus,
   InventoryTransaction,
   Material,
+  MaterialDto,
   MonthlyClosing,
-  User,
-  TransactionType,
-  ClosingStatus,
+  RegisterRequest,
+  RegisterResponse,
   Role,
+  TransactionRequest,
+  TransactionType,
+  User,
 } from '../api';
 
 describe('API type definitions', () => {
@@ -29,7 +29,16 @@ describe('API type definitions', () => {
       email: 'test@test.com',
       role: 'ADMIN',
       permissionPreset: 'MANAGER',
-      pagePermissions: ['DASHBOARD', 'CURRENT_STOCK', 'STOCK_LEDGER', 'HISTORY', 'INBOUND', 'OUTBOUND', 'CLOSING', 'MASTER_DATA'],
+      pagePermissions: [
+        'DASHBOARD',
+        'CURRENT_STOCK',
+        'STOCK_LEDGER',
+        'HISTORY',
+        'INBOUND',
+        'OUTBOUND',
+        'CLOSING',
+        'MASTER_DATA',
+      ],
       passwordChangeRequired: true,
       message: 'success',
     };
@@ -74,7 +83,12 @@ describe('API type definitions', () => {
   });
 
   it('User.id is string (UUID)', () => {
-    const user: User = { id: '550e8400-e29b-41d4-a716-446655440000', name: '관리자', email: 'admin@test.com', role: 'ADMIN' };
+    const user: User = {
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      name: '관리자',
+      email: 'admin@test.com',
+      role: 'ADMIN',
+    };
     expect(typeof user.id).toBe('string');
   });
 
@@ -82,7 +96,14 @@ describe('API type definitions', () => {
     const tx: InventoryTransaction = {
       id: 1,
       transactionType: 'IN',
-      material: { materialCode: 'BG001', materialName: 'Test', description: null, location: null, safeStockQty: null, currentStockQty: null },
+      material: {
+        materialCode: 'BG001',
+        materialName: 'Test',
+        description: null,
+        location: null,
+        safeStockQty: null,
+        currentStockQty: null,
+      },
       quantity: 100,
       transactionDate: '2024-01-01T00:00:00',
       businessUnit: null,

@@ -1,5 +1,3 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import {
   Bot,
   ChevronRight,
@@ -14,9 +12,8 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { DEFAULT_PROVIDER_CATALOG } from './chatDefaults';
-import { useChatWorkspace } from './useChatWorkspace';
-import type { ChatWorkspaceState } from './useChatWorkspace';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type {
   AiPreferences,
   ChatMessage,
@@ -26,6 +23,9 @@ import type {
   ProviderType,
   ToolTrace,
 } from '../../types/chat';
+import { DEFAULT_PROVIDER_CATALOG } from './chatDefaults';
+import type { ChatWorkspaceState } from './useChatWorkspace';
+import { useChatWorkspace } from './useChatWorkspace';
 
 interface ChatPanelProps {
   mobileOpen: boolean;
@@ -144,15 +144,7 @@ function getCredentialPresentation(credential?: ProviderCredential) {
   };
 }
 
-function ProviderBadge({
-  provider,
-  label,
-  active,
-}: {
-  provider: ProviderType;
-  label: string;
-  active?: boolean;
-}) {
+function ProviderBadge({ provider, label, active }: { provider: ProviderType; label: string; active?: boolean }) {
   return (
     <div
       className={`flex h-9 w-9 items-center justify-center rounded-2xl text-xs font-black ${
@@ -171,7 +163,9 @@ function TraceDisclosure({ trace }: { trace: ToolTrace }) {
       <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-[12px] font-semibold text-slate-600">
         <Database size={13} />
         <span>조회 근거 보기</span>
-        <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-slate-400">{toolLabel(trace)}</span>
+        <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-slate-400">
+          {toolLabel(trace)}
+        </span>
         {trace.rowCount !== undefined && (
           <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-slate-400">
             {trace.rowCount} rows
@@ -217,7 +211,9 @@ function ChatMessageBubble({ message }: { message: ChatMessage }) {
       className={`flex flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`}
     >
       <div className={`max-w-[88%] rounded-[22px] px-4 py-3 shadow-sm ${bubbleTone}`}>
-        <div className={`mb-2 flex items-center gap-2 text-[11px] font-bold ${isUser ? 'justify-end text-blue-100' : 'text-slate-400'}`}>
+        <div
+          className={`mb-2 flex items-center gap-2 text-[11px] font-bold ${isUser ? 'justify-end text-blue-100' : 'text-slate-400'}`}
+        >
           {!isUser && <Bot size={12} />}
           <span>{isUser ? '내 질문' : 'AI'}</span>
           {isUser && <MessageCircle size={12} />}
@@ -274,8 +270,10 @@ function SettingsModal({
   saving: boolean;
   deleting: boolean;
 }) {
-  const activeProvider = providers.find((item) => item.provider === settings.provider) ?? getProviderFallback(settings.provider);
-  const activeModels = activeProvider.models.length > 0 ? activeProvider.models : getProviderFallback(activeProvider.provider).models;
+  const activeProvider =
+    providers.find((item) => item.provider === settings.provider) ?? getProviderFallback(settings.provider);
+  const activeModels =
+    activeProvider.models.length > 0 ? activeProvider.models : getProviderFallback(activeProvider.provider).models;
   const activeCredential = credentials[settings.provider];
   const credentialMeta = getCredentialPresentation(activeCredential);
   const canSave = Boolean(settings.apiKey.trim() || activeCredential?.hasKey || settings.chatPanelEnabled === false);
@@ -299,12 +297,7 @@ function SettingsModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-slate-950/50 p-4 backdrop-blur-sm md:items-center">
-      <button
-        type="button"
-        className="absolute inset-0"
-        aria-label="설정 닫기"
-        onClick={onClose}
-      />
+      <button type="button" className="absolute inset-0" aria-label="설정 닫기" onClick={onClose} />
       <section
         role="dialog"
         aria-modal="true"
@@ -423,9 +416,7 @@ function SettingsModal({
               <div className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3">
                 <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">저장된 자격증명</p>
                 <p className="mt-1 text-sm font-bold text-slate-700">
-                  {activeCredential?.hasKey
-                    ? activeCredential?.maskedKey ?? '등록됨'
-                    : '미등록'}
+                  {activeCredential?.hasKey ? (activeCredential?.maskedKey ?? '등록됨') : '미등록'}
                 </p>
                 <p className="mt-2 text-xs leading-5 text-slate-500">{credentialMeta.detail}</p>
               </div>
@@ -463,9 +454,7 @@ function SettingsModal({
                 <p className="mt-1 text-sm font-bold text-slate-700">
                   {activeModels.find((model) => model.id === settings.model)?.name ?? settings.model}
                 </p>
-                <p className="mt-2 text-xs leading-5 text-slate-500">
-                  provider별 접근 가능한 모델만 저장됩니다.
-                </p>
+                <p className="mt-2 text-xs leading-5 text-slate-500">provider별 접근 가능한 모델만 저장됩니다.</p>
               </div>
             </div>
 
@@ -503,7 +492,9 @@ function SettingsModal({
                   </div>
                 )}
                 {!error && isCurrentTestResult && (
-                  <div className={`rounded-[18px] border px-4 py-3 text-sm font-medium ${testResult?.success ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+                  <div
+                    className={`rounded-[18px] border px-4 py-3 text-sm font-medium ${testResult?.success ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}
+                  >
                     {testResult?.message}
                   </div>
                 )}
@@ -955,9 +946,14 @@ function ChatPanelView({
         {collapsed ? renderCollapsedRail() : renderExpandedPanel('desktop')}
       </aside>
 
-      <div className={`fixed inset-0 z-[60] lg:hidden ${mobileOpen ? 'pointer-events-auto' : 'pointer-events-none'}`} aria-hidden={!mobileOpen}>
-        <div
+      <div
+        className={`fixed inset-0 z-[60] lg:hidden ${mobileOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
+        aria-hidden={!mobileOpen}
+      >
+        <button
+          type="button"
           className={`absolute inset-0 bg-slate-950/40 backdrop-blur-sm transition-opacity duration-300 ${mobileOpen ? 'opacity-100' : 'opacity-0'}`}
+          aria-label="채팅 패널 닫기"
           onClick={onCloseMobile}
         />
         <div
@@ -968,7 +964,6 @@ function ChatPanelView({
           {mobileOpen ? renderExpandedPanel('mobile') : null}
         </div>
       </div>
-
     </>
   );
 }

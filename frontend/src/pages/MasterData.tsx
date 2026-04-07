@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
 import { Building2, RefreshCw } from 'lucide-react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import api from '../api/axios';
 import type { MasterDataItem } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
@@ -231,11 +232,13 @@ export default function MasterData() {
       </section>
 
       {notice && (
-        <div className={`rounded-2xl border px-4 py-3 text-sm font-medium ${
-          notice.tone === 'success'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-            : 'border-rose-200 bg-rose-50 text-rose-700'
-        }`}>
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm font-medium ${
+            notice.tone === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : 'border-rose-200 bg-rose-50 text-rose-700'
+          }`}
+        >
           {notice.message}
         </div>
       )}

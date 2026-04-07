@@ -32,9 +32,9 @@ describe('useChatWorkspace', () => {
     vi.clearAllMocks();
 
     apiMocks.getChatProviders.mockResolvedValue(DEFAULT_PROVIDER_CATALOG);
-    apiMocks.getChatModels.mockImplementation(async (provider: string) => (
-      DEFAULT_PROVIDER_CATALOG.find((item) => item.provider === provider)?.models ?? []
-    ));
+    apiMocks.getChatModels.mockImplementation(
+      async (provider: string) => DEFAULT_PROVIDER_CATALOG.find((item) => item.provider === provider)?.models ?? [],
+    );
     apiMocks.getChatCredentials.mockResolvedValue([
       {
         provider: 'openai',

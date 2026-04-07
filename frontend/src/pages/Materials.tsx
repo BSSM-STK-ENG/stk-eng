@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
 import { Package, PencilLine, RefreshCw, Trash2, X } from 'lucide-react';
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import api from '../api/axios';
 import AdminSearchField from '../components/common/AdminSearchField';
 import type { MaterialDto } from '../types/api';
@@ -68,12 +69,12 @@ export default function Materials() {
         materialCode: materialForm.materialCode.trim(),
         materialName: materialForm.materialName.trim(),
         location: editingMaterialCode
-          ? materials.find((item) => item.materialCode === editingMaterialCode)?.location ?? null
+          ? (materials.find((item) => item.materialCode === editingMaterialCode)?.location ?? null)
           : null,
         safeStockQty: parsedSafeStock,
         description: materialForm.description.trim() || null,
         currentStockQty: editingMaterialCode
-          ? materials.find((item) => item.materialCode === editingMaterialCode)?.currentStockQty ?? 0
+          ? (materials.find((item) => item.materialCode === editingMaterialCode)?.currentStockQty ?? 0)
           : 0,
       };
 
@@ -180,11 +181,13 @@ export default function Materials() {
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">안전재고 이하</p>
             <p className="mt-2 text-2xl font-semibold text-slate-900">
-              {materials.filter((item) => {
-                const safeStock = item.safeStockQty ?? 0;
-                const currentStock = item.currentStockQty ?? 0;
-                return safeStock > 0 && currentStock > 0 && currentStock <= safeStock;
-              }).length}
+              {
+                materials.filter((item) => {
+                  const safeStock = item.safeStockQty ?? 0;
+                  const currentStock = item.currentStockQty ?? 0;
+                  return safeStock > 0 && currentStock > 0 && currentStock <= safeStock;
+                }).length
+              }
             </p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -240,7 +243,11 @@ export default function Materials() {
             placeholder="설명 또는 비고"
           />
           <div className="flex flex-wrap items-end gap-2">
-            <button type="submit" disabled={materialSubmitting} className="admin-btn admin-btn-primary min-w-[112px] whitespace-nowrap">
+            <button
+              type="submit"
+              disabled={materialSubmitting}
+              className="admin-btn admin-btn-primary min-w-[112px] whitespace-nowrap"
+            >
               {materialSubmitting ? '저장 중...' : editingMaterialCode ? '수정' : '등록'}
             </button>
             {editingMaterialCode && (
@@ -263,7 +270,10 @@ export default function Materials() {
         <div className="mt-5 space-y-3 lg:hidden">
           {filteredMaterials.length > 0 ? (
             filteredMaterials.map((item) => (
-              <article key={item.materialCode} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+              <article
+                key={item.materialCode}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-slate-900">{item.materialName}</p>
@@ -271,7 +281,9 @@ export default function Materials() {
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-slate-400">현재재고</p>
-                    <p className="text-sm font-semibold text-slate-900">{(item.currentStockQty ?? 0).toLocaleString()}</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {(item.currentStockQty ?? 0).toLocaleString()}
+                    </p>
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-600">
@@ -337,8 +349,12 @@ export default function Materials() {
                         <p className="mt-1 text-xs text-slate-400">{item.materialCode}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right text-sm font-medium text-slate-700">{(item.safeStockQty ?? 0).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900">{(item.currentStockQty ?? 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right text-sm font-medium text-slate-700">
+                      {(item.safeStockQty ?? 0).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900">
+                      {(item.currentStockQty ?? 0).toLocaleString()}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="max-w-[420px]">
                         <p className="truncate text-sm text-slate-600">{item.description || '-'}</p>

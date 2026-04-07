@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import axios from 'axios';
 import {
   AlertTriangle,
   CalendarDays,
@@ -13,13 +13,22 @@ import {
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
-import axios from 'axios';
+import type React from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../api/axios';
 import type { MaterialDto, StockTrendResponse } from '../../types/api';
 import { formatLocation, isMeaningfulInventoryValue, sanitizeLocation } from '../../utils/inventory-display';
-import { formatNumber, formatCompactNumber } from '../../utils/number-format';
-import { getFavoriteMaterialCodes, getRecentMaterialCodes, subscribeMaterialPreferences } from '../../utils/material-preferences';
-import { addMaterialWorklistCodes, getMaterialWorklistCodes, subscribeMaterialWorklist } from '../../utils/material-worklist';
+import {
+  getFavoriteMaterialCodes,
+  getRecentMaterialCodes,
+  subscribeMaterialPreferences,
+} from '../../utils/material-preferences';
+import {
+  addMaterialWorklistCodes,
+  getMaterialWorklistCodes,
+  subscribeMaterialWorklist,
+} from '../../utils/material-worklist';
+import { formatCompactNumber, formatNumber } from '../../utils/number-format';
 
 type PeriodPreset = '7d' | '30d' | '90d' | 'custom';
 
@@ -83,7 +92,6 @@ function areStringArraysEqual(a: string[], b: string[]) {
   return a.every((value, index) => value === b[index]);
 }
 
-
 function formatDateLabel(value: string, options?: Intl.DateTimeFormatOptions) {
   const date = new Date(`${value}T00:00:00`);
   return new Intl.DateTimeFormat('ko-KR', options ?? { month: 'short', day: 'numeric' }).format(date);
@@ -99,12 +107,17 @@ function formatDateRangeLabel(from: string, to: string) {
 
 function pickDefaultMaterialCodes(materials: MaterialDto[]) {
   const eligibleMaterials = materials.filter(
-    (material) => isMeaningfulInventoryValue(material.materialCode) && isMeaningfulInventoryValue(material.materialName),
+    (material) =>
+      isMeaningfulInventoryValue(material.materialCode) && isMeaningfulInventoryValue(material.materialName),
   );
   const sourceMaterials = eligibleMaterials.length > 0 ? eligibleMaterials : materials;
 
   return [...sourceMaterials]
-    .sort((left, right) => (right.currentStockQty ?? 0) - (left.currentStockQty ?? 0) || left.materialCode.localeCompare(right.materialCode))
+    .sort(
+      (left, right) =>
+        (right.currentStockQty ?? 0) - (left.currentStockQty ?? 0) ||
+        left.materialCode.localeCompare(right.materialCode),
+    )
     .slice(0, 3)
     .map((material) => material.materialCode);
 }
@@ -235,39 +248,45 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const favoriteCodeSet = useMemo(() => new Set(favoriteCodes), [favoriteCodes]);
-  const recentCodeOrder = useMemo(
-    () => new Map(recentCodes.map((code, index) => [code, index])),
-    [recentCodes],
-  );
+  const recentCodeOrder = useMemo(() => new Map(recentCodes.map((code, index) => [code, index])), [recentCodes]);
   const worklistCodeSet = useMemo(() => new Set(worklistCodes), [worklistCodes]);
 
-  const availableMaterials = useMemo(() => [...materials].sort((left, right) => {
-    const leftFavoriteRank = favoriteCodeSet.has(left.materialCode) ? 0 : 1;
-    const rightFavoriteRank = favoriteCodeSet.has(right.materialCode) ? 0 : 1;
-    if (leftFavoriteRank !== rightFavoriteRank) {
-      return leftFavoriteRank - rightFavoriteRank;
-    }
+  const availableMaterials = useMemo(
+    () =>
+      [...materials].sort((left, right) => {
+        const leftFavoriteRank = favoriteCodeSet.has(left.materialCode) ? 0 : 1;
+        const rightFavoriteRank = favoriteCodeSet.has(right.materialCode) ? 0 : 1;
+        if (leftFavoriteRank !== rightFavoriteRank) {
+          return leftFavoriteRank - rightFavoriteRank;
+        }
 
-    const leftRecentRank = recentCodeOrder.get(left.materialCode) ?? Number.MAX_SAFE_INTEGER;
-    const rightRecentRank = recentCodeOrder.get(right.materialCode) ?? Number.MAX_SAFE_INTEGER;
-    if (leftRecentRank !== rightRecentRank) {
-      return leftRecentRank - rightRecentRank;
-    }
+        const leftRecentRank = recentCodeOrder.get(left.materialCode) ?? Number.MAX_SAFE_INTEGER;
+        const rightRecentRank = recentCodeOrder.get(right.materialCode) ?? Number.MAX_SAFE_INTEGER;
+        if (leftRecentRank !== rightRecentRank) {
+          return leftRecentRank - rightRecentRank;
+        }
 
-    return left.materialName.localeCompare(right.materialName, 'ko-KR') || left.materialCode.localeCompare(right.materialCode);
-  }), [materials, favoriteCodeSet, recentCodeOrder]);
-  const selectedMaterials = useMemo(() =>
-    selectedCodes
-      .map((code) => materials.find((material) => material.materialCode === code))
-      .filter((material): material is MaterialDto => Boolean(material)),
+        return (
+          left.materialName.localeCompare(right.materialName, 'ko-KR') ||
+          left.materialCode.localeCompare(right.materialCode)
+        );
+      }),
+    [materials, favoriteCodeSet, recentCodeOrder],
+  );
+  const selectedMaterials = useMemo(
+    () =>
+      selectedCodes
+        .map((code) => materials.find((material) => material.materialCode === code))
+        .filter((material): material is MaterialDto => Boolean(material)),
     [selectedCodes, materials],
   );
-  const filteredMaterials = useMemo(() =>
-    availableMaterials.filter((material) =>
-      [material.materialCode, material.materialName, sanitizeLocation(material.location)]
-        .filter(Boolean)
-        .some((value) => value?.toLowerCase().includes(materialQuery.toLowerCase())),
-    ),
+  const filteredMaterials = useMemo(
+    () =>
+      availableMaterials.filter((material) =>
+        [material.materialCode, material.materialName, sanitizeLocation(material.location)]
+          .filter(Boolean)
+          .some((value) => value?.toLowerCase().includes(materialQuery.toLowerCase())),
+      ),
     [availableMaterials, materialQuery],
   );
 
@@ -293,7 +312,9 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
         return areStringArraysEqual(previous, sanitized) ? previous : sanitized;
       }
 
-      const favoriteDefaults = favoriteCodes.filter((code) => availableCodeSet.has(code)).slice(0, MAX_SELECTED_MATERIALS);
+      const favoriteDefaults = favoriteCodes
+        .filter((code) => availableCodeSet.has(code))
+        .slice(0, MAX_SELECTED_MATERIALS);
       const defaults = favoriteDefaults.length > 0 ? favoriteDefaults : pickDefaultMaterialCodes(materials);
       return areStringArraysEqual(previous, defaults) ? previous : defaults;
     });
@@ -498,12 +519,12 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
   ).length;
   const aggregateInbound = focusSeries.reduce((sum, series) => sum + (series.activePoint?.inboundQty ?? 0), 0);
   const aggregateOutbound = focusSeries.reduce((sum, series) => sum + (series.activePoint?.outboundQty ?? 0), 0);
-  const mostChangedSeries = chartSeries
-    .slice()
-    .sort((left, right) => Math.abs(right.changeQty) - Math.abs(left.changeQty))[0] ?? null;
+  const mostChangedSeries =
+    chartSeries.slice().sort((left, right) => Math.abs(right.changeQty) - Math.abs(left.changeQty))[0] ?? null;
   const selectedCodesInWorklist = selectedCodes.filter((code) => worklistCodeSet.has(code));
   const allSelectedCodesQueued = selectedCodes.length > 0 && selectedCodesInWorklist.length === selectedCodes.length;
-  const worklistLabel = worklistCodes.length > 0 ? `오늘 처리 목록 ${worklistCodes.length}개` : '오늘 처리 목록 비어 있음';
+  const worklistLabel =
+    worklistCodes.length > 0 ? `오늘 처리 목록 ${worklistCodes.length}개` : '오늘 처리 목록 비어 있음';
 
   const handleAddSelectedToWorklist = () => {
     if (!selectedCodes.length) {
@@ -529,18 +550,13 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
               어느 자재 재고가 늘고 줄었는지 바로 보는 그래프
             </h3>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 md:text-[15px]">
-              기간을 고르고, 비교할 자재를 선택하면, 최근 재고가 얼마나 줄었는지 또는 회복됐는지 선 그래프로 바로 확인할 수 있습니다.
+              기간을 고르고, 비교할 자재를 선택하면, 최근 재고가 얼마나 줄었는지 또는 회복됐는지 선 그래프로 바로 확인할
+              수 있습니다.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
-              <span className="rounded-full border border-white/70 bg-white/75 px-3 py-1.5">
-                1. 기간 선택
-              </span>
-              <span className="rounded-full border border-white/70 bg-white/75 px-3 py-1.5">
-                2. 비교할 자재 고르기
-              </span>
-              <span className="rounded-full border border-white/70 bg-white/75 px-3 py-1.5">
-                3. 그래프와 요약 확인
-              </span>
+              <span className="rounded-full border border-white/70 bg-white/75 px-3 py-1.5">1. 기간 선택</span>
+              <span className="rounded-full border border-white/70 bg-white/75 px-3 py-1.5">2. 비교할 자재 고르기</span>
+              <span className="rounded-full border border-white/70 bg-white/75 px-3 py-1.5">3. 그래프와 요약 확인</span>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3 text-xs font-medium text-slate-500">
               <span className="rounded-full border border-white/70 bg-white/75 px-3 py-1.5">
@@ -549,12 +565,13 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
               <span className="rounded-full border border-white/70 bg-white/75 px-3 py-1.5">
                 비교 중인 자재 {selectedCodes.length}개
               </span>
-              <span className="rounded-full border border-white/70 bg-white/75 px-3 py-1.5">
-                {worklistLabel}
-              </span>
+              <span className="rounded-full border border-white/70 bg-white/75 px-3 py-1.5">{worklistLabel}</span>
               {lastUpdatedAt && (
                 <span className="rounded-full border border-white/70 bg-white/75 px-3 py-1.5">
-                  최근 업데이트 {new Intl.DateTimeFormat('ko-KR', { hour: 'numeric', minute: '2-digit' }).format(new Date(lastUpdatedAt))}
+                  최근 업데이트{' '}
+                  {new Intl.DateTimeFormat('ko-KR', { hour: 'numeric', minute: '2-digit' }).format(
+                    new Date(lastUpdatedAt),
+                  )}
                 </span>
               )}
             </div>
@@ -604,7 +621,10 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
               </div>
             </div>
 
-            <div ref={popoverRef} className="relative rounded-[24px] border border-white/70 bg-white/80 p-4 shadow-[0_14px_38px_rgba(15,23,42,0.06)]">
+            <div
+              ref={popoverRef}
+              className="relative rounded-[24px] border border-white/70 bg-white/80 p-4 shadow-[0_14px_38px_rgba(15,23,42,0.06)]"
+            >
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-bold text-slate-400">비교할 자재 고르기</p>
@@ -636,10 +656,7 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
                           color: '#0f172a',
                         }}
                       >
-                        <span
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: selectedColor.stroke }}
-                        />
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: selectedColor.stroke }} />
                         {material.materialName}
                       </span>
                     );
@@ -656,7 +673,9 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
                   className="chat-focus-ring inline-flex min-h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   <Check size={14} />
-                  {allSelectedCodesQueued ? '이 자재들은 이미 오늘 처리 목록에 있습니다' : `이 자재 ${selectedCodes.length}개를 오늘 처리 목록에 담기`}
+                  {allSelectedCodesQueued
+                    ? '이 자재들은 이미 오늘 처리 목록에 있습니다'
+                    : `이 자재 ${selectedCodes.length}개를 오늘 처리 목록에 담기`}
                 </button>
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-500">
                   담아두면 입고, 출고, 원장에서 다시 찾지 않아도 됩니다.
@@ -676,7 +695,9 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
                   </div>
 
                   <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
-                    <span>비교 중 {selectedCodes.length}개 / 최대 {MAX_SELECTED_MATERIALS}개</span>
+                    <span>
+                      비교 중 {selectedCodes.length}개 / 최대 {MAX_SELECTED_MATERIALS}개
+                    </span>
                     {(favoriteCodes.length > 0 || recentCodes.length > 0) && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
                         <Star size={12} className="text-amber-500" />
@@ -685,8 +706,7 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
                     )}
                     {selectedCodes.length >= MAX_SELECTED_MATERIALS && (
                       <span className="inline-flex items-center gap-1 font-semibold text-amber-600">
-                        <AlertTriangle size={13} />
-                        더 이상 추가할 수 없습니다.
+                        <AlertTriangle size={13} />더 이상 추가할 수 없습니다.
                       </span>
                     )}
                   </div>
@@ -708,13 +728,17 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
                         >
                           <span
                             className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
-                              checked ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white text-transparent'
+                              checked
+                                ? 'border-slate-900 bg-slate-900 text-white'
+                                : 'border-slate-300 bg-white text-transparent'
                             }`}
                           >
                             <Check size={13} />
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-bold text-slate-800">{material.materialName}</span>
+                            <span className="block truncate text-sm font-bold text-slate-800">
+                              {material.materialName}
+                            </span>
                             <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
                               <span>
                                 {material.materialCode} · 현재 {formatNumber(material.currentStockQty ?? 0)} EA
@@ -759,13 +783,21 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
           <MetricCard
             eyebrow="기간 동안 얼마나 변했나"
             value={`${totalPeriodChange >= 0 ? '+' : ''}${formatCompactNumber(totalPeriodChange)} EA`}
-            note={totalPeriodChange >= 0 ? '선택한 기간 동안 재고가 전반적으로 늘었습니다.' : '선택한 기간 동안 재고가 전반적으로 줄었습니다.'}
+            note={
+              totalPeriodChange >= 0
+                ? '선택한 기간 동안 재고가 전반적으로 늘었습니다.'
+                : '선택한 기간 동안 재고가 전반적으로 줄었습니다.'
+            }
             accentClassName={totalPeriodChange >= 0 ? 'text-emerald-600' : 'text-amber-600'}
           />
           <MetricCard
             eyebrow="안전재고 이하 자재"
             value={`${safetyRiskCount} 종`}
-            note={safetyRiskCount > 0 ? '안전재고보다 적은 자재가 있어 우선 확인이 필요합니다.' : '선택 자재는 모두 안전재고보다 충분합니다.'}
+            note={
+              safetyRiskCount > 0
+                ? '안전재고보다 적은 자재가 있어 우선 확인이 필요합니다.'
+                : '선택 자재는 모두 안전재고보다 충분합니다.'
+            }
             accentClassName={safetyRiskCount > 0 ? 'text-amber-600' : 'text-slate-900'}
           />
         </div>
@@ -847,10 +879,7 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <span
-                                className="h-2.5 w-2.5 rounded-full"
-                                style={{ backgroundColor: series.stroke }}
-                              />
+                              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: series.stroke }} />
                               <p className="truncate text-sm font-bold text-slate-800">{series.materialName}</p>
                             </div>
                             <p className="mt-1 truncate text-xs text-slate-500">
@@ -858,23 +887,32 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
                               {sanitizeLocation(series.location) ? ` · ${formatLocation(series.location)}` : ''}
                             </p>
                           </div>
-                          <p className="text-right text-lg font-black text-slate-900">{formatNumber(series.activePoint?.stockQty ?? 0)}</p>
+                          <p className="text-right text-lg font-black text-slate-900">
+                            {formatNumber(series.activePoint?.stockQty ?? 0)}
+                          </p>
                         </div>
                         <div className="mt-3 flex items-center justify-between text-xs">
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold ${
-                            series.deltaFromPrevious >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                          }`}>
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold ${
+                              series.deltaFromPrevious >= 0
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-amber-50 text-amber-700'
+                            }`}
+                          >
                             {series.deltaFromPrevious >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
                             전일 대비 {series.deltaFromPrevious >= 0 ? '+' : ''}
                             {formatNumber(series.deltaFromPrevious)}
                           </span>
-                          {(series.safeStockQty ?? 0) > 0 && (series.activePoint?.stockQty ?? 0) <= (series.safeStockQty ?? 0) ? (
+                          {(series.safeStockQty ?? 0) > 0 &&
+                          (series.activePoint?.stockQty ?? 0) <= (series.safeStockQty ?? 0) ? (
                             <span className="inline-flex items-center gap-1 font-semibold text-amber-700">
                               <AlertTriangle size={13} />
                               안전재고 주의
                             </span>
                           ) : (
-                            <span className="text-slate-500">안전재고 {(series.safeStockQty ?? 0).toLocaleString()} EA</span>
+                            <span className="text-slate-500">
+                              안전재고 {(series.safeStockQty ?? 0).toLocaleString()} EA
+                            </span>
                           )}
                         </div>
                       </div>
@@ -989,8 +1027,21 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
                       {focusSeries.map((series) =>
                         series.activePoint ? (
                           <g key={`focus-point-${series.materialCode}`}>
-                            <circle cx={series.activePoint.x} cy={series.activePoint.y} r="9" fill={series.stroke} opacity="0.12" />
-                            <circle cx={series.activePoint.x} cy={series.activePoint.y} r="5" fill="white" stroke={series.stroke} strokeWidth="3" />
+                            <circle
+                              cx={series.activePoint.x}
+                              cy={series.activePoint.y}
+                              r="9"
+                              fill={series.stroke}
+                              opacity="0.12"
+                            />
+                            <circle
+                              cx={series.activePoint.x}
+                              cy={series.activePoint.y}
+                              r="5"
+                              fill="white"
+                              stroke={series.stroke}
+                              strokeWidth="3"
+                            />
                           </g>
                         ) : null,
                       )}
@@ -1024,7 +1075,8 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
                 <div className="rounded-[20px] bg-slate-50/90 p-4">
                   <p className="text-sm font-bold text-slate-800">업무 활용</p>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
-                    기간을 줄이면 급격한 일별 변동을, 늘리면 자재별 재고 회복 패턴과 소진 속도를 장기적으로 확인할 수 있습니다.
+                    기간을 줄이면 급격한 일별 변동을, 늘리면 자재별 재고 회복 패턴과 소진 속도를 장기적으로 확인할 수
+                    있습니다.
                   </p>
                 </div>
               </div>
@@ -1043,7 +1095,8 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
                     </div>
                     <p className="mt-1 truncate text-xs text-slate-500">{series.materialCode}</p>
                   </div>
-                  {(series.safeStockQty ?? 0) > 0 && (series.activePoint?.stockQty ?? 0) <= (series.safeStockQty ?? 0) ? (
+                  {(series.safeStockQty ?? 0) > 0 &&
+                  (series.activePoint?.stockQty ?? 0) <= (series.safeStockQty ?? 0) ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
                       <AlertTriangle size={12} />
                       위험
@@ -1059,11 +1112,15 @@ const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMat
                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <div className="rounded-2xl bg-slate-50 px-3 py-3">
                     <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">현재 재고</p>
-                    <p className="mt-2 text-xl font-black text-slate-900">{formatNumber(series.activePoint?.stockQty ?? 0)}</p>
+                    <p className="mt-2 text-xl font-black text-slate-900">
+                      {formatNumber(series.activePoint?.stockQty ?? 0)}
+                    </p>
                   </div>
                   <div className="rounded-2xl bg-slate-50 px-3 py-3">
                     <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">기간 변화</p>
-                    <p className={`mt-2 text-xl font-black ${series.changeQty >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    <p
+                      className={`mt-2 text-xl font-black ${series.changeQty >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}
+                    >
                       {series.changeQty >= 0 ? '+' : ''}
                       {formatNumber(series.changeQty)}
                     </p>

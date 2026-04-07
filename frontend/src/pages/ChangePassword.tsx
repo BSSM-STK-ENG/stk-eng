@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ArrowRight, KeyRound, Loader2, Lock } from 'lucide-react';
+import type React from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { getErrorMessage } from '../utils/api-error';
 import { getDefaultRouteForRole, getStoredEmail, getStoredRole } from '../utils/auth-session';
@@ -83,7 +84,9 @@ const ChangePassword = () => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label htmlFor="change-current-password" className="mb-2 block text-sm font-medium text-slate-700">현재 비밀번호</label>
+            <label htmlFor="change-current-password" className="mb-2 block text-sm font-medium text-slate-700">
+              현재 비밀번호
+            </label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                 <Lock className="text-slate-400" size={18} />
@@ -102,7 +105,9 @@ const ChangePassword = () => {
           </div>
 
           <div>
-            <label htmlFor="change-new-password" className="mb-2 block text-sm font-medium text-slate-700">새 비밀번호</label>
+            <label htmlFor="change-new-password" className="mb-2 block text-sm font-medium text-slate-700">
+              새 비밀번호
+            </label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                 <Lock className="text-slate-400" size={18} />
@@ -121,7 +126,9 @@ const ChangePassword = () => {
           </div>
 
           <div>
-            <label htmlFor="change-confirm-password" className="mb-2 block text-sm font-medium text-slate-700">새 비밀번호 확인</label>
+            <label htmlFor="change-confirm-password" className="mb-2 block text-sm font-medium text-slate-700">
+              새 비밀번호 확인
+            </label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                 <Lock className="text-slate-400" size={18} />

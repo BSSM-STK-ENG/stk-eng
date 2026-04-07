@@ -1,6 +1,6 @@
+import { ArrowRight, Loader2, MailCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Loader2, MailCheck } from 'lucide-react';
 import api from '../api/axios';
 import type { EmailVerificationResponse } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
@@ -52,9 +52,7 @@ const VerifyEmail = () => {
           <div className="space-y-5">
             <div
               className={`rounded-xl border p-4 text-sm ${
-                error
-                  ? 'border-red-200 bg-red-50 text-red-700'
-                  : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                error ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-900'
               }`}
             >
               <div className="flex items-start gap-3">
