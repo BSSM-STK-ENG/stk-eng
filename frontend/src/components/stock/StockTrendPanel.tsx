@@ -13,7 +13,6 @@ import {
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
-import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../api/axios';
 import type { MaterialDto, StockTrendResponse } from '../../types/api';
@@ -230,7 +229,7 @@ function MetricCard({
   );
 }
 
-const StockTrendPanel: React.FC<StockTrendPanelProps> = ({ materials, loadingMaterials = false, onRefresh }) => {
+const StockTrendPanel = ({ materials, loadingMaterials = false, onRefresh }: StockTrendPanelProps) => {
   const [preset, setPreset] = useState<PeriodPreset>('30d');
   const [dateRange, setDateRange] = useState<DateRange>(() => getPresetRange(30));
   const [selectedCodes, setSelectedCodes] = useState<string[]>([]);

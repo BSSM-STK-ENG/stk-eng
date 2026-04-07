@@ -1,5 +1,4 @@
 import { ArrowRight, Check, ChevronDown, Sparkles, X } from 'lucide-react';
-import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import type { MaterialDto } from '../../types/api';
 import {
@@ -73,7 +72,7 @@ function getAccentClasses(accent: Accent) {
   }
 }
 
-const MaterialWorklistPanel: React.FC<MaterialWorklistPanelProps> = ({
+const MaterialWorklistPanel = ({
   materials,
   title,
   description,
@@ -89,7 +88,7 @@ const MaterialWorklistPanel: React.FC<MaterialWorklistPanelProps> = ({
   emptySteps = [],
   selectionHint,
   compact = false,
-}) => {
+}: MaterialWorklistPanelProps) => {
   const [worklistCodes, setWorklistCodes] = useState<string[]>(() => getMaterialWorklistCodes());
   const [showGuide, setShowGuide] = useState<boolean>(false);
   const palette = getAccentClasses(accent);

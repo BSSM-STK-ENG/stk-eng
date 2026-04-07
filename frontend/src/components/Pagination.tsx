@@ -1,5 +1,4 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type React from 'react';
 
 interface PaginationProps {
   page: number;
@@ -9,7 +8,7 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
-const Pagination: React.FC<PaginationProps> = ({ page, totalPages, totalCount, pageSize, onPageChange }) => {
+const Pagination = ({ page, totalPages, totalCount, pageSize, onPageChange }: PaginationProps) => {
   if (totalPages <= 1) return null;
 
   const start = page * pageSize + 1;

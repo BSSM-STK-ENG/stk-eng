@@ -6,7 +6,7 @@ import type { MonthlyClosing } from '../types/api';
 import { formatAppDateTime } from '../utils/date-format';
 import { downloadExcel } from '../utils/excel';
 
-const Closing: React.FC = () => {
+const Closing = () => {
   const [closings, setClosings] = useState<MonthlyClosing[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
