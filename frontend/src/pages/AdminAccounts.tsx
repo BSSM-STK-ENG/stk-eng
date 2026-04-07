@@ -15,7 +15,7 @@ import type {
   PagePermissionKey,
 } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
-import { getStoredEmail, INITIAL_ISSUED_PASSWORD } from '../utils/auth-session';
+import { getStoredEmail } from '../utils/auth-session';
 import { formatAppDateTime } from '../utils/date-format';
 
 const ROLE_OPTIONS: Array<AdminCreateUserRequest['role']> = ['USER', 'ADMIN'];
@@ -704,7 +704,7 @@ const AdminAccounts = () => {
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-600">
           <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-white px-2.5 py-1">초기 비밀번호 {INITIAL_ISSUED_PASSWORD}</span>
+            <span className="rounded-full bg-white px-2.5 py-1">첫 로그인 시 비밀번호 변경 필요</span>
             <span className="rounded-full bg-white px-2.5 py-1">첫 로그인 후 비밀번호 변경</span>
           </div>
           <button
