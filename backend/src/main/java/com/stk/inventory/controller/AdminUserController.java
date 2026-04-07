@@ -12,7 +12,7 @@ import com.stk.inventory.dto.AdminUpdateUserNameRequest;
 import com.stk.inventory.dto.AdminUserSummaryResponse;
 import com.stk.inventory.dto.PermissionPresetResponse;
 import com.stk.inventory.dto.RoleProfileResponse;
-import com.stk.inventory.service.AdminUserManagementService;
+import com.stk.inventory.usecase.AdminUserManagementUseCase;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,9 +25,9 @@ import java.util.UUID;
 @RequestMapping("/api/admin/users")
 public class AdminUserController {
 
-    private final AdminUserManagementService adminUserManagementService;
+    private final AdminUserManagementUseCase adminUserManagementService;
 
-    public AdminUserController(AdminUserManagementService adminUserManagementService) {
+    public AdminUserController(AdminUserManagementUseCase adminUserManagementService) {
         this.adminUserManagementService = adminUserManagementService;
     }
 

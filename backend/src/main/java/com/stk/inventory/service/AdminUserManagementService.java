@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class AdminUserManagementService {
+public class AdminUserManagementService implements com.stk.inventory.usecase.AdminUserManagementUseCase {
 
     public static final String INITIAL_ISSUED_PASSWORD = "1234";
 
