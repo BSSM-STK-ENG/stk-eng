@@ -79,7 +79,7 @@ function getChatVisibilityStorageKey(email: string) {
   return `${STORAGE_KEYS.visibilityPrefix}:${email || 'anonymous'}`;
 }
 
-const MainLayout: React.FC = () => {
+const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const chatWorkspace = useChatWorkspace();

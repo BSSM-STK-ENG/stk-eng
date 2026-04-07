@@ -11,7 +11,6 @@ import {
   TrendingUp,
   X,
 } from 'lucide-react';
-import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../api/axios';
@@ -443,12 +442,12 @@ function CalendarInsightsCard({
   );
 }
 
-const InventoryCalendarBoard: React.FC<InventoryCalendarBoardProps> = ({
+const InventoryCalendarBoard = ({
   onOpenDayInList,
   monthSearchTerm = '',
   businessUnitFilter = 'ALL',
   selectedDateHint = null,
-}) => {
+}: InventoryCalendarBoardProps) => {
   const [month, setMonth] = useState<string>(getCurrentMonthKey);
   const [calendarData, setCalendarData] = useState<InventoryCalendarResponse | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);

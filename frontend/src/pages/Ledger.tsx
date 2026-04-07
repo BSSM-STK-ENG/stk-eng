@@ -10,7 +10,7 @@ import { formatBusinessUnit, formatTransactionTypeLabel, sanitizeBusinessUnit } 
 
 const PAGE_SIZE = 25;
 
-const Ledger: React.FC = () => {
+const Ledger = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
   const [totalPages, setTotalPages] = useState<number>(0);
