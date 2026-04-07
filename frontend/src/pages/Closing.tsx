@@ -81,14 +81,14 @@ const Closing: React.FC = () => {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const rows = closings.map(c => ({
       '대상월': c.closingMonth,
       '상태': c.status === 'CLOSED' ? '마감완료' : '미마감',
       '처리일시': c.closedAt ? formatAppDateTime(c.closedAt) : '',
       '처리자': c.closedBy?.email ?? '',
     }));
-    downloadExcel(rows, '월마감_현황');
+    await downloadExcel(rows, '월마감_현황');
   };
 
   // Show only recent 6 months by default

@@ -95,14 +95,14 @@ const CurrentStock = () => {
   const zeroCount = searchedMaterials.filter((material) => (material.currentStockQty ?? 0) <= 0).length;
   const availableCount = searchedMaterials.filter((material) => (material.currentStockQty ?? 0) > 0).length;
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const rows = filtered.map((material) => ({
       자재코드: material.materialCode,
       자재명: material.materialName,
       재고수량: material.currentStockQty ?? 0,
       자재위치: sanitizeLocation(material.location) ?? '',
     }));
-    downloadExcel(rows, '재고_현황');
+    await downloadExcel(rows, '재고_현황');
   };
 
   const startLocationEdit = (material: MaterialDto) => {

@@ -1,6 +1,5 @@
-import * as XLSX from 'xlsx';
-
-export function downloadExcel(rows: Record<string, unknown>[], filename: string) {
+export async function downloadExcel(rows: Record<string, unknown>[], filename: string) {
+  const XLSX = await import('xlsx');
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
@@ -15,7 +14,8 @@ export function downloadExcel(rows: Record<string, unknown>[], filename: string)
   XLSX.writeFile(wb, `${filename}_${date}.xlsx`);
 }
 
-export function downloadCsv(rows: Record<string, unknown>[], filename: string) {
+export async function downloadCsv(rows: Record<string, unknown>[], filename: string) {
+  const XLSX = await import('xlsx');
   const worksheet = XLSX.utils.json_to_sheet(rows);
   const csv = XLSX.utils.sheet_to_csv(worksheet);
   const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
