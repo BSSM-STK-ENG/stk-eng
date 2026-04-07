@@ -183,7 +183,7 @@ const Ledger: React.FC = () => {
             </button>
             <button type="button" onClick={handleExport} className="admin-btn admin-btn-primary chat-focus-ring">
               <Download size={15} />
-              엑셀
+              엑셀 다운로드
             </button>
           </div>
         </div>
