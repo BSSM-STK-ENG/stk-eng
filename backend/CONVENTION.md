@@ -31,6 +31,7 @@ Ports & Adapters (Guidelines)
 - Define gateway/port interfaces under com.stk.inventory.gateway or com.stk.inventory.domain for data access and external systems.
 - Implement adapters in com.stk.inventory.repository or com.stk.inventory.adapters that wrap Spring Data JPA repositories and other infra.
 - Use constructor injection for adapters and register with @Repository/@Component.
+- Use Mapper classes (com.stk.inventory.mapper) to convert between DTOs and domain entities. Keep mapping logic simple and side-effect free; mappers are infrastructure adapters and may be Spring components.
 - Services (use case interactors) depend only on ports (interfaces). Controllers depend on use case interfaces.
 - Keep entities in com.stk.inventory.entity as domain models; avoid returning entities from controllers — map to DTOs.
 
