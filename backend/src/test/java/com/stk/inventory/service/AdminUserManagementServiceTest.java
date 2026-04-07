@@ -11,13 +11,14 @@ import com.stk.inventory.entity.Role;
 import com.stk.inventory.entity.User;
 import com.stk.inventory.repository.CustomPermissionPresetRepository;
 import com.stk.inventory.repository.CustomRoleProfileRepository;
-import com.stk.inventory.repository.UserRepository;
+import com.stk.inventory.gateway.UserGateway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import com.stk.inventory.mapper.UserMapper;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -38,7 +39,10 @@ class AdminUserManagementServiceTest {
     private UserPermissionService userPermissionService;
 
     @Mock
-    private UserRepository userRepository;
+    private UserMapper userMapper;
+
+    @Mock
+    private UserGateway userGateway;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -49,6 +53,9 @@ class AdminUserManagementServiceTest {
     @Mock
     private CustomRoleProfileRepository customRoleProfileRepository;
 
+    @Mock
+    private com.stk.inventory.service.TemporaryPasswordGenerator temporaryPasswordGenerator;
+
     @BeforeEach
     void setUpPermissionService() {
         userPermissionService = new UserPermissionService(customPermissionPresetRepository, customRoleProfileRepository);
@@ -56,19 +63,20 @@ class AdminUserManagementServiceTest {
 
     @Test
     void superAdminCanIssueManagedAccount() {
-        AdminUserManagementService service = new AdminUserManagementService(userRepository, passwordEncoder, userPermissionService);
+        when(temporaryPasswordGenerator.generate()).thenReturn("tmp-pass");
+        AdminUserManagementService service = new AdminUserManagementService(userGateway, passwordEncoder, userPermissionService, userMapper, temporaryPasswordGenerator);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("superadmin@test.com", "token")
         );
 
-        when(userRepository.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
+        when(userGateway.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
                 .email("superadmin@test.com")
                 .role(Role.SUPER_ADMIN)
                 .password("encoded")
                 .build()));
-        when(userRepository.existsByEmail("issued@test.com")).thenReturn(false);
-        when(passwordEncoder.encode(AdminUserManagementService.INITIAL_ISSUED_PASSWORD)).thenReturn("encoded-temp-password");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+        when(userGateway.existsByEmail("issued@test.com")).thenReturn(false);
+        when(passwordEncoder.encode("tmp-pass")).thenReturn("encoded-temp-password");
+        when(userGateway.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
             user.setId(UUID.randomUUID());
             return user;
@@ -83,7 +91,7 @@ class AdminUserManagementServiceTest {
         var response = service.createUser(request);
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(captor.capture());
+        verify(userGateway).save(captor.capture());
         assertEquals("신규담당", captor.getValue().getName());
         assertEquals(Role.ADMIN, captor.getValue().getRole());
         assertEquals(PermissionPreset.OPERATOR.getKey(), captor.getValue().getPermissionPreset());
@@ -93,16 +101,16 @@ class AdminUserManagementServiceTest {
         assertEquals("신규담당", response.getName());
         assertEquals(Role.ADMIN, response.getRole());
         assertTrue(response.isPasswordChangeRequired());
-        assertEquals(AdminUserManagementService.INITIAL_ISSUED_PASSWORD, response.getTemporaryPassword());
+        assertEquals("tmp-pass", response.getTemporaryPassword());
     }
 
     @Test
     void nonSuperAdminCannotManageAccounts() {
-        AdminUserManagementService service = new AdminUserManagementService(userRepository, passwordEncoder, userPermissionService);
+        AdminUserManagementService service = new AdminUserManagementService(userGateway, passwordEncoder, userPermissionService, userMapper, temporaryPasswordGenerator);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("admin@test.com", "token")
         );
-        when(userRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(User.builder()
+        when(userGateway.findByEmail("admin@test.com")).thenReturn(Optional.of(User.builder()
                 .email("admin@test.com")
                 .role(Role.ADMIN)
                 .password("encoded")
@@ -114,24 +122,24 @@ class AdminUserManagementServiceTest {
 
     @Test
     void superAdminCanUpdateIssuedUserRole() {
-        AdminUserManagementService service = new AdminUserManagementService(userRepository, passwordEncoder, userPermissionService);
+        AdminUserManagementService service = new AdminUserManagementService(userGateway, passwordEncoder, userPermissionService, userMapper, temporaryPasswordGenerator);
         UUID userId = UUID.randomUUID();
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("superadmin@test.com", "token")
         );
 
-        when(userRepository.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
+        when(userGateway.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
                 .email("superadmin@test.com")
                 .role(Role.SUPER_ADMIN)
                 .password("encoded")
                 .build()));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(User.builder()
+        when(userGateway.findById(userId)).thenReturn(Optional.of(User.builder()
                 .id(userId)
                 .email("user@test.com")
                 .role(Role.USER)
                 .password("encoded-user")
                 .build()));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userGateway.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AdminUpdateUserRoleRequest request = new AdminUpdateUserRoleRequest();
         request.setRole(Role.ADMIN);
@@ -139,23 +147,23 @@ class AdminUserManagementServiceTest {
         var response = service.updateUserRole(userId, request);
 
         assertEquals(Role.ADMIN, response.getRole());
-        verify(userRepository).save(argThat(saved -> saved.getId().equals(userId) && saved.getRole() == Role.ADMIN));
+        verify(userGateway).save(argThat(saved -> saved.getId().equals(userId) && saved.getRole() == Role.ADMIN));
     }
 
     @Test
     void superAdminCanUpdatePagePermissionsWithPreset() {
-        AdminUserManagementService service = new AdminUserManagementService(userRepository, passwordEncoder, userPermissionService);
+        AdminUserManagementService service = new AdminUserManagementService(userGateway, passwordEncoder, userPermissionService, userMapper, temporaryPasswordGenerator);
         UUID userId = UUID.randomUUID();
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("superadmin@test.com", "token")
         );
 
-        when(userRepository.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
+        when(userGateway.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
                 .email("superadmin@test.com")
                 .role(Role.SUPER_ADMIN)
                 .password("encoded")
                 .build()));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(User.builder()
+        when(userGateway.findById(userId)).thenReturn(Optional.of(User.builder()
                 .id(userId)
                 .email("user@test.com")
                 .role(Role.USER)
@@ -163,7 +171,7 @@ class AdminUserManagementServiceTest {
                 .pagePermissions(userPermissionService.serialize(PermissionPreset.VIEWER.getPermissions()))
                 .password("encoded-user")
                 .build()));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userGateway.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AdminUpdateUserPermissionsRequest request = new AdminUpdateUserPermissionsRequest();
         request.setPermissionPreset(PermissionPreset.MANAGER.getKey());
@@ -182,7 +190,7 @@ class AdminUserManagementServiceTest {
 
         assertEquals(PermissionPreset.MANAGER.getKey(), response.getPermissionPreset());
         assertTrue(response.getPagePermissions().contains(PagePermission.CLOSING.getKey()));
-        verify(userRepository).save(argThat(saved ->
+        verify(userGateway).save(argThat(saved ->
                 saved.getId().equals(userId)
                         && PermissionPreset.MANAGER.getKey().equals(saved.getPermissionPreset())
                         && saved.getPagePermissions().contains(PagePermission.MASTER_DATA.getKey())
@@ -191,12 +199,12 @@ class AdminUserManagementServiceTest {
 
     @Test
     void permissionOptionsExposePresetsAndPageList() {
-        AdminUserManagementService service = new AdminUserManagementService(userRepository, passwordEncoder, userPermissionService);
+        AdminUserManagementService service = new AdminUserManagementService(userGateway, passwordEncoder, userPermissionService, userMapper, temporaryPasswordGenerator);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("superadmin@test.com", "token")
         );
 
-        when(userRepository.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
+        when(userGateway.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
                 .email("superadmin@test.com")
                 .role(Role.SUPER_ADMIN)
                 .password("encoded")
@@ -212,12 +220,12 @@ class AdminUserManagementServiceTest {
 
     @Test
     void superAdminCanCreateCustomPermissionPreset() {
-        AdminUserManagementService service = new AdminUserManagementService(userRepository, passwordEncoder, userPermissionService);
+        AdminUserManagementService service = new AdminUserManagementService(userGateway, passwordEncoder, userPermissionService, userMapper, temporaryPasswordGenerator);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("superadmin@test.com", "token")
         );
 
-        when(userRepository.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
+        when(userGateway.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
                 .email("superadmin@test.com")
                 .role(Role.SUPER_ADMIN)
                 .password("encoded")
@@ -251,17 +259,17 @@ class AdminUserManagementServiceTest {
 
     @Test
     void cannotDeleteCustomPresetWhenAnyUserUsesIt() {
-        AdminUserManagementService service = new AdminUserManagementService(userRepository, passwordEncoder, userPermissionService);
+        AdminUserManagementService service = new AdminUserManagementService(userGateway, passwordEncoder, userPermissionService, userMapper, temporaryPasswordGenerator);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("superadmin@test.com", "token")
         );
 
-        when(userRepository.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
+        when(userGateway.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
                 .email("superadmin@test.com")
                 .role(Role.SUPER_ADMIN)
                 .password("encoded")
                 .build()));
-        when(userRepository.existsByPermissionPreset("CUSTOM_TEST")).thenReturn(true);
+        when(userGateway.existsByPermissionPreset("CUSTOM_TEST")).thenReturn(true);
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> service.deletePermissionPreset("CUSTOM_TEST"));
 
@@ -271,33 +279,33 @@ class AdminUserManagementServiceTest {
 
     @Test
     void superAdminCanResetIssuedUserPassword() {
-        AdminUserManagementService service = new AdminUserManagementService(userRepository, passwordEncoder, userPermissionService);
+        AdminUserManagementService service = new AdminUserManagementService(userGateway, passwordEncoder, userPermissionService, userMapper, temporaryPasswordGenerator);
         UUID userId = UUID.randomUUID();
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("superadmin@test.com", "token")
         );
 
-        when(userRepository.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
+        when(userGateway.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
                 .email("superadmin@test.com")
                 .role(Role.SUPER_ADMIN)
                 .password("encoded")
                 .build()));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(User.builder()
+        when(userGateway.findById(userId)).thenReturn(Optional.of(User.builder()
                 .id(userId)
                 .email("user@test.com")
                 .role(Role.ADMIN)
                 .password("encoded-user")
                 .passwordChangeRequired(false)
                 .build()));
-        when(passwordEncoder.encode(AdminUserManagementService.INITIAL_ISSUED_PASSWORD)).thenReturn("reset-encoded");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(passwordEncoder.encode("tmp-pass")).thenReturn("reset-encoded");
+        when(userGateway.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         var response = service.resetUserPassword(userId);
 
         assertEquals("user@test.com", response.getEmail());
-        assertEquals(AdminUserManagementService.INITIAL_ISSUED_PASSWORD, response.getTemporaryPassword());
+        assertEquals("tmp-pass", response.getTemporaryPassword());
         assertTrue(response.isPasswordChangeRequired());
-        verify(userRepository).save(argThat(saved ->
+        verify(userGateway).save(argThat(saved ->
                 saved.getId().equals(userId)
                         && saved.isPasswordChangeRequired()
                         && "reset-encoded".equals(saved.getPassword())
@@ -306,25 +314,25 @@ class AdminUserManagementServiceTest {
 
     @Test
     void superAdminCanUpdateIssuedUserName() {
-        AdminUserManagementService service = new AdminUserManagementService(userRepository, passwordEncoder, userPermissionService);
+        AdminUserManagementService service = new AdminUserManagementService(userGateway, passwordEncoder, userPermissionService, userMapper, temporaryPasswordGenerator);
         UUID userId = UUID.randomUUID();
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("superadmin@test.com", "token")
         );
 
-        when(userRepository.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
+        when(userGateway.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
                 .email("superadmin@test.com")
                 .role(Role.SUPER_ADMIN)
                 .password("encoded")
                 .build()));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(User.builder()
+        when(userGateway.findById(userId)).thenReturn(Optional.of(User.builder()
                 .id(userId)
                 .email("user@test.com")
                 .role(Role.USER)
                 .password("encoded-user")
                 .build()));
-        when(userRepository.existsByNameIgnoreCaseAndIdNot("김작업", userId)).thenReturn(false);
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userGateway.existsByNameIgnoreCaseAndIdNot("김작업", userId)).thenReturn(false);
+        when(userGateway.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         var request = new com.stk.inventory.dto.AdminUpdateUserNameRequest();
         request.setName("김작업");
@@ -332,24 +340,24 @@ class AdminUserManagementServiceTest {
         var response = service.updateUserName(userId, request);
 
         assertEquals("김작업", response.getName());
-        verify(userRepository).save(argThat(saved -> saved.getId().equals(userId) && "김작업".equals(saved.getName())));
+        verify(userGateway).save(argThat(saved -> saved.getId().equals(userId) && "김작업".equals(saved.getName())));
     }
 
     @Test
     void superAdminCanDeleteUnusedUser() {
-        AdminUserManagementService service = new AdminUserManagementService(userRepository, passwordEncoder, userPermissionService);
+        AdminUserManagementService service = new AdminUserManagementService(userGateway, passwordEncoder, userPermissionService, userMapper, temporaryPasswordGenerator);
         UUID userId = UUID.randomUUID();
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("superadmin@test.com", "token")
         );
 
-        when(userRepository.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
+        when(userGateway.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
                 .id(UUID.randomUUID())
                 .email("superadmin@test.com")
                 .role(Role.SUPER_ADMIN)
                 .password("encoded")
                 .build()));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(User.builder()
+        when(userGateway.findById(userId)).thenReturn(Optional.of(User.builder()
                 .id(userId)
                 .email("user@test.com")
                 .role(Role.USER)
@@ -358,31 +366,31 @@ class AdminUserManagementServiceTest {
 
         service.deleteUser(userId);
 
-        verify(userRepository).delete(argThat(user -> user.getId().equals(userId)));
-        verify(userRepository).flush();
+        verify(userGateway).delete(argThat(user -> user.getId().equals(userId)));
+        verify(userGateway).flush();
     }
 
     @Test
     void cannotDeleteReferencedUser() {
-        AdminUserManagementService service = new AdminUserManagementService(userRepository, passwordEncoder, userPermissionService);
+        AdminUserManagementService service = new AdminUserManagementService(userGateway, passwordEncoder, userPermissionService, userMapper, temporaryPasswordGenerator);
         UUID userId = UUID.randomUUID();
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("superadmin@test.com", "token")
         );
 
-        when(userRepository.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
+        when(userGateway.findByEmail("superadmin@test.com")).thenReturn(Optional.of(User.builder()
                 .id(UUID.randomUUID())
                 .email("superadmin@test.com")
                 .role(Role.SUPER_ADMIN)
                 .password("encoded")
                 .build()));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(User.builder()
+        when(userGateway.findById(userId)).thenReturn(Optional.of(User.builder()
                 .id(userId)
                 .email("user@test.com")
                 .role(Role.USER)
                 .password("encoded-user")
                 .build()));
-        doThrow(new DataIntegrityViolationException("fk")).when(userRepository).flush();
+        doThrow(new DataIntegrityViolationException("fk")).when(userGateway).flush();
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> service.deleteUser(userId));
 

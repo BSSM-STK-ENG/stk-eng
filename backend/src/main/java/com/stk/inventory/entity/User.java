@@ -62,8 +62,8 @@ public class User {
     private boolean passwordChangeRequired = false;
 
     @Builder.Default
-    @Column(name = "email_verified", nullable = false, columnDefinition = "boolean not null default true")
-    private boolean emailVerified = true;
+    @Column(name = "email_verified", nullable = false, columnDefinition = "boolean not null default false")
+    private boolean emailVerified = false;
 
     @Column(name = "email_verification_token", length = 128)
     private String emailVerificationToken;
