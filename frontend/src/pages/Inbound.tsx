@@ -238,7 +238,11 @@ const Inbound = () => {
   };
 
   const handleExport = async () => {
-    await downloadServerExcel('inbound');
+    await downloadServerExcel('inbound', {
+      q: searchTerm.trim() || undefined,
+      from: dayFilter || undefined,
+      unit: businessUnitFilter !== 'ALL' ? businessUnitFilter : undefined,
+    });
   };
 
   const handleResetFilters = () => {

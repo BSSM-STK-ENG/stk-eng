@@ -3,9 +3,10 @@ package com.stk.inventory.service;
 import com.stk.inventory.entity.InventoryTransaction;
 import com.stk.inventory.entity.Material;
 import com.stk.inventory.entity.MonthlyClosing;
-import com.stk.inventory.entity.TransactionType;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
@@ -16,11 +17,13 @@ import java.util.List;
 @Service
 public class ExcelService {
 
+    private static final int ROW_WINDOW = 100;
+
     public ByteArrayInputStream exportTransactionsToExcel(List<InventoryTransaction> transactions, String sheetName) {
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        SXSSFWorkbook workbook = new SXSSFWorkbook(ROW_WINDOW);
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet(sheetName);
 
-            // Header Row
             Row headerRow = sheet.createRow(0);
             String[] headers = {"일시", "유형", "자재코드", "자재명", "수량", "사업장", "담당자", "비고", "참조번호", "등록자"};
             for (int i = 0; i < headers.length; i++) {
@@ -28,7 +31,6 @@ public class ExcelService {
                 cell.setCellValue(headers[i]);
             }
 
-            // Data Rows
             int rowIdx = 1;
             for (InventoryTransaction tx : transactions) {
                 Row row = sheet.createRow(rowIdx++);
@@ -48,11 +50,14 @@ public class ExcelService {
             return new ByteArrayInputStream(out.toByteArray());
         } catch (IOException e) {
             throw new RuntimeException("failed to export data to Excel file: " + e.getMessage());
+        } finally {
+            workbook.dispose();
         }
     }
 
     public ByteArrayInputStream exportCurrentStockToExcel(List<Material> materials, String sheetName) {
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        SXSSFWorkbook workbook = new SXSSFWorkbook(ROW_WINDOW);
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet(sheetName);
 
             Row headerRow = sheet.createRow(0);
@@ -76,11 +81,14 @@ public class ExcelService {
             return new ByteArrayInputStream(out.toByteArray());
         } catch (IOException e) {
             throw new RuntimeException("failed to export data to Excel file: " + e.getMessage());
+        } finally {
+            workbook.dispose();
         }
     }
 
     public ByteArrayInputStream exportClosingToExcel(List<MonthlyClosing> closings, String sheetName) {
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        SXSSFWorkbook workbook = new SXSSFWorkbook(ROW_WINDOW);
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet(sheetName);
 
             Row headerRow = sheet.createRow(0);
@@ -103,6 +111,8 @@ public class ExcelService {
             return new ByteArrayInputStream(out.toByteArray());
         } catch (IOException e) {
             throw new RuntimeException("failed to export data to Excel file: " + e.getMessage());
+        } finally {
+            workbook.dispose();
         }
     }
 }

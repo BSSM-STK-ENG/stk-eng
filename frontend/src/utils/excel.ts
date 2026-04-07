@@ -2,9 +2,16 @@ import api from '../api/axios';
 
 export type ExportType = 'inbound' | 'outbound' | 'current' | 'ledger' | 'history' | 'closing';
 
-export async function downloadServerExcel(type: ExportType) {
+export interface ExportParams {
+  from?: string;
+  to?: string;
+  q?: string;
+  unit?: string;
+}
+
+export async function downloadServerExcel(type: ExportType, params?: ExportParams) {
   try {
-    const response = await api.get(`/export/${type}`, { responseType: 'blob' });
+    const response = await api.get(`/export/${type}`, { params, responseType: 'blob' });
     const disposition = response.headers['content-disposition'] as string | undefined;
     const fallbackDate = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const fallbackName = `${type}_${fallbackDate}.xlsx`;
