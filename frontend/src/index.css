@@ -195,11 +195,14 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
   border-radius: 10px;
   border: 1px solid #d1d5db;
   background: #ffffff;
-  padding: 0 14px;
+  padding: 0 12px;
   font-size: 14px;
+  line-height: 1;
   font-weight: 500;
   color: #374151;
   cursor: pointer;
