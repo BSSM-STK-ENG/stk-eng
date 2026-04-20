@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { Building2, RefreshCw, PencilLine, Trash2 } from 'lucide-react';
+import { Building2, RefreshCw, PencilLine, Trash2, X } from 'lucide-react';
 import type React from 'react';
 import { useMemo, useState } from 'react';
 import api from '../api/axios';
@@ -157,19 +157,54 @@ export default function MasterData() {
           </div>
         </div>
 
-        <form onSubmit={handleBusinessUnitSubmit} className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto]">
+        <form
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (editingBusinessUnitId) {
+              const item = businessUnits.find((b) => b.id === editingBusinessUnitId);
+              if (item) await handleSaveBusinessUnit(item);
+            } else {
+              await handleBusinessUnitSubmit(event);
+            }
+          }}
+          className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto]"
+        >
           <input
             type="text"
-            value={businessUnitName}
-            onChange={(event) => setBusinessUnitName(event.target.value)}
+            value={editingBusinessUnitId ? editingBusinessUnitName : businessUnitName}
+            onChange={(event) => {
+              if (editingBusinessUnitId) setEditingBusinessUnitName(event.target.value);
+              else setBusinessUnitName(event.target.value);
+            }}
             className="admin-control"
             placeholder="예: QA-T1"
             maxLength={120}
           />
           <div className="flex gap-2">
-            <button type="submit" disabled={businessUnitSubmitting} className="admin-btn admin-btn-primary min-w-[112px]">
-              {businessUnitSubmitting ? '저장 중...' : '등록'}
+            <button
+              type="submit"
+              disabled={businessUnitSubmitting || savingBusinessUnitId === editingBusinessUnitId}
+              className="admin-btn admin-btn-primary min-w-[112px]"
+            >
+              {businessUnitSubmitting || savingBusinessUnitId === editingBusinessUnitId
+                ? '저장 중...'
+                : editingBusinessUnitId
+                ? '수정'
+                : '등록'}
             </button>
+            {editingBusinessUnitId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingBusinessUnitId(null);
+                  setEditingBusinessUnitName('');
+                }}
+                className="admin-btn min-w-[96px] whitespace-nowrap"
+              >
+                <X size={14} />
+                취소
+              </button>
+            )}
           </div>
         </form>
 
@@ -238,28 +273,6 @@ export default function MasterData() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
-                        {editingBusinessUnitId === item.id ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingBusinessUnitId(null);
-                                setEditingBusinessUnitName('');
-                              }}
-                              className="admin-btn inline-flex min-h-10 min-w-[80px] justify-center whitespace-nowrap px-3 text-sm text-slate-500"
-                            >
-                              취소
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleSaveBusinessUnit(item)}
-                              disabled={savingBusinessUnitId === item.id}
-                              className="admin-btn admin-btn-primary inline-flex min-h-10 min-w-[88px] justify-center whitespace-nowrap px-3 text-sm"
-                            >
-                              {savingBusinessUnitId === item.id ? '저장 중...' : '저장'}
-                            </button>
-                          </>
-                        ) : (
                           <>
                             <button
                               type="button"
@@ -279,7 +292,6 @@ export default function MasterData() {
                               {deletingBusinessUnitId === item.id ? '삭제 중...' : '삭제'}
                             </button>
                           </>
-                        )}
                       </div>
                     </td>
                   </tr>
