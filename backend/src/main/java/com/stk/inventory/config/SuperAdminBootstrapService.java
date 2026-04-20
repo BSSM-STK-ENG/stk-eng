@@ -72,16 +72,47 @@ public class SuperAdminBootstrapService implements ApplicationRunner {
                 log.info("Ensured configured super admin account is ready: {}", existingUser.getEmail());
             }
         }, () -> {
-            userRepository.save(User.builder()
-                    .name(name)
-                    .email(email.trim())
-                    .password(passwordEncoder.encode(password))
-                    .role(Role.SUPER_ADMIN)
-                    .chatPanelEnabled(false)
-                    .passwordChangeRequired(false)
-                    .emailVerified(true)
-                    .build());
-            log.info("Bootstrapped super admin account: {}", email.trim());
+            try {
+                userRepository.save(User.builder()
+                        .name(name)
+                        .email(email.trim())
+                        .password(passwordEncoder.encode(password))
+                        .role(Role.SUPER_ADMIN)
+                        .chatPanelEnabled(false)
+                        .passwordChangeRequired(false)
+                        .emailVerified(true)
+                        .build());
+                log.info("Bootstrapped super admin account: {}", email.trim());
+            } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+                log.warn("Bootstrapping super admin failed due to constraint, attempting to reconcile: {}", ex.getMessage());
+                userRepository.findByEmail(email.trim()).ifPresentOrElse(user -> {
+                    boolean updated = false;
+                    if (user.getRole() != Role.SUPER_ADMIN) {
+                        user.setRole(Role.SUPER_ADMIN);
+                        updated = true;
+                    }
+                    if (user.isPasswordChangeRequired()) {
+                        user.setPasswordChangeRequired(false);
+                        updated = true;
+                    }
+                    if (!user.isEmailVerified()) {
+                        user.setEmailVerified(true);
+                        user.setEmailVerificationToken(null);
+                        user.setEmailVerificationExpiresAt(null);
+                        updated = true;
+                    }
+                    if (user.getName() == null || user.getName().trim().isBlank()) {
+                        user.setName(name);
+                        updated = true;
+                    }
+                    if (updated) {
+                        userRepository.save(user);
+                        log.info("Recovered super admin account after constraint violation: {}", user.getEmail());
+                    } else {
+                        log.info("Super admin account exists and appears correct: {}", user.getEmail());
+                    }
+                }, () -> log.error("Failed to bootstrap super admin and could not find existing user with email {}", email.trim()));
+            }
         });
     }
 }
