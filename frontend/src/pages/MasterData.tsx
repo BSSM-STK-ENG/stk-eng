@@ -35,6 +35,8 @@ export default function MasterData() {
       await api.post<MasterDataItem>('/master-data/business-units', { name: businessUnitName });
       setBusinessUnitName('');
       await queryClient.invalidateQueries({ queryKey: queryKeys.businessUnits });
+      // Ensure fresh data is fetched immediately
+      await queryClient.refetchQueries({ queryKey: queryKeys.businessUnits });
       setNotice({ tone: 'success', message: '사업장을 등록했습니다.' });
     } catch (error) {
       setNotice({ tone: 'error', message: `사업장 등록에 실패했습니다. ${getErrorMessage(error)}` });
@@ -60,6 +62,8 @@ export default function MasterData() {
     try {
       await api.put<MasterDataItem>(`/master-data/business-units/${item.id}`, { name: nextName });
       await queryClient.invalidateQueries({ queryKey: queryKeys.businessUnits });
+      // Ensure fresh data is fetched immediately
+      await queryClient.refetchQueries({ queryKey: queryKeys.businessUnits });
       setEditingBusinessUnitId(null);
       setEditingBusinessUnitName('');
       setNotice({ tone: 'success', message: '사업장 이름을 수정했습니다.' });
@@ -83,6 +87,8 @@ export default function MasterData() {
         setEditingBusinessUnitName('');
       }
       await queryClient.invalidateQueries({ queryKey: queryKeys.businessUnits });
+      // Ensure fresh data is fetched immediately
+      await queryClient.refetchQueries({ queryKey: queryKeys.businessUnits });
       setNotice({ tone: 'success', message: '사업장을 삭제했습니다.' });
     } catch (error) {
       setNotice({ tone: 'error', message: `사업장 삭제에 실패했습니다. ${getErrorMessage(error)}` });
@@ -183,10 +189,10 @@ export default function MasterData() {
           <div className="flex gap-2">
             <button
               type="submit"
-              disabled={businessUnitSubmitting || savingBusinessUnitId === editingBusinessUnitId}
+              disabled={businessUnitSubmitting || (savingBusinessUnitId !== null && savingBusinessUnitId === editingBusinessUnitId)}
               className="admin-btn admin-btn-primary min-w-[112px]"
             >
-              {businessUnitSubmitting || savingBusinessUnitId === editingBusinessUnitId
+              {businessUnitSubmitting || (savingBusinessUnitId !== null && savingBusinessUnitId === editingBusinessUnitId)
                 ? '저장 중...'
                 : editingBusinessUnitId !== null
                 ? '수정'
