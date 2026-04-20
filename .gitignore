@@ -5,6 +5,10 @@
 backend/target/
 backend/.gradle/
 *.class
+# Allow including gradle-wrapper.jar used for remote build artifact
+!backend/gradle/wrapper/gradle-wrapper.jar
+# Allow gradle wrapper jar to be tracked
+!backend/gradle/wrapper/gradle-wrapper.jar
 *.jar
 *.war
 *.log
