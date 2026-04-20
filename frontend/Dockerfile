@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM ghcr.io/nodejs/node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 COPY . .
 RUN npm run build
 
-FROM nginx:alpine
+FROM ghcr.io/nginxinc/nginx:alpine
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80
