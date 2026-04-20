@@ -160,7 +160,7 @@ export default function MasterData() {
         <form
           onSubmit={async (event) => {
             event.preventDefault();
-            if (editingBusinessUnitId) {
+            if (editingBusinessUnitId !== null) {
               const item = businessUnits.find((b) => b.id === editingBusinessUnitId);
               if (item) await handleSaveBusinessUnit(item);
             } else {
@@ -171,9 +171,9 @@ export default function MasterData() {
         >
           <input
             type="text"
-            value={editingBusinessUnitId ? editingBusinessUnitName : businessUnitName}
+            value={editingBusinessUnitId !== null ? editingBusinessUnitName : businessUnitName}
             onChange={(event) => {
-              if (editingBusinessUnitId) setEditingBusinessUnitName(event.target.value);
+              if (editingBusinessUnitId !== null) setEditingBusinessUnitName(event.target.value);
               else setBusinessUnitName(event.target.value);
             }}
             className="admin-control"
@@ -188,11 +188,11 @@ export default function MasterData() {
             >
               {businessUnitSubmitting || savingBusinessUnitId === editingBusinessUnitId
                 ? '저장 중...'
-                : editingBusinessUnitId
+                : editingBusinessUnitId !== null
                 ? '수정'
                 : '등록'}
             </button>
-            {editingBusinessUnitId && (
+            {editingBusinessUnitId !== null && (
               <button
                 type="button"
                 onClick={() => {
