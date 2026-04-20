@@ -21,9 +21,19 @@ SSH_PASS="${SSH_PASS:-}"
 
 # Create a repo archive (prefer git archive when available)
 TMP_TAR="/tmp/stk_deploy_$(date +%s).tar.gz"
+# create temp dir to assemble archive if local build artifacts (eg. frontend/dist) exist
+TMP_DIR=$(mktemp -d)
+trap 'rm -rf "${TMP_DIR:-}"' EXIT
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "Creating tar from git (HEAD)..."
-  git archive --format=tar --prefix=app/ HEAD | gzip > "$TMP_TAR"
+  # extract git archive into temp dir so we can include generated files (dist) without committing them
+  git archive --format=tar --prefix=app/ HEAD | tar -x -C "$TMP_DIR"
+  # if local frontend build exists, include it in the archive
+  if [ -d "frontend/dist" ]; then
+    mkdir -p "$TMP_DIR/app/frontend"
+    cp -a frontend/dist "$TMP_DIR/app/frontend/"
+  fi
+  (cd "$TMP_DIR" && tar -czf "$TMP_TAR" app)
 else
   echo "Creating tar from filesystem..."
   tar --exclude='.git' --exclude='node_modules' -czf "$TMP_TAR" .
@@ -60,13 +70,13 @@ TAR_BASENAME=$(basename "$TMP_TAR")
 
 # Ensure remote dir exists and copy archive
 if [ "$USE_SSHPASS" = true ]; then
-  sshpass -p "$SSH_PASS" "${SSH_CMD_BASE[*]}" "$SSH_USER@$SSH_HOST" "mkdir -p '$REMOTE_DIR'"
+  sshpass -p "$SSH_PASS" "${SSH_CMD_BASE[@]}" "$SSH_USER@$SSH_HOST" "mkdir -p '$REMOTE_DIR'"
   echo "Copying archive to $SSH_USER@$SSH_HOST:$REMOTE_DIR"
-  sshpass -p "$SSH_PASS" "${SCP_CMD_BASE[*]}" "$TMP_TAR" "$SSH_USER@$SSH_HOST:$REMOTE_DIR/"
+  sshpass -p "$SSH_PASS" "${SCP_CMD_BASE[@]}" "$TMP_TAR" "$SSH_USER@$SSH_HOST:$REMOTE_DIR/"
 else
-  "${SSH_CMD_BASE[*]}" "$SSH_USER@$SSH_HOST" "mkdir -p '$REMOTE_DIR'"
+  "${SSH_CMD_BASE[@]}" "$SSH_USER@$SSH_HOST" "mkdir -p '$REMOTE_DIR'"
   echo "Copying archive to $SSH_USER@$SSH_HOST:$REMOTE_DIR"
-  "${SCP_CMD_BASE[*]}" "$TMP_TAR" "$SSH_USER@$SSH_HOST:$REMOTE_DIR/"
+  "${SCP_CMD_BASE[@]}" "$TMP_TAR" "$SSH_USER@$SSH_HOST:$REMOTE_DIR/"
 fi
 
 # Remote commands: extract and run docker compose
@@ -113,9 +123,9 @@ EOF
 )
 
 if [ "$USE_SSHPASS" = true ]; then
-  sshpass -p "$SSH_PASS" "${SSH_CMD_BASE[*]}" "$SSH_USER@$SSH_HOST" bash -s -- "$REMOTE_DIR" "$TAR_BASENAME" <<< "$REMOTE_CMDS"
+  sshpass -p "$SSH_PASS" "${SSH_CMD_BASE[@]}" "$SSH_USER@$SSH_HOST" bash -s -- "$REMOTE_DIR" "$TAR_BASENAME" <<< "$REMOTE_CMDS"
 else
-  "${SSH_CMD_BASE[*]}" "$SSH_USER@$SSH_HOST" bash -s -- "$REMOTE_DIR" "$TAR_BASENAME" <<< "$REMOTE_CMDS"
+  "${SSH_CMD_BASE[@]}" "$SSH_USER@$SSH_HOST" bash -s -- "$REMOTE_DIR" "$TAR_BASENAME" <<< "$REMOTE_CMDS"
 fi
 
 rm -f "$TMP_TAR"
