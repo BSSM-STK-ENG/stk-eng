@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -21,6 +22,7 @@ services:
     build: ./backend
     image: stk-backend:latest
     container_name: inventory-backend
+    restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
@@ -55,6 +57,7 @@ services:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
     image: stk-frontend:latest
     container_name: inventory-frontend
+    restart: unless-stopped
     ports:
       - "80:80"
     depends_on:
