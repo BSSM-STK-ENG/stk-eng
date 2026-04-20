@@ -1,9 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { Building2, RefreshCw } from 'lucide-react';
+import { Building2, RefreshCw, PencilLine, Trash2, X } from 'lucide-react';
 import type React from 'react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import api from '../api/axios';
 import { queryKeys, useBusinessUnits } from '../api/queries';
+import AdminSearchField from '../components/common/AdminSearchField';
 import type { MasterDataItem } from '../types/api';
 import { getErrorMessage } from '../utils/api-error';
 
@@ -156,6 +157,8 @@ export default function MasterData() {
   const [editingBusinessUnitId, setEditingBusinessUnitId] = useState<number | null>(null);
   const [editingBusinessUnitName, setEditingBusinessUnitName] = useState<string>('');
   const [savingBusinessUnitId, setSavingBusinessUnitId] = useState<number | null>(null);
+  const [deletingBusinessUnitId, setDeletingBusinessUnitId] = useState<number | null>(null);
+  const [search, setSearch] = useState<string>('');
 
   const handleBusinessUnitSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -200,6 +203,33 @@ export default function MasterData() {
     }
   };
 
+  const handleDeleteBusinessUnit = async (item: MasterDataItem) => {
+    if (!window.confirm(`사업장 "${item.name}"을(를) 삭제하시겠습니까?`)) {
+      return;
+    }
+    setNotice(null);
+    setDeletingBusinessUnitId(item.id);
+    try {
+      await api.delete(`/master-data/business-units/${item.id}`);
+      if (editingBusinessUnitId === item.id) {
+        setEditingBusinessUnitId(null);
+        setEditingBusinessUnitName('');
+      }
+      await queryClient.invalidateQueries({ queryKey: queryKeys.businessUnits });
+      setNotice({ tone: 'success', message: '사업장을 삭제했습니다.' });
+    } catch (error) {
+      setNotice({ tone: 'error', message: `사업장 삭제에 실패했습니다. ${getErrorMessage(error)}` });
+    } finally {
+      setDeletingBusinessUnitId(null);
+    }
+  };
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return businessUnits;
+    return businessUnits.filter((b) => b.name.toLowerCase().includes(q));
+  }, [businessUnits, search]);
+
   return (
     <div className="admin-page">
       <section className="admin-header">
@@ -207,7 +237,7 @@ export default function MasterData() {
           <div>
             <p className="admin-kicker">기준 정보</p>
             <h2 className="admin-page-title">사업장 관리</h2>
-            <p className="admin-page-description">입고와 출고에서 선택할 사업장을 등록하고 이름을 수정합니다.</p>
+            <p className="admin-page-description">입고와 출고에서 선택할 사업장을 등록하고 이름을 수정하거나 삭제합니다.</p>
           </div>
           <button
             type="button"
@@ -233,39 +263,171 @@ export default function MasterData() {
       )}
 
       <section className="admin-section px-5 py-4">
-        <div className="grid gap-3 text-sm text-slate-600 md:grid-cols-2">
+        <div className="grid gap-3 text-sm text-slate-600 md:grid-cols-3">
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">등록된 사업장</p>
             <p className="mt-2 text-2xl font-semibold text-slate-900">{businessUnits.length}</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">활성 연결</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{businessUnits.filter((b) => b.name).length}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">적용 규칙</p>
-            <p className="mt-2 text-sm font-medium text-slate-700">삭제 대신 이름 수정으로 관리합니다.</p>
+            <p className="mt-2 text-sm font-medium text-slate-700">필요시 사업장을 삭제할 수 있습니다.</p>
           </div>
         </div>
       </section>
 
-      <SectionCard
-        title="사업장 목록"
-        description="입고와 출고에서 선택할 사업장을 관리합니다."
-        placeholder="예: QA-T1"
-        items={businessUnits}
-        icon={<Building2 size={18} />}
-        value={businessUnitName}
-        loading={businessUnitSubmitting}
-        editingId={editingBusinessUnitId}
-        editValue={editingBusinessUnitName}
-        savingId={savingBusinessUnitId}
-        onChange={setBusinessUnitName}
-        onSubmit={handleBusinessUnitSubmit}
-        onEditStart={handleStartEditBusinessUnit}
-        onEditChange={setEditingBusinessUnitName}
-        onEditCancel={() => {
-          setEditingBusinessUnitId(null);
-          setEditingBusinessUnitName('');
-        }}
-        onSave={handleSaveBusinessUnit}
-      />
+      <section className="admin-section p-5">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700">
+            <Building2 size={18} />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-slate-900">사업장 정보 등록</h3>
+            <p className="mt-1 text-sm text-slate-500">입고와 출고에서 선택할 사업장을 등록하고 이름을 수정하거나 삭제합니다.</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleBusinessUnitSubmit} className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto]">
+          <input
+            type="text"
+            value={businessUnitName}
+            onChange={(event) => setBusinessUnitName(event.target.value)}
+            className="admin-control"
+            placeholder="예: QA-T1"
+            maxLength={120}
+          />
+          <div className="flex gap-2">
+            <button type="submit" disabled={businessUnitSubmitting} className="admin-btn admin-btn-primary min-w-[112px]">
+              {businessUnitSubmitting ? '저장 중...' : '등록'}
+            </button>
+          </div>
+        </form>
+
+        <div className="mt-5">
+          <AdminSearchField value={search} onChange={setSearch} placeholder="사업장 검색" />
+        </div>
+
+        <div className="mt-5 space-y-3 lg:hidden">
+          {filtered.length > 0 ? (
+            filtered.map((item) => (
+              <article key={item.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-900">{item.name}</p>
+                    <p className="mt-1 text-xs text-slate-400">ID: {item.id}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400">관리</p>
+                    <p className="text-sm font-semibold text-slate-900">&nbsp;</p>
+                  </div>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleStartEditBusinessUnit(item)}
+                    className="admin-btn inline-flex min-h-10 flex-1 justify-center whitespace-nowrap px-3 text-sm text-slate-600"
+                  >
+                    <PencilLine size={14} />
+                    수정
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteBusinessUnit(item)}
+                    disabled={deletingBusinessUnitId === item.id}
+                    className="admin-btn inline-flex min-h-10 flex-1 justify-center whitespace-nowrap px-3 text-sm text-slate-500"
+                  >
+                    <Trash2 size={14} />
+                    {deletingBusinessUnitId === item.id ? '삭제 중...' : '삭제'}
+                  </button>
+                </div>
+              </article>
+            ))
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
+              아직 등록된 사업장이 없습니다.
+            </div>
+          )}
+        </div>
+
+        <div className="admin-table-panel mt-5 hidden lg:block">
+          <table className="min-w-full border-collapse">
+            <thead className="admin-table-head">
+              <tr>
+                <th className="px-4 py-3 text-left">사업장 이름</th>
+                <th className="w-[168px] px-4 py-3 text-right">관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length > 0 ? (
+                filtered.map((item) => (
+                  <tr key={item.id} className="border-t border-slate-100">
+                    <td className="px-4 py-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">{item.name}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end gap-2">
+                        {editingBusinessUnitId === item.id ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingBusinessUnitId(null);
+                                setEditingBusinessUnitName('');
+                              }}
+                              className="admin-btn inline-flex min-h-10 min-w-[80px] justify-center whitespace-nowrap px-3 text-sm text-slate-500"
+                            >
+                              취소
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSaveBusinessUnit(item)}
+                              disabled={savingBusinessUnitId === item.id}
+                              className="admin-btn admin-btn-primary inline-flex min-h-10 min-w-[88px] justify-center whitespace-nowrap px-3 text-sm"
+                            >
+                              {savingBusinessUnitId === item.id ? '저장 중...' : '저장'}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleStartEditBusinessUnit(item)}
+                              className="admin-btn inline-flex min-h-9 min-w-[72px] justify-center whitespace-nowrap px-3 text-xs text-slate-600"
+                            >
+                              <PencilLine size={14} />
+                              수정
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteBusinessUnit(item)}
+                              disabled={deletingBusinessUnitId === item.id}
+                              className="admin-btn inline-flex min-h-9 min-w-[108px] justify-center whitespace-nowrap px-3 text-xs text-slate-500"
+                            >
+                              <Trash2 size={14} />
+                              {deletingBusinessUnitId === item.id ? '삭제 중...' : '삭제'}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-400">
+                    아직 등록된 사업장이 없습니다.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }
