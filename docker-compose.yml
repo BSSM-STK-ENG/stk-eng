@@ -19,6 +19,7 @@ services:
 
   backend:
     build: ./backend
+    image: stk-backend:latest
     container_name: inventory-backend
     ports:
       - "8080:8080"
@@ -52,6 +53,7 @@ services:
       context: ./frontend
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    image: stk-frontend:latest
     container_name: inventory-frontend
     ports:
       - "80:80"
