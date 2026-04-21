@@ -13,13 +13,25 @@ if [ ! -f "$ARTIFACT" ]; then
   exit 2
 fi
 
-echo "Extracting $ARTIFACT to /root/..."
+echo "Extracting $ARTIFACT to /root..."
 # artifact contains top-level 'app' directory
 tar -xzf "$ARTIFACT" -C /root
+
+# preserve existing .env if present
+BACKUP_ENV="/root/.env.deploy_backup"
+if [ -f "$TARGET/.env" ]; then
+  echo "Backing up existing $TARGET/.env to $BACKUP_ENV"
+  cp "$TARGET/.env" "$BACKUP_ENV"
+fi
 
 echo "Moving app -> $TARGET"
 rm -rf "$TARGET"
 mv /root/app "$TARGET"
+# restore preserved .env if we backed one up
+if [ -f "$BACKUP_ENV" ]; then
+  echo "Restoring preserved .env to $TARGET/.env"
+  mv "$BACKUP_ENV" "$TARGET/.env"
+fi
 cd "$TARGET"
 
 # create .env from example if missing
