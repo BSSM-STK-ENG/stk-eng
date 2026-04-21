@@ -101,8 +101,52 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
         return inventoryGateway.findLedgerTransactions().stream().map(transactionMapper::toResponse).toList();
     }
 
-    public List<TransactionResponse> getHistory() {
-        return inventoryGateway.findAllTransactions().stream().map(transactionMapper::toResponse).toList();
+    public java.util.List<com.stk.inventory.dto.InventoryTransactionResponse> getHistory() {
+        return inventoryGateway.findAllTransactions().stream().map(tx -> {
+            com.stk.inventory.dto.MaterialDto materialDto = null;
+            if (tx.getMaterial() != null) {
+                materialDto = new com.stk.inventory.dto.MaterialDto();
+                materialDto.setMaterialCode(tx.getMaterial().getMaterialCode());
+                materialDto.setMaterialName(tx.getMaterial().getMaterialName());
+                materialDto.setDescription(tx.getMaterial().getDescription());
+                materialDto.setLocation(tx.getMaterial().getLocation());
+                materialDto.setSafeStockQty(tx.getMaterial().getSafeStockQty());
+                materialDto.setCurrentStockQty(tx.getMaterial().getCurrentStockQty());
+            }
+
+            com.stk.inventory.dto.UserDto managerUser = null;
+            if (tx.getManagerUser() != null) {
+                managerUser = com.stk.inventory.dto.UserDto.builder()
+                        .id(tx.getManagerUser().getId().toString())
+                        .name(tx.getManagerUser().getName())
+                        .email(tx.getManagerUser().getEmail())
+                        .build();
+            }
+
+            com.stk.inventory.dto.UserDto createdBy = null;
+            if (tx.getCreatedBy() != null) {
+                createdBy = com.stk.inventory.dto.UserDto.builder()
+                        .id(tx.getCreatedBy().getId().toString())
+                        .name(tx.getCreatedBy().getName())
+                        .email(tx.getCreatedBy().getEmail())
+                        .build();
+            }
+
+            return com.stk.inventory.dto.InventoryTransactionResponse.builder()
+                    .id(tx.getId())
+                    .transactionType(tx.getTransactionType())
+                    .material(materialDto)
+                    .quantity(tx.getQuantity())
+                    .transactionDate(tx.getTransactionDate())
+                    .businessUnit(tx.getBusinessUnit())
+                    .manager(tx.getManager())
+                    .managerUser(managerUser)
+                    .note(tx.getNote())
+                    .reference(tx.getReference())
+                    .createdBy(createdBy)
+                    .createdAt(tx.getCreatedAt())
+                    .build();
+        }).toList();
     }
 
     public PagedLedgerResponse getLedgerPaged(String type, String from, String to, String q, String unit, int page, int size) {
