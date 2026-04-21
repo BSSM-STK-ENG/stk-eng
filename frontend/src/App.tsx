@@ -1,6 +1,8 @@
 import React from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
+import ErrorBoundary from './components/ErrorBoundary';
+import Skeleton from './components/Skeleton';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
@@ -80,9 +82,10 @@ function App() {
   return (
     <Router>
       <React.Suspense
-        fallback={<div className="flex h-screen items-center justify-center text-slate-400">Loading...</div>}
+        fallback={<Skeleton />}
       >
-        <Routes>
+        <ErrorBoundary>
+          <Routes>
           <Route
             path="/login"
             element={
@@ -208,6 +211,7 @@ function App() {
             />
           </Route>
         </Routes>
+      </ErrorBoundary>
       </React.Suspense>
     </Router>
   );
