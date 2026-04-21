@@ -221,12 +221,36 @@ public class UserPermissionService {
         if (value == null || value.isBlank()) {
             return permissions;
         }
-        for (String token : value.split(",")) {
-            String trimmed = token.trim();
-            if (trimmed.isBlank()) {
-                continue;
+        String trimmed = value.trim();
+        // If stored as JSON array (e.g. ['DASHBOARD','CURRENT_STOCK']) try parsing first
+        if (trimmed.startsWith("[")) {
+            try {
+                java.util.List<String> tokens = new com.fasterxml.jackson.databind.ObjectMapper()
+                        .readValue(trimmed, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<String>>() {});
+                for (String token : tokens) {
+                    if (token == null || token.isBlank()) continue;
+                    try {
+                        permissions.add(PagePermission.fromKey(token.trim()));
+                    } catch (IllegalArgumentException ex) {
+                        // skip invalid token stored in DB
+                    }
+                }
+                return permissions;
+            } catch (Exception ex) {
+                // fallthrough to legacy CSV parsing
             }
-            permissions.add(PagePermission.fromKey(trimmed));
+        }
+
+        // Legacy CSV or semi-structured values: remove common noise (brackets/quotes) then split
+        String cleaned = trimmed.replaceAll("[\\[\\]\\\"]", "");
+        for (String token : cleaned.split(",")) {
+            String t = token.trim();
+            if (t.isBlank()) continue;
+            try {
+                permissions.add(PagePermission.fromKey(t));
+            } catch (IllegalArgumentException ex) {
+                // skip invalid tokens
+            }
         }
         return permissions;
     }
