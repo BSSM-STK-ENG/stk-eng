@@ -17,6 +17,12 @@ if [ -d frontend/dist ]; then
   cp -a frontend/dist "$APP_DIR/frontend/"
 fi
 
+# ensure we do NOT include a tracked .env file in the artifact
+if [ -f "$APP_DIR/.env" ]; then
+  echo "Removing tracked .env from artifact to avoid overwriting remote runtime .env"
+  rm -f "$APP_DIR/.env"
+fi
+
 # create compressed artifact
 tar -C "$TMP" -czf "$OUT" app
 rm -rf "$TMP"
