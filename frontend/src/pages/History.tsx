@@ -33,13 +33,32 @@ const History = () => {
     });
   };
 
-  const filtered = transactions.filter(
-    (t) =>
-      t.material.materialName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.material.materialCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (t.material.description ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.id.toString().includes(searchTerm),
-  );
+  const normalized = transactions.map((t) => {
+    const material = (t as any).material ?? {
+      materialCode: (t as any).materialCode ?? '',
+      materialName: (t as any).materialName ?? (t as any).materialCode ?? '',
+      description: (t as any).description ?? null,
+      location: (t as any).location ?? null,
+      safeStockQty: (t as any).safeStockQty ?? null,
+      currentStockQty: (t as any).currentStockQty ?? null,
+    };
+    return { ...(t as any), material } as InventoryTransaction;
+  });
+
+  const filtered = normalized.filter((t) => {
+    const q = searchTerm.toLowerCase();
+    const mat = (t as any).material ?? {};
+    const materialName = (mat.materialName ?? (t as any).materialName ?? '').toString().toLowerCase();
+    const materialCode = (mat.materialCode ?? '').toString().toLowerCase();
+    const description = (mat.description ?? '').toString().toLowerCase();
+
+    return (
+      materialName.includes(q) ||
+      materialCode.includes(q) ||
+      description.includes(q) ||
+      t.id.toString().includes(searchTerm)
+    );
+  });
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -113,39 +132,52 @@ const History = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {paged.map((t) => (
-                <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs md:text-sm text-slate-500 font-medium">
-                    {formatAppDateTime(t.createdAt)}
-                  </td>
-                  <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs text-slate-300 font-mono hidden md:table-cell">
-                    #{t.id}
-                  </td>
-                  <td className="px-3 md:px-5 py-3 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider ${isInboundType(t.transactionType) ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}
-                    >
-                      {formatTransactionTypeLabel(t.transactionType)}
-                    </span>
-                  </td>
-                  <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs md:text-sm font-bold text-slate-800">
-                    {t.material.materialCode}
-                  </td>
-                  <td className="px-3 md:px-5 py-3 text-xs md:text-sm text-slate-600 hidden md:table-cell max-w-[250px] truncate">
-                    {t.material.materialName}
-                  </td>
-                  <td className="px-3 md:px-5 py-3 whitespace-nowrap text-right">
-                    <span
-                      className={`text-sm font-extrabold ${isInboundType(t.transactionType) ? 'text-blue-600' : 'text-amber-600'}`}
-                    >
-                      {isInboundType(t.transactionType) ? `+${t.quantity}` : `-${t.quantity}`}
-                    </span>
-                  </td>
-                  <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs text-slate-400 hidden lg:table-cell">
-                    {t.createdBy?.email || 'System'}
-                  </td>
-                </tr>
-              ))}
+              {paged.map((t) => {
+                const material = (t as any).material ?? {
+                  materialCode: (t as any).materialCode ?? '',
+                  materialName: (t as any).materialName ?? (t as any).materialCode ?? '',
+                  description: (t as any).description ?? null,
+                  location: (t as any).location ?? null,
+                  safeStockQty: (t as any).safeStockQty ?? null,
+                  currentStockQty: (t as any).currentStockQty ?? null,
+                };
+                const createdByEmail = (t as any).createdBy?.email ?? (t as any).createdByEmail ?? null;
+                const createdByObj = (t as any).createdBy ?? { email: createdByEmail };
+
+                return (
+                  <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs md:text-sm text-slate-500 font-medium">
+                      {formatAppDateTime(t.createdAt)}
+                    </td>
+                    <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs text-slate-300 font-mono hidden md:table-cell">
+                      #{t.id}
+                    </td>
+                    <td className="px-3 md:px-5 py-3 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider ${isInboundType(t.transactionType) ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}
+                      >
+                        {formatTransactionTypeLabel(t.transactionType)}
+                      </span>
+                    </td>
+                    <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs md:text-sm font-bold text-slate-800">
+                      {material.materialCode}
+                    </td>
+                    <td className="px-3 md:px-5 py-3 text-xs md:text-sm text-slate-600 hidden md:table-cell max-w-[250px] truncate">
+                      {material.materialName}
+                    </td>
+                    <td className="px-3 md:px-5 py-3 whitespace-nowrap text-right">
+                      <span
+                        className={`text-sm font-extrabold ${isInboundType(t.transactionType) ? 'text-blue-600' : 'text-amber-600'}`}
+                      >
+                        {isInboundType(t.transactionType) ? `+${t.quantity}` : `-${t.quantity}`}
+                      </span>
+                    </td>
+                    <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs text-slate-400 hidden lg:table-cell">
+                      {createdByObj?.email || 'System'}
+                    </td>
+                  </tr>
+                );
+              })}
               {paged.length === 0 && !loading && (
                 <tr>
                   <td colSpan={7} className="px-5 py-16 text-center text-sm text-slate-400 font-medium">

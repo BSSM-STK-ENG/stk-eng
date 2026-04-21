@@ -51,3 +51,7 @@ frontend/test-results/
 .env.local
 frontend/.env.local
 !.env.example
+.env
+deploy_artifact.tar.gz
+stk_images.tar
+stk_images_amd64.tar

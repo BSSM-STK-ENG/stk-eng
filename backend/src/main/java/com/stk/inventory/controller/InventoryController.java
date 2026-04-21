@@ -60,7 +60,7 @@ public class InventoryController {
     }
 
     @GetMapping("/history")
-    public ResponseEntity<List<TransactionResponse>> getHistory() {
+    public ResponseEntity<java.util.List<com.stk.inventory.dto.InventoryTransactionResponse>> getHistory() {
         return ResponseEntity.ok(inventoryService.getHistory());
     }
 
