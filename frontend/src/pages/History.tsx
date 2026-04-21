@@ -34,29 +34,29 @@ const History = () => {
   };
 
   const normalized = transactions.map((t) => {
-    const material = (t as any).material ?? {
-      materialCode: (t as any).materialCode ?? '',
-      materialName: (t as any).materialName ?? (t as any).materialCode ?? '',
-      description: (t as any).description ?? null,
-      location: (t as any).location ?? null,
-      safeStockQty: (t as any).safeStockQty ?? null,
-      currentStockQty: (t as any).currentStockQty ?? null,
+    const raw = (t as any) || {};
+    const mat = raw.material ?? null;
+    const material = {
+      materialCode: mat?.materialCode ?? raw.materialCode ?? '',
+      materialName: mat?.materialName ?? raw.materialName ?? raw.materialCode ?? '',
+      description: mat?.description ?? raw.description ?? null,
+      location: mat?.location ?? raw.location ?? null,
+      safeStockQty: mat?.safeStockQty ?? raw.safeStockQty ?? null,
+      currentStockQty: mat?.currentStockQty ?? raw.currentStockQty ?? null,
     };
-    return { ...(t as any), material } as InventoryTransaction;
+    return { ...(raw as any), material } as InventoryTransaction;
   });
 
   const filtered = normalized.filter((t) => {
-    const q = searchTerm.toLowerCase();
+    const q = searchTerm.trim().toLowerCase();
     const mat = (t as any).material ?? {};
-    const materialName = (mat.materialName ?? (t as any).materialName ?? '').toString().toLowerCase();
-    const materialCode = (mat.materialCode ?? '').toString().toLowerCase();
-    const description = (mat.description ?? '').toString().toLowerCase();
+    const materialName = String(mat?.materialName ?? (t as any).materialName ?? '').toLowerCase();
+    const materialCode = String(mat?.materialCode ?? (t as any).materialCode ?? '').toLowerCase();
+    const description = String(mat?.description ?? (t as any).description ?? '').toLowerCase();
 
     return (
-      materialName.includes(q) ||
-      materialCode.includes(q) ||
-      description.includes(q) ||
-      t.id.toString().includes(searchTerm)
+      (q === '' ? true : (materialName.includes(q) || materialCode.includes(q) || description.includes(q))) ||
+      String(t.id).includes(q)
     );
   });
 
@@ -160,10 +160,10 @@ const History = () => {
                       </span>
                     </td>
                     <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs md:text-sm font-bold text-slate-800">
-                      {material.materialCode}
+                      {material?.materialCode ?? ''}
                     </td>
                     <td className="px-3 md:px-5 py-3 text-xs md:text-sm text-slate-600 hidden md:table-cell max-w-[250px] truncate">
-                      {material.materialName}
+                      {material?.materialName ?? ''}
                     </td>
                     <td className="px-3 md:px-5 py-3 whitespace-nowrap text-right">
                       <span
