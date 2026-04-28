@@ -6,8 +6,8 @@ import com.stk.inventory.dto.TransactionResponse;
 import com.stk.inventory.entity.InventoryTransaction;
 import com.stk.inventory.entity.Material;
 import com.stk.inventory.entity.ClosingStatus;
-import com.stk.inventory.entity.MonthlyClosing;
 import com.stk.inventory.entity.TransactionType;
+import com.stk.inventory.mapper.MonthlyClosingMapper;
 import com.stk.inventory.mapper.TransactionMapper;
 import com.stk.inventory.repository.InventoryTransactionRepository;
 import com.stk.inventory.repository.MaterialRepository;
@@ -33,19 +33,22 @@ public class DashboardService {
     private final MonthlyClosingRepository monthlyClosingRepository;
     private final FinanceAccessService financeAccessService;
     private final LowStockService lowStockService;
+    private final MonthlyClosingMapper monthlyClosingMapper;
 
     public DashboardService(MaterialRepository materialRepository,
                             InventoryTransactionRepository transactionRepository,
                             TransactionMapper transactionMapper,
                             MonthlyClosingRepository monthlyClosingRepository,
                             FinanceAccessService financeAccessService,
-                            LowStockService lowStockService) {
+                            LowStockService lowStockService,
+                            MonthlyClosingMapper monthlyClosingMapper) {
         this.materialRepository = materialRepository;
         this.transactionRepository = transactionRepository;
         this.transactionMapper = transactionMapper;
         this.monthlyClosingRepository = monthlyClosingRepository;
         this.financeAccessService = financeAccessService;
         this.lowStockService = lowStockService;
+        this.monthlyClosingMapper = monthlyClosingMapper;
     }
 
     public DashboardSummaryResponse getSummary() {
@@ -124,7 +127,7 @@ public class DashboardService {
         List<MonthlyClosingDto> recentClosings = monthlyClosingRepository.findAllByOrderByClosingMonthDesc().stream()
                 .filter(closing -> closing.getStatus() == ClosingStatus.CLOSED)
                 .limit(6)
-                .map(closing -> toClosingDto(closing, includeFinancials))
+                .map(closing -> monthlyClosingMapper.toDto(closing, includeFinancials))
                 .toList();
 
         return DashboardSummaryResponse.builder()
@@ -144,28 +147,6 @@ public class DashboardService {
             .currentMonthOutboundQty(currentMonthOutQty)
             .recentClosings(recentClosings)
             .build();
-    }
-
-    private MonthlyClosingDto toClosingDto(MonthlyClosing closing, boolean includeFinancials) {
-        MonthlyClosingDto dto = new MonthlyClosingDto();
-        dto.closingMonth = closing.getClosingMonth();
-        dto.status = closing.getStatus();
-        dto.closedAt = closing.getClosedAt();
-        if (closing.getClosedBy() != null) {
-            dto.closedByUserId = closing.getClosedBy().getId();
-            dto.closedByEmail = closing.getClosedBy().getEmail();
-        }
-        dto.totalStockQty = closing.getTotalStockQty();
-        dto.monthlyInboundQty = closing.getMonthlyInboundQty();
-        dto.monthlyOutboundQty = closing.getMonthlyOutboundQty();
-        dto.monthlyOutboundCount = closing.getMonthlyOutboundCount();
-        dto.monthlySoldCount = closing.getMonthlyOutboundCount();
-        if (includeFinancials) {
-            dto.totalPurchaseAmount = closing.getTotalPurchaseAmount();
-            dto.totalRevenueAmount = closing.getTotalRevenueAmount();
-            dto.margin = closing.getMargin();
-        }
-        return dto;
     }
 
     private TransactionResponse redactFinancials(TransactionResponse response) {
