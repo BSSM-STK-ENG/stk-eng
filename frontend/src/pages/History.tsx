@@ -55,7 +55,7 @@ const History = () => {
     const description = String(mat?.description ?? (t as any).description ?? '').toLowerCase();
 
     return (
-      (q === '' ? true : (materialName.includes(q) || materialCode.includes(q) || description.includes(q))) ||
+      (q === '' ? true : materialName.includes(q) || materialCode.includes(q) || description.includes(q)) ||
       String(t.id).includes(q)
     );
   });
@@ -126,6 +126,9 @@ const History = () => {
                 <th className="px-3 md:px-5 py-3 text-right text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   변경수량
                 </th>
+                <th className="px-3 md:px-5 py-3 text-right text-[11px] font-bold text-slate-400 uppercase tracking-wider hidden md:table-cell">
+                  금액
+                </th>
                 <th className="px-3 md:px-5 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider hidden lg:table-cell">
                   변경자
                 </th>
@@ -172,6 +175,9 @@ const History = () => {
                         {isInboundType(t.transactionType) ? `+${t.quantity}` : `-${t.quantity}`}
                       </span>
                     </td>
+                    <td className="px-3 md:px-5 py-3 whitespace-nowrap text-right text-sm font-semibold text-slate-600">
+                      {t.totalAmount != null ? `₩${Math.round(t.totalAmount).toLocaleString()}` : '-'}
+                    </td>
                     <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs text-slate-400 hidden lg:table-cell">
                       {createdByObj?.email || 'System'}
                     </td>
@@ -180,7 +186,7 @@ const History = () => {
               })}
               {paged.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-16 text-center text-sm text-slate-400 font-medium">
+                  <td colSpan={8} className="px-5 py-16 text-center text-sm text-slate-400 font-medium">
                     데이터가 없습니다.
                   </td>
                 </tr>
