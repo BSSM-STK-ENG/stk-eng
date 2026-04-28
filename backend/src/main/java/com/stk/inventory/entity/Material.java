@@ -31,4 +31,10 @@ public class Material {
     // Derived field, computed or updated by a background job / trigger
     @Column(name = "current_stock_qty")
     private Integer currentStockQty;
+
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    private String imageUrl;
+
+    @Column(name = "image_hash")
+    private String imageHash;
 }

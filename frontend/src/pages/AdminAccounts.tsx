@@ -1,5 +1,5 @@
 import { RefreshCw } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
 import type { FlashMessage } from '../components/admin/FlashBanner';
 import { FlashBanner } from '../components/admin/FlashBanner';
@@ -59,29 +59,35 @@ const AdminAccounts = () => {
     permissionPreset: 'VIEWER',
   });
 
-  const setErrorFlash = (title: string, error: unknown) =>
-    setFlash({ kind: 'error', title, description: getErrorMessage(error) });
+  const setErrorFlash = useCallback(
+    (title: string, error: unknown) => setFlash({ kind: 'error', title, description: getErrorMessage(error) }),
+    [],
+  );
 
-  const getDefaultPresetKeyForRole = (role: AdminUserSummary['role'] | AdminCreateUserRequest['role']) =>
-    role === 'ADMIN' ? 'OPERATOR' : 'VIEWER';
+  const getDefaultPresetKeyForRole = useCallback(
+    (role: AdminUserSummary['role'] | AdminCreateUserRequest['role']) => (role === 'ADMIN' ? 'OPERATOR' : 'VIEWER'),
+    [],
+  );
 
-  const getRoleProfiles = () =>
-    (permissionOptions?.roleProfiles ?? []).filter((profile) => profile.baseRole !== 'SUPER_ADMIN');
+  const getRoleProfiles = useCallback(
+    () => (permissionOptions?.roleProfiles ?? []).filter((profile) => profile.baseRole !== 'SUPER_ADMIN'),
+    [permissionOptions?.roleProfiles],
+  );
 
-  const getRoleProfile = (roleProfileKey: string | null | undefined) =>
-    getRoleProfiles().find((profile) => profile.key === roleProfileKey);
+  const getRoleProfile = useCallback(
+    (roleProfileKey: string | null | undefined) => getRoleProfiles().find((profile) => profile.key === roleProfileKey),
+    [getRoleProfiles],
+  );
 
   const managingUser = managingUserId ? (users.find((user) => user.id === managingUserId) ?? null) : null;
 
-  const getDefaultPresetKeyForRoleProfile = (
-    roleProfileKey: string | null | undefined,
-    fallbackRole: AdminUserSummary['role'] | AdminCreateUserRequest['role'],
-  ) => getDefaultPresetKeyForRole(getRoleProfile(roleProfileKey)?.baseRole ?? fallbackRole);
+  const resolvePresetLabel = useCallback(
+    (presetKey: string | null) =>
+      permissionOptions?.presets.find((item) => item.key === presetKey)?.label ?? presetKey ?? '권한 미설정',
+    [permissionOptions?.presets],
+  );
 
-  const resolvePresetLabel = (presetKey: string | null) =>
-    permissionOptions?.presets.find((item) => item.key === presetKey)?.label ?? presetKey ?? '권한 미설정';
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.get<AdminUserSummary[]>('/admin/users');
@@ -92,38 +98,41 @@ const AdminAccounts = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [setErrorFlash]);
 
   useEffect(() => {
     void loadUsers();
-  }, []);
+  }, [loadUsers]);
 
-  const loadPermissionOptions = async (silent = false) => {
-    try {
-      const response = await api.get<AdminPermissionOptionsResponse>('/admin/users/permission-options');
-      setPermissionOptions(response.data);
-      setForm((current) => {
-        const resolvedRoleProfileKey =
-          current.roleProfileKey ??
-          (response.data.roleProfiles ?? []).find((profile) => profile.key === current.role)?.key ??
-          'USER';
-        return {
-          ...current,
-          roleProfileKey: resolvedRoleProfileKey,
-          permissionPreset:
-            current.permissionPreset ?? getDefaultPresetKeyForRoleProfile(resolvedRoleProfileKey, current.role),
-        };
-      });
-      return response.data;
-    } catch (error) {
-      if (!silent) setErrorFlash('권한 프리셋을 불러오지 못했습니다.', error);
-      return null;
-    }
-  };
+  const loadPermissionOptions = useCallback(
+    async (silent = false) => {
+      try {
+        const response = await api.get<AdminPermissionOptionsResponse>('/admin/users/permission-options');
+        setPermissionOptions(response.data);
+        setForm((current) => {
+          const roleProfiles = response.data.roleProfiles ?? [];
+          const resolvedRoleProfileKey =
+            current.roleProfileKey ?? roleProfiles.find((profile) => profile.key === current.role)?.key ?? 'USER';
+          const selectedRoleProfile = roleProfiles.find((profile) => profile.key === resolvedRoleProfileKey);
+          return {
+            ...current,
+            roleProfileKey: resolvedRoleProfileKey,
+            permissionPreset:
+              current.permissionPreset ?? getDefaultPresetKeyForRole(selectedRoleProfile?.baseRole ?? current.role),
+          };
+        });
+        return response.data;
+      } catch (error) {
+        if (!silent) setErrorFlash('권한 프리셋을 불러오지 못했습니다.', error);
+        return null;
+      }
+    },
+    [getDefaultPresetKeyForRole, setErrorFlash],
+  );
 
   useEffect(() => {
     void loadPermissionOptions();
-  }, []);
+  }, [loadPermissionOptions]);
 
   const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

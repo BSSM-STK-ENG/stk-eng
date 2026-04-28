@@ -3,12 +3,27 @@ import { ChevronLeft, ChevronRight, Download, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import api from '../api/axios';
 import AdminSearchField from '../components/common/AdminSearchField';
-import type { InventoryTransaction } from '../types/api';
+import type { InventoryTransaction, Material } from '../types/api';
 import { formatAppDateTime } from '../utils/date-format';
 import { downloadServerExcel } from '../utils/excel';
 import { formatTransactionTypeLabel, isInboundType } from '../utils/inventory-display';
 
 const PAGE_SIZE = 25;
+
+type HistoryTransactionPayload = Omit<InventoryTransaction, 'material'> & {
+  material?: Material | null;
+  materialCode?: string | null;
+  materialName?: string | null;
+  description?: string | null;
+  location?: string | null;
+  safeStockQty?: number | null;
+  currentStockQty?: number | null;
+  createdByEmail?: string | null;
+};
+
+type NormalizedHistoryTransaction = InventoryTransaction & {
+  createdByEmail?: string | null;
+};
 
 const History = () => {
   const queryClient = useQueryClient();
@@ -20,7 +35,7 @@ const History = () => {
     queryKey: ['history'],
     queryFn: async () => {
       const res = await api.get('/inventory/history');
-      return (res.data as InventoryTransaction[]).sort((a, b) => b.id - a.id);
+      return (res.data as HistoryTransactionPayload[]).sort((a, b) => b.id - a.id);
     },
   });
   const errorMsg = queryError ? '데이터를 불러오지 못했습니다.' : null;
@@ -33,29 +48,26 @@ const History = () => {
     });
   };
 
-  const normalized = transactions.map((t) => {
-    const raw = (t as any) || {};
-    const mat = raw.material ?? null;
+  const normalized: NormalizedHistoryTransaction[] = transactions.map((transaction) => {
     const material = {
-      materialCode: mat?.materialCode ?? raw.materialCode ?? '',
-      materialName: mat?.materialName ?? raw.materialName ?? raw.materialCode ?? '',
-      description: mat?.description ?? raw.description ?? null,
-      location: mat?.location ?? raw.location ?? null,
-      safeStockQty: mat?.safeStockQty ?? raw.safeStockQty ?? null,
-      currentStockQty: mat?.currentStockQty ?? raw.currentStockQty ?? null,
+      materialCode: transaction.material?.materialCode ?? transaction.materialCode ?? '',
+      materialName: transaction.material?.materialName ?? transaction.materialName ?? transaction.materialCode ?? '',
+      description: transaction.material?.description ?? transaction.description ?? null,
+      location: transaction.material?.location ?? transaction.location ?? null,
+      safeStockQty: transaction.material?.safeStockQty ?? transaction.safeStockQty ?? null,
+      currentStockQty: transaction.material?.currentStockQty ?? transaction.currentStockQty ?? null,
     };
-    return { ...(raw as any), material } as InventoryTransaction;
+    return { ...transaction, material };
   });
 
   const filtered = normalized.filter((t) => {
     const q = searchTerm.trim().toLowerCase();
-    const mat = (t as any).material ?? {};
-    const materialName = String(mat?.materialName ?? (t as any).materialName ?? '').toLowerCase();
-    const materialCode = String(mat?.materialCode ?? (t as any).materialCode ?? '').toLowerCase();
-    const description = String(mat?.description ?? (t as any).description ?? '').toLowerCase();
+    const materialName = t.material.materialName.toLowerCase();
+    const materialCode = t.material.materialCode.toLowerCase();
+    const description = String(t.material.description ?? '').toLowerCase();
 
     return (
-      (q === '' ? true : (materialName.includes(q) || materialCode.includes(q) || description.includes(q))) ||
+      (q === '' ? true : materialName.includes(q) || materialCode.includes(q) || description.includes(q)) ||
       String(t.id).includes(q)
     );
   });
@@ -126,6 +138,9 @@ const History = () => {
                 <th className="px-3 md:px-5 py-3 text-right text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   변경수량
                 </th>
+                <th className="px-3 md:px-5 py-3 text-right text-[11px] font-bold text-slate-400 uppercase tracking-wider hidden md:table-cell">
+                  금액
+                </th>
                 <th className="px-3 md:px-5 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider hidden lg:table-cell">
                   변경자
                 </th>
@@ -133,16 +148,8 @@ const History = () => {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {paged.map((t) => {
-                const material = (t as any).material ?? {
-                  materialCode: (t as any).materialCode ?? '',
-                  materialName: (t as any).materialName ?? (t as any).materialCode ?? '',
-                  description: (t as any).description ?? null,
-                  location: (t as any).location ?? null,
-                  safeStockQty: (t as any).safeStockQty ?? null,
-                  currentStockQty: (t as any).currentStockQty ?? null,
-                };
-                const createdByEmail = (t as any).createdBy?.email ?? (t as any).createdByEmail ?? null;
-                const createdByObj = (t as any).createdBy ?? { email: createdByEmail };
+                const material = t.material;
+                const createdByEmail = t.createdBy?.email ?? t.createdByEmail ?? null;
 
                 return (
                   <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
@@ -172,15 +179,18 @@ const History = () => {
                         {isInboundType(t.transactionType) ? `+${t.quantity}` : `-${t.quantity}`}
                       </span>
                     </td>
+                    <td className="px-3 md:px-5 py-3 whitespace-nowrap text-right text-sm font-semibold text-slate-600">
+                      {t.totalAmount != null ? `₩${Math.round(t.totalAmount).toLocaleString()}` : '-'}
+                    </td>
                     <td className="px-3 md:px-5 py-3 whitespace-nowrap text-xs text-slate-400 hidden lg:table-cell">
-                      {createdByObj?.email || 'System'}
+                      {createdByEmail || 'System'}
                     </td>
                   </tr>
                 );
               })}
               {paged.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-16 text-center text-sm text-slate-400 font-medium">
+                  <td colSpan={8} className="px-5 py-16 text-center text-sm text-slate-400 font-medium">
                     데이터가 없습니다.
                   </td>
                 </tr>

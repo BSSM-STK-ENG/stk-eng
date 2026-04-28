@@ -53,8 +53,11 @@ export function RoleProfilesPanel({
           <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
               <div>
-                <label className="mb-2 block text-xs font-semibold text-slate-600">역할 이름</label>
+                <label htmlFor="role-profile-label" className="mb-2 block text-xs font-semibold text-slate-600">
+                  역할 이름
+                </label>
                 <input
+                  id="role-profile-label"
                   type="text"
                   value={roleProfileForm.label}
                   onChange={(event) => onRoleProfileFormChange({ ...roleProfileForm, label: event.target.value })}
@@ -63,8 +66,11 @@ export function RoleProfilesPanel({
                 />
               </div>
               <div>
-                <label className="mb-2 block text-xs font-semibold text-slate-600">기준 권한</label>
+                <label htmlFor="role-profile-base-role" className="mb-2 block text-xs font-semibold text-slate-600">
+                  기준 권한
+                </label>
                 <select
+                  id="role-profile-base-role"
                   value={roleProfileForm.baseRole}
                   onChange={(event) =>
                     onRoleProfileFormChange({
@@ -83,8 +89,11 @@ export function RoleProfilesPanel({
               </div>
             </div>
             <div className="mt-3">
-              <label className="mb-2 block text-xs font-semibold text-slate-600">설명</label>
+              <label htmlFor="role-profile-description" className="mb-2 block text-xs font-semibold text-slate-600">
+                설명
+              </label>
               <input
+                id="role-profile-description"
                 type="text"
                 value={roleProfileForm.description ?? ''}
                 onChange={(event) => onRoleProfileFormChange({ ...roleProfileForm, description: event.target.value })}

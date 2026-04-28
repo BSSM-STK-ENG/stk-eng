@@ -10,4 +10,5 @@ public class MaterialDto {
     private String location;
     private Integer safeStockQty;
     private Integer currentStockQty;
+    private String imageUrl;
 }

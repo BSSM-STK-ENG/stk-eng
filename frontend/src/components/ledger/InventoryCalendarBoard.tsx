@@ -11,7 +11,7 @@ import {
   TrendingUp,
   X,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../api/axios';
 import type {
@@ -459,7 +459,7 @@ const InventoryCalendarBoard = ({
   const [isWideDetailLayout, setIsWideDetailLayout] = useState<boolean>(supportsWideDetailLayout);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState<boolean>(false);
 
-  const fetchCalendar = async (targetMonth: string, refreshMode = false) => {
+  const fetchCalendar = useCallback(async (targetMonth: string, refreshMode = false) => {
     if (refreshMode) {
       setRefreshing(true);
     } else {
@@ -496,11 +496,11 @@ const InventoryCalendarBoard = ({
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchCalendar(month);
-  }, [month]);
+  }, [fetchCalendar, month]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {

@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Download,
   FileSpreadsheet,
+  ImagePlus,
   PencilLine,
   Plus,
   RefreshCw,
@@ -20,6 +21,7 @@ import { useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import { queryKeys, useBusinessUnits, useMaterials, usePagedLedger } from '../api/queries';
 import AdminSearchField from '../components/common/AdminSearchField';
+import MaterialImagePickerModal from '../components/inventory/MaterialImagePickerModal';
 import MaterialLookupField from '../components/inventory/MaterialLookupField';
 import { buildMaterialLookupLabel } from '../components/inventory/material-lookup-utils';
 import type { TransactionResponse } from '../types/api';
@@ -69,10 +71,12 @@ const Inbound = () => {
   const [materialCode, setMaterialCode] = useState<string>('');
   const [materialQuery, setMaterialQuery] = useState<string>('');
   const [quantity, setQuantity] = useState<string>('');
+  const [unitPrice, setUnitPrice] = useState<string>('');
   const [businessUnit, setBusinessUnit] = useState<string>('');
   const [note, setNote] = useState<string>('');
   const [submitLoading, setSubmitLoading] = useState<boolean>(false);
   const [locationDraft, setLocationDraft] = useState<string>('');
+  const [showImagePicker, setShowImagePicker] = useState<boolean>(false);
 
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
@@ -147,21 +151,29 @@ const Inbound = () => {
 
   useEffect(() => {
     setLocationDraft(resolvedMaterial?.location ?? '');
-  }, [resolvedMaterial?.materialCode, resolvedMaterial?.location]);
+  }, [resolvedMaterial?.location]);
 
   const resetForm = () => {
     setMaterialCode('');
     setMaterialQuery('');
     setQuantity('');
+    setUnitPrice('');
     setBusinessUnit('');
     setNote('');
     setLocationDraft('');
     setEditingTransaction(null);
+    setShowImagePicker(false);
   };
 
   const closeModal = () => {
     setShowModal(false);
     resetForm();
+  };
+
+  const closeUploadModal = () => {
+    setShowUploadModal(false);
+    setUploadFile(null);
+    setUploadDragActive(false);
   };
 
   const openNew = () => {
@@ -280,6 +292,7 @@ const Inbound = () => {
       const payload = {
         materialCode: selectedMaterial.materialCode,
         quantity: parsedQuantity,
+        unitPrice: unitPrice ? Number(unitPrice) : 0,
         businessUnit: normalizedBusinessUnit,
         note: note.trim() || undefined,
       };
@@ -472,7 +485,7 @@ const Inbound = () => {
             return (
               <article
                 key={transaction.id}
-                className="grid items-center gap-4 px-4 py-4 md:grid-cols-[minmax(0,1.45fr)_112px_132px_264px] md:px-5"
+                className="grid items-center gap-4 px-4 py-4 md:grid-cols-[minmax(0,1.45fr)_112px_112px_132px_264px] md:px-5"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-slate-900">
@@ -488,6 +501,14 @@ const Inbound = () => {
                 <div className="rounded-lg bg-slate-50 px-3 py-3 text-center">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">수량</p>
                   <p className="mt-1 text-lg font-semibold text-blue-600">+{transaction.quantity} EA</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 px-3 py-3 text-center">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">금액</p>
+                  <p className="mt-1 text-sm font-medium text-slate-700">
+                    {(transaction.unitPrice ?? 0) > 0
+                      ? '₩' + Math.round(transaction.totalAmount ?? 0).toLocaleString()
+                      : '-'}
+                  </p>
                 </div>
                 <div className="rounded-lg bg-slate-50 px-3 py-3 text-center">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">등록자</p>
@@ -546,6 +567,7 @@ const Inbound = () => {
             </span>
             <div className="flex gap-1">
               <button
+                type="button"
                 onClick={() => setPage((current) => Math.max(0, current - 1))}
                 disabled={page === 0}
                 className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
@@ -553,6 +575,7 @@ const Inbound = () => {
                 <ChevronLeft size={14} />
               </button>
               <button
+                type="button"
                 onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
                 disabled={page >= totalPages - 1}
                 className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
@@ -587,18 +610,38 @@ const Inbound = () => {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">자재</label>
-                  <MaterialLookupField
-                    materials={materials}
-                    accent="blue"
-                    inputValue={materialQuery}
-                    selectedCode={materialCode}
-                    onInputValueChange={setMaterialQuery}
-                    onSelectionChange={(material) => {
-                      setMaterialCode(material?.materialCode ?? '');
-                      setLocationDraft(material?.location ?? '');
-                    }}
-                  />
+                  <p className="mb-2 text-sm font-semibold text-slate-700">자재</p>
+                  <div className="space-y-2">
+                    <MaterialLookupField
+                      materials={materials}
+                      accent="blue"
+                      inputValue={materialQuery}
+                      selectedCode={materialCode}
+                      onInputValueChange={setMaterialQuery}
+                      onSelectionChange={(material) => {
+                        setMaterialCode(material?.materialCode ?? '');
+                        setLocationDraft(material?.location ?? '');
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowImagePicker(true)}
+                      className="chat-focus-ring group flex w-full items-center gap-3 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-slate-50 p-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
+                    >
+                      <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-600/20 transition group-hover:bg-blue-700">
+                        <ImagePlus size={20} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-bold text-slate-900">사진으로 자재 찾기</span>
+                        <span className="mt-0.5 block text-xs leading-5 text-slate-500">
+                          자재명을 몰라도 사진을 올려 썸네일을 보고 바로 선택합니다.
+                        </span>
+                      </span>
+                      <span className="hidden rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-blue-700 ring-1 ring-blue-100 sm:inline-flex">
+                        빠른 검색
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
                 {resolvedMaterial && (
@@ -636,8 +679,11 @@ const Inbound = () => {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">보관 위치</label>
+                    <label htmlFor="inbound-location" className="mb-2 block text-sm font-semibold text-slate-700">
+                      보관 위치
+                    </label>
                     <input
+                      id="inbound-location"
                       type="text"
                       value={locationDraft}
                       onChange={(event) => setLocationDraft(event.target.value)}
@@ -648,8 +694,11 @@ const Inbound = () => {
                     <p className="mt-2 text-xs text-slate-400">필요하면 여기서 자재 위치를 함께 수정합니다.</p>
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">수량</label>
+                    <label htmlFor="inbound-quantity" className="mb-2 block text-sm font-semibold text-slate-700">
+                      수량
+                    </label>
                     <input
+                      id="inbound-quantity"
                       type="number"
                       required
                       min="1"
@@ -660,9 +709,28 @@ const Inbound = () => {
                     />
                   </div>
 
+                  <div>
+                    <label htmlFor="inbound-unit-price" className="mb-1 block text-xs font-semibold text-slate-600">
+                      단가 (원)
+                    </label>
+                    <input
+                      id="inbound-unit-price"
+                      type="number"
+                      value={unitPrice}
+                      onChange={(e) => setUnitPrice(e.target.value)}
+                      min="0"
+                      step="1"
+                      className="admin-control w-full"
+                      placeholder="0"
+                    />
+                  </div>
+
                   <div className="md:col-span-2">
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">사업장</label>
+                    <label htmlFor="inbound-business-unit" className="mb-2 block text-sm font-semibold text-slate-700">
+                      사업장
+                    </label>
                     <select
+                      id="inbound-business-unit"
                       required
                       value={businessUnit}
                       onChange={(event) => setBusinessUnit(event.target.value)}
@@ -684,8 +752,11 @@ const Inbound = () => {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">비고</label>
+                  <label htmlFor="inbound-note" className="mb-2 block text-sm font-semibold text-slate-700">
+                    비고
+                  </label>
                   <textarea
+                    id="inbound-note"
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
                     rows={3}
@@ -713,6 +784,18 @@ const Inbound = () => {
                   </button>
                 </div>
               </form>
+              <MaterialImagePickerModal
+                open={showImagePicker}
+                title="입고할 자재를 이미지로 찾기"
+                allowedMaterials={materials}
+                onClose={() => setShowImagePicker(false)}
+                onSelect={(material) => {
+                  setMaterialCode(material.materialCode);
+                  setMaterialQuery(buildMaterialLookupLabel(material));
+                  setLocationDraft(material.location ?? '');
+                  setShowImagePicker(false);
+                }}
+              />
             </div>
           </div>,
           document.body,
@@ -730,7 +813,7 @@ const Inbound = () => {
                 <button
                   type="button"
                   aria-label="닫기"
-                  onClick={() => setShowUploadModal(false)}
+                  onClick={closeUploadModal}
                   className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100"
                 >
                   <X size={18} />
@@ -754,7 +837,8 @@ const Inbound = () => {
                 </span>
               </div>
               <form onSubmit={handleFileUpload} className="space-y-4">
-                <div
+                <fieldset
+                  aria-label="입고 파일 업로드 영역"
                   className={`rounded-xl border-2 border-dashed p-6 text-center transition-colors ${
                     uploadDragActive
                       ? 'border-emerald-400 bg-emerald-50/70'
@@ -793,11 +877,11 @@ const Inbound = () => {
                     className="w-full cursor-pointer text-xs text-slate-500 file:mr-3 file:rounded-full file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-emerald-600 hover:file:bg-emerald-100"
                   />
                   {uploadFile && <p className="mt-2 text-xs font-bold text-emerald-600">{uploadFile.name}</p>}
-                </div>
+                </fieldset>
                 <div className="flex justify-end gap-2.5 border-t border-slate-100 pt-3">
                   <button
                     type="button"
-                    onClick={() => setShowUploadModal(false)}
+                    onClick={closeUploadModal}
                     className="inline-flex h-9 items-center rounded-lg px-3.5 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50"
                   >
                     <X size={14} className="mr-1.5" />

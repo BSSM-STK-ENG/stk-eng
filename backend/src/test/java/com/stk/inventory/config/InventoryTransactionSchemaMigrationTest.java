@@ -16,6 +16,7 @@ class InventoryTransactionSchemaMigrationTest {
         when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class)))
                 .thenReturn(true)
                 .thenReturn(false)
+                .thenReturn(false)
                 .thenReturn(false);
 
         InventoryTransactionSchemaMigration migration = new InventoryTransactionSchemaMigration(jdbcTemplate);
@@ -30,6 +31,10 @@ class InventoryTransactionSchemaMigrationTest {
         verify(jdbcTemplate).execute("UPDATE inventory_transactions SET system_generated = false WHERE system_generated IS NULL");
         verify(jdbcTemplate).execute("ALTER TABLE inventory_transactions ALTER COLUMN system_generated SET DEFAULT false");
         verify(jdbcTemplate).execute("ALTER TABLE inventory_transactions ALTER COLUMN system_generated SET NOT NULL");
+        verify(jdbcTemplate).execute("ALTER TABLE inventory_transactions ADD COLUMN unit_price numeric(19,2)");
+        verify(jdbcTemplate).execute("UPDATE inventory_transactions SET unit_price = 0 WHERE unit_price IS NULL");
+        verify(jdbcTemplate).execute("ALTER TABLE inventory_transactions ALTER COLUMN unit_price SET DEFAULT 0");
+        verify(jdbcTemplate).execute("ALTER TABLE inventory_transactions ALTER COLUMN unit_price SET NOT NULL");
     }
 
     @Test

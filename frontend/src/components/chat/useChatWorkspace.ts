@@ -8,6 +8,7 @@ import {
   saveAiPreferences,
   saveChatCredential,
   sendChatMessage,
+  sendQuickSearch,
   testChatCredential,
 } from '../../api/chat';
 import type {
@@ -19,6 +20,7 @@ import type {
   ProviderCredential,
   ProviderDescriptor,
   ProviderType,
+  QuickSearchResult,
 } from '../../types/chat';
 import { DEFAULT_PROVIDER_CATALOG, getFallbackProvider, getFallbackProviderModels } from './chatDefaults';
 
@@ -124,7 +126,12 @@ export type ChatWorkspaceState = {
   composerValue: string;
   requestState: RequestState;
   credentialTestResult: CredentialConnectionTestResponse | null;
+  quickSearchQuery: string;
+  quickSearchResults: QuickSearchResult | null;
+  quickSearchLoading: boolean;
+  quickSearchError: string | null;
   setComposerValue: (value: string) => void;
+  setQuickSearchQuery: (value: string) => void;
   refreshMetadata: () => Promise<void>;
   testCredential: (
     payload: SettingsPayload,
@@ -138,6 +145,8 @@ export type ChatWorkspaceState = {
   applySettings: (payload: SettingsPayload) => Promise<AiPreferences | null>;
   removeCredential: (provider: ProviderType) => Promise<void>;
   clearNotices: () => void;
+  executeQuickSearch: (query?: string) => Promise<void>;
+  clearQuickSearch: () => void;
 };
 
 export function useChatWorkspace(): ChatWorkspaceState {
@@ -153,6 +162,11 @@ export function useChatWorkspace(): ChatWorkspaceState {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [composerValue, setComposerValue] = useState('');
   const [credentialTestResult, setCredentialTestResult] = useState<CredentialConnectionTestResponse | null>(null);
+  const [quickSearchQuery, setQuickSearchQuery] = useState('');
+  const [quickSearchResults, setQuickSearchResults] = useState<QuickSearchResult | null>(null);
+  const [quickSearchLoading, setQuickSearchLoading] = useState(false);
+  const [quickSearchError, setQuickSearchError] = useState<string | null>(null);
+  const quickSearchAbortRef = useRef<AbortController | null>(null);
   const [requestState, setRequestState] = useState<RequestState>({
     bootstrapping: true,
     sendingMessage: false,
@@ -331,6 +345,48 @@ export function useChatWorkspace(): ChatWorkspaceState {
     }));
   }, []);
 
+  const executeQuickSearch = useCallback(
+    async (query?: string) => {
+      const searchTerm = (query ?? quickSearchQuery).trim();
+      if (!searchTerm) {
+        return;
+      }
+
+      quickSearchAbortRef.current?.abort();
+      const controller = new AbortController();
+      quickSearchAbortRef.current = controller;
+
+      setQuickSearchLoading(true);
+      setQuickSearchError(null);
+
+      try {
+        const result = await sendQuickSearch(searchTerm, controller.signal);
+        if (!result) {
+          throw new Error('검색 결과를 불러오지 못했습니다.');
+        }
+        setQuickSearchResults(result);
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        setQuickSearchError(error instanceof Error ? error.message : '검색에 실패했습니다.');
+      } finally {
+        setQuickSearchLoading(false);
+        quickSearchAbortRef.current = null;
+      }
+    },
+    [quickSearchQuery],
+  );
+
+  const clearQuickSearch = useCallback(() => {
+    quickSearchAbortRef.current?.abort();
+    quickSearchAbortRef.current = null;
+    setQuickSearchQuery('');
+    setQuickSearchResults(null);
+    setQuickSearchError(null);
+    setQuickSearchLoading(false);
+  }, []);
+
   const resetConversation = useCallback((infoMessage = '대화를 초기화했습니다.') => {
     abortRef.current?.abort();
     abortRef.current = null;
@@ -457,7 +513,12 @@ export function useChatWorkspace(): ChatWorkspaceState {
     composerValue,
     requestState,
     credentialTestResult,
+    quickSearchQuery,
+    quickSearchResults,
+    quickSearchLoading,
+    quickSearchError,
     setComposerValue,
+    setQuickSearchQuery,
     refreshMetadata,
     testCredential,
     sendMessage,
@@ -466,5 +527,7 @@ export function useChatWorkspace(): ChatWorkspaceState {
     applySettings,
     removeCredential,
     clearNotices,
+    executeQuickSearch,
+    clearQuickSearch,
   };
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 
 const Skeleton: React.FC = () => (
   <div className="flex h-screen items-center justify-center text-slate-400">

@@ -4,6 +4,7 @@ import com.stk.inventory.entity.TransactionType;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -27,4 +28,6 @@ public class TransactionResponse {
     private UUID revertedByUserId;
     private LocalDateTime revertedAt;
     private LocalDateTime createdAt;
+    private BigDecimal unitPrice;
+    private BigDecimal totalAmount;
 }
