@@ -184,11 +184,18 @@ const Outbound = () => {
     setManagerUserId('');
     setNote('');
     setEditingTransaction(null);
+    setShowImagePicker(false);
   };
 
   const closeModal = () => {
     setShowModal(false);
     resetForm();
+  };
+
+  const closeUploadModal = () => {
+    setShowUploadModal(false);
+    setUploadFile(null);
+    setUploadDragActive(false);
   };
 
   const openNew = () => {
@@ -619,7 +626,7 @@ const Outbound = () => {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">자재</label>
+                  <p className="mb-2 text-sm font-semibold text-slate-700">자재</p>
                   <div className="space-y-2">
                     <MaterialLookupField
                       materials={availableMaterials}
@@ -699,8 +706,11 @@ const Outbound = () => {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">수량</label>
+                    <label htmlFor="outbound-quantity" className="mb-2 block text-sm font-semibold text-slate-700">
+                      수량
+                    </label>
                     <input
+                      id="outbound-quantity"
                       type="number"
                       required
                       min="1"
@@ -712,8 +722,11 @@ const Outbound = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">단가 (원)</label>
+                    <label htmlFor="outbound-unit-price" className="mb-1 block text-xs font-semibold text-slate-600">
+                      단가 (원)
+                    </label>
                     <input
+                      id="outbound-unit-price"
                       type="number"
                       value={unitPrice}
                       onChange={(e) => setUnitPrice(e.target.value)}
@@ -725,8 +738,11 @@ const Outbound = () => {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">사업장</label>
+                    <label htmlFor="outbound-business-unit" className="mb-2 block text-sm font-semibold text-slate-700">
+                      사업장
+                    </label>
                     <select
+                      id="outbound-business-unit"
                       required
                       value={businessUnit}
                       onChange={(event) => setBusinessUnit(event.target.value)}
@@ -749,8 +765,11 @@ const Outbound = () => {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">출고 담당자</label>
+                    <label htmlFor="outbound-manager" className="mb-2 block text-sm font-semibold text-slate-700">
+                      출고 담당자
+                    </label>
                     <select
+                      id="outbound-manager"
                       required
                       value={managerUserId}
                       onChange={(event) => setManagerUserId(event.target.value)}
@@ -771,8 +790,11 @@ const Outbound = () => {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">비고</label>
+                    <label htmlFor="outbound-note" className="mb-2 block text-sm font-semibold text-slate-700">
+                      비고
+                    </label>
                     <textarea
+                      id="outbound-note"
                       value={note}
                       onChange={(event) => setNote(event.target.value)}
                       rows={3}
@@ -831,7 +853,7 @@ const Outbound = () => {
                 <button
                   type="button"
                   aria-label="닫기"
-                  onClick={() => setShowUploadModal(false)}
+                  onClick={closeUploadModal}
                   className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100"
                 >
                   <X size={18} />
@@ -855,7 +877,8 @@ const Outbound = () => {
                 </span>
               </div>
               <form onSubmit={handleFileUpload} className="space-y-4">
-                <div
+                <fieldset
+                  aria-label="출고 파일 업로드 영역"
                   className={`rounded-xl border-2 border-dashed p-6 text-center transition-colors ${
                     uploadDragActive
                       ? 'border-emerald-400 bg-emerald-50/70'
@@ -894,11 +917,11 @@ const Outbound = () => {
                     className="w-full cursor-pointer text-xs text-slate-500 file:mr-3 file:rounded-full file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-emerald-600 hover:file:bg-emerald-100"
                   />
                   {uploadFile && <p className="mt-2 text-xs font-bold text-emerald-600">{uploadFile.name}</p>}
-                </div>
+                </fieldset>
                 <div className="flex justify-end gap-2.5 border-t border-slate-100 pt-3">
                   <button
                     type="button"
-                    onClick={() => setShowUploadModal(false)}
+                    onClick={closeUploadModal}
                     className="inline-flex h-9 items-center rounded-lg px-3.5 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50"
                   >
                     <X size={14} className="mr-1.5" />
