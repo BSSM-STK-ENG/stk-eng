@@ -285,4 +285,69 @@ describe('useChatWorkspace', () => {
     expect(result.current.quickSearchResults?.materials[0]?.materialCode).toBe('MAT-001');
     expect(result.current.quickSearchLoading).toBe(false);
   });
+
+  it('keeps stale quick search completions from overwriting the active search', async () => {
+    let resolveFirst: ((value: Awaited<ReturnType<typeof apiMocks.sendQuickSearch>>) => void) | undefined;
+    apiMocks.sendQuickSearch
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveFirst = resolve;
+        }),
+      )
+      .mockResolvedValueOnce({
+        query: 'second',
+        materials: [
+          {
+            materialCode: 'MAT-002',
+            materialName: 'Second Bolt',
+            description: null,
+            location: null,
+            safeStockQty: 1,
+            currentStockQty: 5,
+          },
+        ],
+        recentTransactions: [],
+        currentClosing: null,
+      });
+    const { result } = renderHook(() => useChatWorkspace());
+
+    await waitFor(() => {
+      expect(result.current.requestState.bootstrapping).toBe(false);
+    });
+
+    void act(() => {
+      void result.current.executeQuickSearch('first');
+    });
+    await act(async () => {
+      await result.current.executeQuickSearch('second');
+    });
+
+    expect(result.current.quickSearchQuery).toBe('second');
+    expect(result.current.quickSearchResults?.materials[0]?.materialCode).toBe('MAT-002');
+    expect(result.current.quickSearchError).toBeNull();
+    expect(result.current.quickSearchLoading).toBe(false);
+
+    await act(async () => {
+      resolveFirst?.({
+        query: 'first',
+        materials: [
+          {
+            materialCode: 'MAT-001',
+            materialName: 'First Bolt',
+            description: null,
+            location: null,
+            safeStockQty: 1,
+            currentStockQty: 1,
+          },
+        ],
+        recentTransactions: [],
+        currentClosing: null,
+      });
+    });
+
+    expect(result.current.quickSearchQuery).toBe('second');
+    expect(result.current.quickSearchResults?.materials[0]?.materialCode).toBe('MAT-002');
+    expect(result.current.quickSearchError).toBeNull();
+    expect(result.current.quickSearchLoading).toBe(false);
+  });
 });

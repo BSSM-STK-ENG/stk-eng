@@ -931,7 +931,13 @@ function Composer({
           setCommandFilter('');
           return;
         }
-        if (trimmed === '/search' || trimmed.startsWith('/search ')) {
+        if (trimmed === '/search') {
+          onCommand(trimmed);
+          setShowCommands(false);
+          setCommandFilter('');
+          return;
+        }
+        if (trimmed.startsWith('/search ')) {
           onCommand(trimmed);
           onChange('');
           setShowCommands(false);
@@ -1206,6 +1212,8 @@ function ChatPanelView({
         workspace.setComposerValue(
           '/help — 사용 가능한 명령어:\n/search <검색어> — 빠른 검색\n/stock — 재고 현황\n/inbound — 입고 현황\n/outbound — 출고 현황\n/close — 월마감 확인',
         );
+      } else if (command === '/search') {
+        searchInputRef.current?.focus();
       } else if (command.startsWith('/search ')) {
         const query = command.replace('/search ', '').trim();
         if (query) {

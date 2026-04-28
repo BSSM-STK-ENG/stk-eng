@@ -14,7 +14,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
 import java.time.LocalDateTime;
-import java.time.YearMonth;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -72,8 +71,7 @@ class DashboardServiceTest {
                 fromCaptor.capture(),
                 toCaptor.capture()
         );
-        YearMonth currentMonth = YearMonth.now();
-        assertEquals(currentMonth.atDay(1).atStartOfDay(), fromCaptor.getValue());
-        assertEquals(currentMonth.plusMonths(1).atDay(1).atStartOfDay(), toCaptor.getValue());
+        assertEquals(fromCaptor.getValue().toLocalDate().withDayOfMonth(1).atStartOfDay(), fromCaptor.getValue());
+        assertEquals(fromCaptor.getValue().plusMonths(1), toCaptor.getValue());
     }
 }

@@ -182,10 +182,8 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
                     .reference(tx.getReference())
                     .createdBy(createdBy)
                     .createdAt(tx.getCreatedAt())
-                    .unitPrice(includeFinancials ? tx.getUnitPrice() : null)
-                    .totalAmount(includeFinancials
-                            ? (tx.getUnitPrice() == null ? BigDecimal.ZERO : tx.getUnitPrice()).multiply(BigDecimal.valueOf(tx.getQuantity()))
-                            : null)
+                    .unitPrice(transactionMapper.financialUnitPrice(tx, includeFinancials))
+                    .totalAmount(transactionMapper.financialTotalAmount(tx, includeFinancials))
                     .build();
         }).toList();
     }
@@ -228,7 +226,7 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
     }
 
     private boolean canViewFinancials() {
-        return financeAccessService == null || financeAccessService.canViewFinancialSummaries();
+        return financeAccessService != null && financeAccessService.canViewFinancialSummaries();
     }
 
     @Transactional

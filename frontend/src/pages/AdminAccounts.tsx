@@ -115,20 +115,22 @@ const AdminAccounts = () => {
           const fallbackRoleProfile =
             roleProfiles.find((profile) => profile.key === current.role) ??
             roleProfiles.find((profile) => profile.baseRole === current.role) ??
-            roleProfiles.find((profile) => profile.key === 'USER');
+            roleProfiles[0];
           const resolvedRoleProfileKey =
-            roleProfiles.find((profile) => profile.key === current.roleProfileKey)?.key ??
-            fallbackRoleProfile?.key ??
-            'USER';
+            roleProfiles.find((profile) => profile.key === current.roleProfileKey)?.key ?? fallbackRoleProfile?.key;
           const selectedRoleProfile = roleProfiles.find((profile) => profile.key === resolvedRoleProfileKey);
-          const fallbackPresetKey = getDefaultPresetKeyForRole(selectedRoleProfile?.baseRole ?? current.role);
+          const defaultPresetKey = getDefaultPresetKeyForRole(selectedRoleProfile?.baseRole ?? current.role);
+          const fallbackPresetKey =
+            presets.find((preset) => preset.key === defaultPresetKey)?.key ??
+            presets[0]?.key ??
+            current.permissionPreset;
           const resolvedPresetKey = presets.some((preset) => preset.key === current.permissionPreset)
             ? current.permissionPreset
             : fallbackPresetKey;
           return {
             ...current,
             role: (selectedRoleProfile?.baseRole ?? current.role) as Exclude<Role, 'SUPER_ADMIN'>,
-            roleProfileKey: resolvedRoleProfileKey,
+            roleProfileKey: resolvedRoleProfileKey ?? current.roleProfileKey,
             permissionPreset: resolvedPresetKey,
           };
         });

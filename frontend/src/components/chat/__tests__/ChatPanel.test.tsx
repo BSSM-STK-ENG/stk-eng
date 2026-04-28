@@ -214,7 +214,7 @@ describe('ChatPanel', () => {
     expect(workspace.sendMessage).not.toHaveBeenCalled();
   });
 
-  it('does not send bare slash search as a chat message', async () => {
+  it('focuses quick search without sending bare slash search as chat', async () => {
     const user = userEvent.setup();
     const workspace = createWorkspace();
     workspace.composerValue = '/search';
@@ -229,5 +229,6 @@ describe('ChatPanel', () => {
 
     expect(workspace.executeQuickSearch).not.toHaveBeenCalled();
     expect(workspace.sendMessage).not.toHaveBeenCalled();
+    expect(screen.getByPlaceholderText('자재명, 코드, 거래내역 검색...')).toHaveFocus();
   });
 });

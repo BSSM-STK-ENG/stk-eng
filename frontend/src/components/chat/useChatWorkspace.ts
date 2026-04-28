@@ -361,6 +361,7 @@ export function useChatWorkspace(): ChatWorkspaceState {
 
       setQuickSearchLoading(true);
       setQuickSearchError(null);
+      setQuickSearchResults(null);
 
       try {
         const result = await sendQuickSearch(searchTerm, controller.signal);
