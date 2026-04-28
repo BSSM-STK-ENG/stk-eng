@@ -28,6 +28,7 @@ public class InventoryTransactionSchemaMigration implements ApplicationRunner {
 
         ensureBooleanColumn("reverted");
         ensureBooleanColumn("system_generated");
+        ensureUnitPriceColumn();
     }
 
     private boolean inventoryTransactionsTableExists() {
@@ -72,5 +73,15 @@ public class InventoryTransactionSchemaMigration implements ApplicationRunner {
                 columnName
         );
         return Boolean.TRUE.equals(exists);
+    }
+
+    private void ensureUnitPriceColumn() {
+        if (!hasColumn("unit_price")) {
+            jdbcTemplate.execute("ALTER TABLE inventory_transactions ADD COLUMN unit_price numeric(19,2)");
+        }
+        jdbcTemplate.execute("UPDATE inventory_transactions SET unit_price = 0 WHERE unit_price IS NULL");
+        jdbcTemplate.execute("ALTER TABLE inventory_transactions ALTER COLUMN unit_price SET DEFAULT 0");
+        jdbcTemplate.execute("ALTER TABLE inventory_transactions ALTER COLUMN unit_price SET NOT NULL");
+        log.info("Ensured inventory_transactions.unit_price column exists with zero default");
     }
 }

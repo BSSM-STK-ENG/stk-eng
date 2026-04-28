@@ -9,6 +9,7 @@ import com.stk.inventory.service.InventoryCalendarService;
 import com.stk.inventory.service.InventoryService;
 import com.stk.inventory.usecase.InventoryUseCase;
 import com.stk.inventory.service.StockTrendService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -38,12 +39,12 @@ public class InventoryController {
     }
 
     @PostMapping("/inbound")
-    public ResponseEntity<TransactionResponse> inbound(@RequestBody TransactionRequest request) {
+    public ResponseEntity<TransactionResponse> inbound(@Valid @RequestBody TransactionRequest request) {
         return ResponseEntity.ok(inventoryService.processInbound(request));
     }
 
     @PostMapping("/outbound")
-    public ResponseEntity<TransactionResponse> outbound(@RequestBody TransactionRequest request) {
+    public ResponseEntity<TransactionResponse> outbound(@Valid @RequestBody TransactionRequest request) {
         return ResponseEntity.ok(inventoryService.processOutbound(request));
     }
 
@@ -99,7 +100,7 @@ public class InventoryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TransactionResponse> updateTransaction(@PathVariable Long id, @RequestBody TransactionRequest request) {
+    public ResponseEntity<TransactionResponse> updateTransaction(@PathVariable Long id, @Valid @RequestBody TransactionRequest request) {
         return ResponseEntity.ok(inventoryService.updateTransaction(id, request));
     }
 }
