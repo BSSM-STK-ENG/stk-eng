@@ -65,6 +65,15 @@ class QuickSearchControllerSecurityTest {
     }
 
     @Test
+    void searchRejectsAuthenticatedUsersWithoutAuthorizedPagePermission() throws Exception {
+        mockMvc.perform(post("/api/quick-search")
+                        .with(user("viewer@example.com"))
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(java.util.Map.of("query", "mat"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void searchAllowsAuthenticatedUsersWithAuthorizedPagePermission() throws Exception {
         mockMvc.perform(post("/api/quick-search")
                         .with(user("dashboard@example.com").authorities(() -> "PAGE_DASHBOARD"))

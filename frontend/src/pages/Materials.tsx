@@ -44,8 +44,8 @@ export default function Materials() {
     setMaterialSubmitting(true);
     try {
       const rawSafeStock = materialForm.safeStockQty.trim();
-      const parsedSafeStock = rawSafeStock ? parseInt(rawSafeStock, 10) : 0;
-      if (Number.isNaN(parsedSafeStock) || parsedSafeStock < 0) {
+      const parsedSafeStock = rawSafeStock ? Number(rawSafeStock) : 0;
+      if (!Number.isInteger(parsedSafeStock) || parsedSafeStock < 0) {
         setNotice({ tone: 'error', message: '안전재고는 0 이상의 정수를 입력해주세요.' });
         setMaterialSubmitting(false);
         return;

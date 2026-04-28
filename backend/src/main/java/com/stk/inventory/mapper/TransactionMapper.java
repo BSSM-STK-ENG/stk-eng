@@ -28,10 +28,53 @@ public class TransactionMapper {
                 .revertedByUserId(tx.getRevertedBy() != null ? tx.getRevertedBy().getId() : null)
                 .revertedAt(tx.getRevertedAt())
                 .createdAt(tx.getCreatedAt())
-                .unitPrice(tx.getUnitPrice() != null ? tx.getUnitPrice() : BigDecimal.ZERO)
-                .totalAmount(tx.getUnitPrice() != null && tx.getQuantity() != null
-                    ? tx.getUnitPrice().multiply(BigDecimal.valueOf(tx.getQuantity()))
-                    : BigDecimal.ZERO)
+                .unitPrice(financialUnitPrice(tx, true))
+                .totalAmount(financialTotalAmount(tx, true))
                 .build();
+    }
+
+    public TransactionResponse toResponse(InventoryTransaction tx, boolean includeFinancials) {
+        TransactionResponse response = toResponse(tx);
+        return includeFinancials ? response : redactFinancials(response);
+    }
+
+    public TransactionResponse redactFinancials(TransactionResponse response) {
+        return TransactionResponse.builder()
+                .id(response.getId())
+                .transactionType(response.getTransactionType())
+                .materialCode(response.getMaterialCode())
+                .quantity(response.getQuantity())
+                .transactionDate(response.getTransactionDate())
+                .businessUnit(response.getBusinessUnit())
+                .manager(response.getManager())
+                .note(response.getNote())
+                .reference(response.getReference())
+                .createdByUserId(response.getCreatedByUserId())
+                .createdByEmail(response.getCreatedByEmail())
+                .reverted(response.isReverted())
+                .systemGenerated(response.isSystemGenerated())
+                .reversalOfTransactionId(response.getReversalOfTransactionId())
+                .revertedByUserId(response.getRevertedByUserId())
+                .revertedAt(response.getRevertedAt())
+                .createdAt(response.getCreatedAt())
+                .unitPrice(null)
+                .totalAmount(null)
+                .build();
+    }
+
+    public BigDecimal financialUnitPrice(InventoryTransaction tx, boolean includeFinancials) {
+        if (!includeFinancials) {
+            return null;
+        }
+        return tx.getUnitPrice() != null ? tx.getUnitPrice() : BigDecimal.ZERO;
+    }
+
+    public BigDecimal financialTotalAmount(InventoryTransaction tx, boolean includeFinancials) {
+        if (!includeFinancials) {
+            return null;
+        }
+        return tx.getUnitPrice() != null && tx.getQuantity() != null
+                ? tx.getUnitPrice().multiply(BigDecimal.valueOf(tx.getQuantity()))
+                : BigDecimal.ZERO;
     }
 }

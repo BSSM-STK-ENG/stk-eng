@@ -8,6 +8,14 @@ const __dirname = path.dirname(__filename);
 const authFile = path.join(__dirname, '.auth', 'superadmin.json');
 const e2eBusinessUnit = 'QA-T1';
 const e2eMaterialCode = 'AA03340001110/AAS1000001987';
+const e2eMaterialSeed = {
+  materialCode: e2eMaterialCode,
+  materialName: 'E2E slash-code material',
+  description: 'Seeded for Playwright coverage',
+  location: 'QA-T1 shelf',
+  safeStockQty: 1,
+  currentStockQty: 0,
+};
 
 setup('authenticate super admin', async ({ page, request }) => {
   const email = process.env.E2E_SUPER_ADMIN_EMAIL ?? 'superadmin@stk.local';
@@ -40,7 +48,7 @@ async function seedE2eData(request: APIRequestContext, token: string) {
       headers,
       data: { name: e2eBusinessUnit },
     });
-    if (!createBusinessUnitResponse.ok()) {
+    if (!createBusinessUnitResponse.ok() && createBusinessUnitResponse.status() !== 409) {
       throw new Error(`Failed to seed E2E business unit: ${createBusinessUnitResponse.status()}`);
     }
   }
@@ -50,20 +58,32 @@ async function seedE2eData(request: APIRequestContext, token: string) {
     throw new Error(`Failed to read materials for E2E seed: ${materialsResponse.status()}`);
   }
   const materials = (await materialsResponse.json()) as Array<{ materialCode: string }>;
-  if (!materials.some((material) => material.materialCode === e2eMaterialCode)) {
+  const materialExists = materials.some((material) => material.materialCode === e2eMaterialCode);
+  if (materialExists) {
+    await normalizeE2eMaterial(request, headers);
+  } else {
     const createMaterialResponse = await request.post('/api/materials', {
       headers,
-      data: {
-        materialCode: e2eMaterialCode,
-        materialName: 'E2E slash-code material',
-        description: 'Seeded for Playwright coverage',
-        location: 'QA-T1 shelf',
-        safeStockQty: 1,
-        currentStockQty: 0,
-      },
+      data: e2eMaterialSeed,
     });
-    if (!createMaterialResponse.ok()) {
+    if (createMaterialResponse.status() === 409) {
+      await normalizeE2eMaterial(request, headers);
+    } else if (!createMaterialResponse.ok()) {
       throw new Error(`Failed to seed E2E material: ${createMaterialResponse.status()}`);
     }
+  }
+}
+
+async function normalizeE2eMaterial(request: APIRequestContext, headers: { Authorization: string }) {
+  const updateMaterialResponse = await request.put('/api/materials', {
+    headers,
+    data: e2eMaterialSeed,
+  });
+  if (!updateMaterialResponse.ok()) {
+    const responseBody = await updateMaterialResponse.text();
+    const details = responseBody.trim().slice(0, 500);
+    throw new Error(
+      `Failed to normalize E2E material: ${updateMaterialResponse.status()}${details ? ` - ${details}` : ''}`,
+    );
   }
 }
