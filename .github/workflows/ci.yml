@@ -140,15 +140,19 @@ jobs:
       - name: Wait for Backend
         run: |
           for i in {1..60}; do
+            if [ -f ../backend-e2e.pid ] && ! kill -0 "$(cat ../backend-e2e.pid)" 2>/dev/null; then
+              cat ../backend-e2e.log || true
+              exit 1
+            fi
             status=$(curl -s -o /tmp/e2e-login.json -w "%{http_code}" -X POST http://127.0.0.1:8080/api/auth/login \
               -H 'Content-Type: application/json' \
-              -d '{"email":"superadmin@stk.local","password":"ChangeMe123!"}')
+              -d '{"email":"superadmin@stk.local","password":"ChangeMe123!"}' || true)
             if [ "$status" = "200" ]; then
               exit 0
             fi
             sleep 2
           done
-          cat ../backend-e2e.log
+          cat ../backend-e2e.log || true
           exit 1
 
       - name: Run E2E Tests
