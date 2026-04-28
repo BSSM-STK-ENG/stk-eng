@@ -116,3 +116,20 @@ export interface CredentialConnectionTestResponse {
   message: string;
   checkedAt: string;
 }
+
+export interface QuickSearchMaterial {
+  materialCode: string;
+  materialName: string;
+  description: string | null;
+  location: string | null;
+  safeStockQty: number | null;
+  currentStockQty: number | null;
+  imageUrl?: string | null;
+}
+
+export interface QuickSearchResult {
+  query: string;
+  materials: QuickSearchMaterial[];
+  recentTransactions: import('./api').TransactionResponse[];
+  currentClosing: import('./api').MonthlyClosing | null;
+}

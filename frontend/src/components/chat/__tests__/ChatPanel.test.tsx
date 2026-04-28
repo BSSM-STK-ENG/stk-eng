@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChatMessage, ProviderDescriptor } from '../../../types/chat';
 import ChatPanel from '../ChatPanel';
@@ -53,6 +54,10 @@ function createWorkspace(messages: ChatMessage[] = []) {
     composerValue: '',
     runtimeSessionId: null,
     credentialTestResult: null,
+    quickSearchQuery: '',
+    quickSearchResults: null,
+    quickSearchLoading: false,
+    quickSearchError: null,
     requestState: {
       bootstrapping: false,
       sendingMessage: false,
@@ -63,6 +68,7 @@ function createWorkspace(messages: ChatMessage[] = []) {
       info: null,
     },
     setComposerValue: vi.fn(),
+    setQuickSearchQuery: vi.fn(),
     sendMessage: vi.fn().mockResolvedValue(null),
     testCredential: vi.fn().mockResolvedValue({
       success: true,
@@ -77,6 +83,8 @@ function createWorkspace(messages: ChatMessage[] = []) {
     removeCredential: vi.fn().mockResolvedValue(undefined),
     clearNotices: vi.fn(),
     refreshMetadata: vi.fn(),
+    executeQuickSearch: vi.fn().mockResolvedValue(undefined),
+    clearQuickSearch: vi.fn(),
   };
 }
 
@@ -85,11 +93,15 @@ describe('ChatPanel', () => {
     vi.clearAllMocks();
   });
 
+  function renderWithRouter(ui: React.ReactElement) {
+    return render(<MemoryRouter>{ui}</MemoryRouter>);
+  }
+
   it('opens settings from the overflow menu in a portal modal', async () => {
     const user = userEvent.setup();
     mockedUseChatWorkspace.mockReturnValue(createWorkspace());
 
-    render(
+    renderWithRouter(
       <ChatPanel mobileOpen={false} onCloseMobile={vi.fn()} collapsed={false} onToggleCollapse={vi.fn()} width={400} />,
     );
 
@@ -122,7 +134,7 @@ describe('ChatPanel', () => {
       ]),
     );
 
-    render(
+    renderWithRouter(
       <ChatPanel mobileOpen={false} onCloseMobile={vi.fn()} collapsed={false} onToggleCollapse={vi.fn()} width={400} />,
     );
 
@@ -154,7 +166,7 @@ describe('ChatPanel', () => {
       ]),
     );
 
-    render(
+    renderWithRouter(
       <ChatPanel mobileOpen={false} onCloseMobile={vi.fn()} collapsed={false} onToggleCollapse={vi.fn()} width={400} />,
     );
 
@@ -168,7 +180,7 @@ describe('ChatPanel', () => {
     const onToggleCollapse = vi.fn();
     mockedUseChatWorkspace.mockReturnValue(createWorkspace());
 
-    render(
+    renderWithRouter(
       <ChatPanel
         mobileOpen={false}
         onCloseMobile={vi.fn()}
