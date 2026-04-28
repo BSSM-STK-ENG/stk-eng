@@ -313,6 +313,7 @@ function TrendLineChart({
 
                 return (
                   <g key={day.key}>
+                    {/* biome-ignore lint/a11y/noStaticElementInteractions: SVG chart hit area needs pointer and focus events for tooltip discovery. */}
                     <rect
                       x={segmentStart}
                       y="16"
@@ -324,6 +325,12 @@ function TrendLineChart({
                       onMouseEnter={() => setHoveredIndex(index)}
                       onFocus={() => setHoveredIndex(index)}
                       onBlur={() => setHoveredIndex((current) => (current === index ? null : current))}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setHoveredIndex(index);
+                        }
+                      }}
                     />
                     <circle
                       cx={inboundPoint.x}
