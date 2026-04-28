@@ -515,8 +515,8 @@ function ChatMessageBubble({ message }: { message: ChatMessage }) {
 
       {!isUser && message.toolTrace && message.toolTrace.length > 0 && (
         <div className="w-full max-w-[88%] space-y-2">
-          {message.toolTrace.map((trace, index) => (
-            <TraceDisclosure key={`${message.id}-trace-${index}`} trace={trace} />
+          {message.toolTrace.map((trace) => (
+            <TraceDisclosure key={`${message.id}-${trace.kind}-${trace.title}-${trace.summary}`} trace={trace} />
           ))}
         </div>
       )}
@@ -1072,6 +1072,7 @@ function ChatPanelView({
   );
   const activeCredentialMeta = getCredentialPresentation(activeCredential);
   const hasActiveKey = Boolean(activeCredential?.hasKey);
+  const messageCount = workspace.messages.length;
 
   const updateSettings = (next: SettingsState) => {
     workspace.clearNotices();
@@ -1079,6 +1080,9 @@ function ChatPanelView({
   };
 
   useEffect(() => {
+    if (messageCount === 0) {
+      return;
+    }
     const listElement = listRef.current;
     if (!listElement) {
       return;
@@ -1091,7 +1095,7 @@ function ChatPanelView({
       return;
     }
     listElement.scrollTop = listElement.scrollHeight;
-  }, [workspace.messages]);
+  }, [messageCount]);
 
   useEffect(() => {
     if (!menuOpen) {

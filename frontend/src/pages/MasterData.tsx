@@ -285,25 +285,23 @@ export default function MasterData() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleStartEditBusinessUnit(item)}
-                            className="admin-btn inline-flex min-h-9 min-w-[72px] justify-center whitespace-nowrap px-3 text-xs text-slate-600"
-                          >
-                            <PencilLine size={14} />
-                            수정
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteBusinessUnit(item)}
-                            disabled={deletingBusinessUnitId === item.id}
-                            className="admin-btn inline-flex min-h-9 min-w-[108px] justify-center whitespace-nowrap px-3 text-xs text-slate-500"
-                          >
-                            <Trash2 size={14} />
-                            {deletingBusinessUnitId === item.id ? '삭제 중...' : '삭제'}
-                          </button>
-                        </>
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditBusinessUnit(item)}
+                          className="admin-btn inline-flex min-h-9 min-w-[72px] justify-center whitespace-nowrap px-3 text-xs text-slate-600"
+                        >
+                          <PencilLine size={14} />
+                          수정
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteBusinessUnit(item)}
+                          disabled={deletingBusinessUnitId === item.id}
+                          className="admin-btn inline-flex min-h-9 min-w-[108px] justify-center whitespace-nowrap px-3 text-xs text-slate-500"
+                        >
+                          <Trash2 size={14} />
+                          {deletingBusinessUnitId === item.id ? '삭제 중...' : '삭제'}
+                        </button>
                       </div>
                     </td>
                   </tr>
