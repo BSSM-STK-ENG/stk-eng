@@ -38,6 +38,7 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
     private final UserDirectoryService userDirectoryService;
     private final TransactionMapper transactionMapper;
     private final MonthlyClosingRepository monthlyClosingRepository;
+    private final FinanceAccessService financeAccessService;
 
     @Autowired
     public InventoryService(InventoryGateway inventoryGateway,
@@ -45,13 +46,24 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
                             MasterDataService masterDataService,
                             UserDirectoryService userDirectoryService,
                             TransactionMapper transactionMapper,
-                            MonthlyClosingRepository monthlyClosingRepository) {
+                            MonthlyClosingRepository monthlyClosingRepository,
+                            FinanceAccessService financeAccessService) {
         this.inventoryGateway = inventoryGateway;
         this.userRepository = userRepository;
         this.masterDataService = masterDataService;
         this.userDirectoryService = userDirectoryService;
         this.transactionMapper = transactionMapper;
         this.monthlyClosingRepository = monthlyClosingRepository;
+        this.financeAccessService = financeAccessService;
+    }
+
+    public InventoryService(InventoryGateway inventoryGateway,
+                            UserRepository userRepository,
+                            MasterDataService masterDataService,
+                            UserDirectoryService userDirectoryService,
+                            TransactionMapper transactionMapper,
+                            MonthlyClosingRepository monthlyClosingRepository) {
+        this(inventoryGateway, userRepository, masterDataService, userDirectoryService, transactionMapper, monthlyClosingRepository, null);
     }
 
     public InventoryService(InventoryGateway inventoryGateway,
@@ -59,7 +71,7 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
                             MasterDataService masterDataService,
                             UserDirectoryService userDirectoryService,
                             TransactionMapper transactionMapper) {
-        this(inventoryGateway, userRepository, masterDataService, userDirectoryService, transactionMapper, null);
+        this(inventoryGateway, userRepository, masterDataService, userDirectoryService, transactionMapper, null, null);
     }
 
     @Transactional
@@ -119,10 +131,14 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
     }
 
     public List<TransactionResponse> getLedger() {
-        return inventoryGateway.findLedgerTransactions().stream().map(transactionMapper::toResponse).toList();
+        boolean includeFinancials = canViewFinancials();
+        return inventoryGateway.findLedgerTransactions().stream()
+                .map(transaction -> transactionMapper.toResponse(transaction, includeFinancials))
+                .toList();
     }
 
     public java.util.List<com.stk.inventory.dto.InventoryTransactionResponse> getHistory() {
+        boolean includeFinancials = canViewFinancials();
         return inventoryGateway.findAllTransactions().stream().map(tx -> {
             com.stk.inventory.dto.MaterialDto materialDto = null;
             if (tx.getMaterial() != null) {
@@ -166,8 +182,8 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
                     .reference(tx.getReference())
                     .createdBy(createdBy)
                     .createdAt(tx.getCreatedAt())
-                    .unitPrice(tx.getUnitPrice())
-                    .totalAmount((tx.getUnitPrice() == null ? BigDecimal.ZERO : tx.getUnitPrice()).multiply(BigDecimal.valueOf(tx.getQuantity())))
+                    .unitPrice(transactionMapper.financialUnitPrice(tx, includeFinancials))
+                    .totalAmount(transactionMapper.financialTotalAmount(tx, includeFinancials))
                     .build();
         }).toList();
     }
@@ -196,14 +212,21 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
         int clampedSize = Math.min(Math.max(size, 1), 100);
         Page<InventoryTransaction> result = inventoryGateway.findTransactionsPaged(spec,
             PageRequest.of(page, clampedSize, Sort.by(Sort.Direction.DESC, "transactionDate", "id")));
+        boolean includeFinancials = canViewFinancials();
 
         return PagedLedgerResponse.builder()
-            .content(result.getContent().stream().map(transactionMapper::toResponse).toList())
+            .content(result.getContent().stream()
+                    .map(transaction -> transactionMapper.toResponse(transaction, includeFinancials))
+                    .toList())
             .page(result.getNumber())
             .size(result.getSize())
             .totalElements(result.getTotalElements())
             .totalPages(result.getTotalPages())
             .build();
+    }
+
+    private boolean canViewFinancials() {
+        return financeAccessService != null && financeAccessService.canViewFinancialSummaries();
     }
 
     @Transactional

@@ -94,17 +94,16 @@ public class DashboardService {
                 PageRequest.of(0, 8, Sort.by(Sort.Direction.DESC, "transactionDate", "id")))
             .getContent()
             .stream()
-            .map(transactionMapper::toResponse)
-            .map(response -> includeFinancials ? response : redactFinancials(response))
+            .map(transaction -> transactionMapper.toResponse(transaction, includeFinancials))
             .toList();
 
         // Current month financial
         YearMonth currentMonth = YearMonth.now();
         LocalDateTime monthStart = currentMonth.atDay(1).atStartOfDay();
-        LocalDateTime monthEnd = currentMonth.atEndOfMonth().atTime(23, 59, 59, 999999999);
+        LocalDateTime nextMonthStart = currentMonth.plusMonths(1).atDay(1).atStartOfDay();
         List<InventoryTransaction> monthTx = transactionRepository
             .findByTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateAsc(
-                monthStart, monthEnd.plusSeconds(1));
+                monthStart, nextMonthStart);
 
         BigDecimal currentMonthRevenue = BigDecimal.ZERO;
         BigDecimal currentMonthPurchase = BigDecimal.ZERO;
@@ -147,30 +146,6 @@ public class DashboardService {
             .currentMonthOutboundQty(currentMonthOutQty)
             .recentClosings(recentClosings)
             .build();
-    }
-
-    private TransactionResponse redactFinancials(TransactionResponse response) {
-        return TransactionResponse.builder()
-                .id(response.getId())
-                .transactionType(response.getTransactionType())
-                .materialCode(response.getMaterialCode())
-                .quantity(response.getQuantity())
-                .transactionDate(response.getTransactionDate())
-                .businessUnit(response.getBusinessUnit())
-                .manager(response.getManager())
-                .note(response.getNote())
-                .reference(response.getReference())
-                .createdByUserId(response.getCreatedByUserId())
-                .createdByEmail(response.getCreatedByEmail())
-                .reverted(response.isReverted())
-                .systemGenerated(response.isSystemGenerated())
-                .reversalOfTransactionId(response.getReversalOfTransactionId())
-                .revertedByUserId(response.getRevertedByUserId())
-                .revertedAt(response.getRevertedAt())
-                .createdAt(response.getCreatedAt())
-                .unitPrice(null)
-                .totalAmount(null)
-                .build();
     }
 
     private static int qty(Material m) {

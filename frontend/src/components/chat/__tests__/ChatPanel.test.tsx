@@ -195,4 +195,40 @@ describe('ChatPanel', () => {
 
     expect(onToggleCollapse).toHaveBeenCalledTimes(1);
   });
+
+  it('runs slash quick search and syncs the visible query', async () => {
+    const user = userEvent.setup();
+    const workspace = createWorkspace();
+    workspace.composerValue = '/search bolt';
+    mockedUseChatWorkspace.mockReturnValue(workspace);
+
+    renderWithRouter(
+      <ChatPanel mobileOpen={false} onCloseMobile={vi.fn()} collapsed={false} onToggleCollapse={vi.fn()} width={400} />,
+    );
+
+    await user.click(screen.getByPlaceholderText('재고 내용을 질문하세요 ( / 명령어 사용 가능)'));
+    await user.keyboard('{Enter}');
+
+    expect(workspace.setQuickSearchQuery).toHaveBeenCalledWith('bolt');
+    expect(workspace.executeQuickSearch).toHaveBeenCalledWith('bolt');
+    expect(workspace.sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('focuses quick search without sending bare slash search as chat', async () => {
+    const user = userEvent.setup();
+    const workspace = createWorkspace();
+    workspace.composerValue = '/search';
+    mockedUseChatWorkspace.mockReturnValue(workspace);
+
+    renderWithRouter(
+      <ChatPanel mobileOpen={false} onCloseMobile={vi.fn()} collapsed={false} onToggleCollapse={vi.fn()} width={400} />,
+    );
+
+    await user.click(screen.getByPlaceholderText('재고 내용을 질문하세요 ( / 명령어 사용 가능)'));
+    await user.keyboard('{Enter}');
+
+    expect(workspace.executeQuickSearch).not.toHaveBeenCalled();
+    expect(workspace.sendMessage).not.toHaveBeenCalled();
+    expect(screen.getByPlaceholderText('자재명, 코드, 거래내역 검색...')).toHaveFocus();
+  });
 });

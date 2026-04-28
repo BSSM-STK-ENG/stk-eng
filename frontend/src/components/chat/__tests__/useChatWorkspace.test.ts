@@ -13,6 +13,7 @@ const apiMocks = vi.hoisted(() => ({
   testChatCredential: vi.fn(),
   deleteChatCredential: vi.fn(),
   sendChatMessage: vi.fn(),
+  sendQuickSearch: vi.fn(),
 }));
 
 vi.mock('../../../api/chat', () => ({
@@ -25,6 +26,7 @@ vi.mock('../../../api/chat', () => ({
   testChatCredential: apiMocks.testChatCredential,
   deleteChatCredential: apiMocks.deleteChatCredential,
   sendChatMessage: apiMocks.sendChatMessage,
+  sendQuickSearch: apiMocks.sendQuickSearch,
 }));
 
 describe('useChatWorkspace', () => {
@@ -73,6 +75,12 @@ describe('useChatWorkspace', () => {
       checkedAt: '2026-03-22T10:00:00.000Z',
     });
     apiMocks.deleteChatCredential.mockResolvedValue(undefined);
+    apiMocks.sendQuickSearch.mockResolvedValue({
+      query: 'bolt',
+      materials: [],
+      recentTransactions: [],
+      currentClosing: null,
+    });
   });
 
   it('loads providers, credentials, and preferences without restoring old sessions', async () => {
@@ -229,5 +237,117 @@ describe('useChatWorkspace', () => {
       model: 'gpt-5',
     });
     expect(result.current.requestState.info).toBe('연결 확인에 성공했습니다.');
+  });
+
+  it('skips quick search API calls for blank queries', async () => {
+    const { result } = renderHook(() => useChatWorkspace());
+
+    await waitFor(() => {
+      expect(result.current.requestState.bootstrapping).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.executeQuickSearch('   ');
+    });
+
+    expect(apiMocks.sendQuickSearch).not.toHaveBeenCalled();
+    expect(result.current.quickSearchLoading).toBe(false);
+  });
+
+  it('syncs explicit quick search queries into state and stores results', async () => {
+    apiMocks.sendQuickSearch.mockResolvedValueOnce({
+      query: 'bolt',
+      materials: [
+        {
+          materialCode: 'MAT-001',
+          materialName: 'Bolt',
+          description: null,
+          location: null,
+          safeStockQty: 3,
+          currentStockQty: 10,
+        },
+      ],
+      recentTransactions: [],
+      currentClosing: null,
+    });
+    const { result } = renderHook(() => useChatWorkspace());
+
+    await waitFor(() => {
+      expect(result.current.requestState.bootstrapping).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.executeQuickSearch('  bolt  ');
+    });
+
+    expect(apiMocks.sendQuickSearch).toHaveBeenCalledWith('bolt', expect.any(AbortSignal));
+    expect(result.current.quickSearchQuery).toBe('bolt');
+    expect(result.current.quickSearchResults?.materials[0]?.materialCode).toBe('MAT-001');
+    expect(result.current.quickSearchLoading).toBe(false);
+  });
+
+  it('keeps stale quick search completions from overwriting the active search', async () => {
+    let resolveFirst: ((value: Awaited<ReturnType<typeof apiMocks.sendQuickSearch>>) => void) | undefined;
+    apiMocks.sendQuickSearch
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveFirst = resolve;
+        }),
+      )
+      .mockResolvedValueOnce({
+        query: 'second',
+        materials: [
+          {
+            materialCode: 'MAT-002',
+            materialName: 'Second Bolt',
+            description: null,
+            location: null,
+            safeStockQty: 1,
+            currentStockQty: 5,
+          },
+        ],
+        recentTransactions: [],
+        currentClosing: null,
+      });
+    const { result } = renderHook(() => useChatWorkspace());
+
+    await waitFor(() => {
+      expect(result.current.requestState.bootstrapping).toBe(false);
+    });
+
+    void act(() => {
+      void result.current.executeQuickSearch('first');
+    });
+    await act(async () => {
+      await result.current.executeQuickSearch('second');
+    });
+
+    expect(result.current.quickSearchQuery).toBe('second');
+    expect(result.current.quickSearchResults?.materials[0]?.materialCode).toBe('MAT-002');
+    expect(result.current.quickSearchError).toBeNull();
+    expect(result.current.quickSearchLoading).toBe(false);
+
+    await act(async () => {
+      resolveFirst?.({
+        query: 'first',
+        materials: [
+          {
+            materialCode: 'MAT-001',
+            materialName: 'First Bolt',
+            description: null,
+            location: null,
+            safeStockQty: 1,
+            currentStockQty: 1,
+          },
+        ],
+        recentTransactions: [],
+        currentClosing: null,
+      });
+    });
+
+    expect(result.current.quickSearchQuery).toBe('second');
+    expect(result.current.quickSearchResults?.materials[0]?.materialCode).toBe('MAT-002');
+    expect(result.current.quickSearchError).toBeNull();
+    expect(result.current.quickSearchLoading).toBe(false);
   });
 });

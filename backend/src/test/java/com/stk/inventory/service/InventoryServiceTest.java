@@ -14,9 +14,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,6 +43,9 @@ class InventoryServiceTest {
 
     @Mock
     private MonthlyClosingRepository monthlyClosingRepository;
+
+    @Mock
+    private FinanceAccessService financeAccessService;
 
     @Test
     void processInboundRequiresRegisteredBusinessUnit() {
@@ -166,5 +171,67 @@ class InventoryServiceTest {
 
         assertEquals("이후 마감월이 있어 2026-09 데이터는 수정할 수 없습니다.", exception.getMessage());
         verify(inventoryGateway, never()).findMaterialById(any());
+    }
+
+    @Test
+    void getLedgerPagedRedactsFinancialsWhenFinanceAccessIsNotAllowed() {
+        InventoryService service = new InventoryService(
+                inventoryGateway,
+                userRepository,
+                masterDataService,
+                userDirectoryService,
+                new TransactionMapper(),
+                monthlyClosingRepository,
+                financeAccessService
+        );
+        InventoryTransaction transaction = InventoryTransaction.builder()
+                .id(20L)
+                .transactionType(TransactionType.IN)
+                .material(Material.builder().materialCode("MAT-020").materialName("금액 자재").build())
+                .quantity(2)
+                .transactionDate(LocalDateTime.of(2026, 4, 10, 9, 0))
+                .businessUnit("QA-T1")
+                .unitPrice(BigDecimal.valueOf(1500))
+                .build();
+
+        when(financeAccessService.canViewFinancialSummaries()).thenReturn(false);
+        when(inventoryGateway.findTransactionsPaged(any(), any())).thenReturn(new PageImpl<>(List.of(transaction)));
+
+        com.stk.inventory.dto.PagedLedgerResponse response = service.getLedgerPaged(null, null, null, null, null, 0, 50);
+
+        assertEquals(1, response.getContent().size());
+        assertNull(response.getContent().get(0).getUnitPrice());
+        assertNull(response.getContent().get(0).getTotalAmount());
+    }
+
+    @Test
+    void getHistoryRedactsFinancialsWhenFinanceAccessIsNotAllowed() {
+        InventoryService service = new InventoryService(
+                inventoryGateway,
+                userRepository,
+                masterDataService,
+                userDirectoryService,
+                new TransactionMapper(),
+                monthlyClosingRepository,
+                financeAccessService
+        );
+        InventoryTransaction transaction = InventoryTransaction.builder()
+                .id(21L)
+                .transactionType(TransactionType.OUT)
+                .material(Material.builder().materialCode("MAT-021").materialName("출고 자재").build())
+                .quantity(3)
+                .transactionDate(LocalDateTime.of(2026, 4, 11, 9, 0))
+                .businessUnit("QA-T1")
+                .unitPrice(BigDecimal.valueOf(2000))
+                .build();
+
+        when(financeAccessService.canViewFinancialSummaries()).thenReturn(false);
+        when(inventoryGateway.findAllTransactions()).thenReturn(List.of(transaction));
+
+        List<com.stk.inventory.dto.InventoryTransactionResponse> response = service.getHistory();
+
+        assertEquals(1, response.size());
+        assertNull(response.get(0).getUnitPrice());
+        assertNull(response.get(0).getTotalAmount());
     }
 }
