@@ -3,6 +3,7 @@ package com.stk.inventory.controller;
 import com.stk.inventory.dto.QuickSearchRequest;
 import com.stk.inventory.dto.QuickSearchResult;
 import com.stk.inventory.service.QuickSearchService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,7 +21,7 @@ public class QuickSearchController {
     }
 
     @PostMapping
-    public ResponseEntity<QuickSearchResult> search(@RequestBody QuickSearchRequest request) {
+    public ResponseEntity<QuickSearchResult> search(@Valid @RequestBody QuickSearchRequest request) {
         return ResponseEntity.ok(quickSearchService.search(request.getQuery()));
     }
 }

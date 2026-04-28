@@ -118,6 +118,11 @@ export async function sendChatMessage(payload: ChatRequest, signal?: AbortSignal
 }
 
 export async function sendQuickSearch(query: string, signal?: AbortSignal): Promise<QuickSearchResult | null> {
-  const { data } = await api.post('/quick-search', { query }, { signal });
+  const searchTerm = query.trim();
+  if (!searchTerm) {
+    return null;
+  }
+
+  const { data } = await api.post('/quick-search', { query: searchTerm }, { signal });
   return unwrapObject<QuickSearchResult>(data);
 }

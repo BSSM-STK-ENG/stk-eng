@@ -69,4 +69,14 @@ class QuickSearchControllerTest {
                 .andExpect(jsonPath("$.currentClosing.closingMonth").value("2026-04"))
                 .andExpect(jsonPath("$.currentClosing.status").value("UNCLOSED"));
     }
+
+    @Test
+    void searchRejectsBlankQuery() throws Exception {
+        mockMvc.perform(post("/api/quick-search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(java.util.Map.of("query", "   "))))
+                .andExpect(status().isBadRequest());
+
+        Mockito.verify(quickSearchService, Mockito.never()).search(Mockito.anyString());
+    }
 }

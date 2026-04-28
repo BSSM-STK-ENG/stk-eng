@@ -931,7 +931,7 @@ function Composer({
           setCommandFilter('');
           return;
         }
-        if (trimmed.startsWith('/search ')) {
+        if (trimmed === '/search' || trimmed.startsWith('/search ')) {
           onCommand(trimmed);
           onChange('');
           setShowCommands(false);
@@ -1209,7 +1209,8 @@ function ChatPanelView({
       } else if (command.startsWith('/search ')) {
         const query = command.replace('/search ', '').trim();
         if (query) {
-          workspace.executeQuickSearch(query);
+          workspace.setQuickSearchQuery(query);
+          void workspace.executeQuickSearch(query);
         }
       }
     },
