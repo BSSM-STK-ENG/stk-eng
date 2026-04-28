@@ -52,10 +52,11 @@ public class VerificationEmailService {
         } catch (MailAuthenticationException exception) {
             throw new ResponseStatusException(
                     HttpStatus.SERVICE_UNAVAILABLE,
-                    "SMTP 인증에 실패했습니다. SPRING_MAIL_USERNAME 과 SPRING_MAIL_PASSWORD(Gmail 앱 비밀번호)를 확인해주세요."
+                    "인증 메일 발송 서비스에 연결할 수 없습니다.",
+                    exception
             );
         } catch (MailException exception) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "인증 메일을 보내지 못했습니다. 메일 설정을 확인해주세요.");
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "인증 메일을 보내지 못했습니다.", exception);
         }
     }
 }

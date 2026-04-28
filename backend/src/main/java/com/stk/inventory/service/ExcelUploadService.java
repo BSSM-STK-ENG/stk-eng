@@ -80,7 +80,10 @@ public class ExcelUploadService {
                 String note = noteIdx != -1 && cols.length > noteIdx ? cols[noteIdx] : "";
                 String manager = managerIdx != -1 && cols.length > managerIdx ? cols[managerIdx] : "";
                 LocalDateTime transactionDate = LocalDateTime.now();
-                if (dateIdx != -1 && cols.length > dateIdx) {
+                if (dateIdx != -1) {
+                    if (cols.length <= dateIdx) {
+                        throw new IllegalArgumentException("날짜를 입력해주세요.");
+                    }
                     transactionDate = parseDateTime(cols[dateIdx]);
                 }
 
@@ -135,10 +138,15 @@ public class ExcelUploadService {
                 String manager = managerIdx != -1 ? getCellValue(row.getCell(managerIdx)) : "";
 
                 LocalDateTime transactionDate = LocalDateTime.now();
-                if (dateIdx != -1 && row.getCell(dateIdx) != null) {
+                if (dateIdx != -1) {
                     Cell dateCell = row.getCell(dateIdx);
+                    if (dateCell == null) {
+                        throw new IllegalArgumentException("날짜를 입력해주세요.");
+                    }
                     if (DateUtil.isCellDateFormatted(dateCell)) {
                         transactionDate = dateCell.getDateCellValue().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+                    } else {
+                        transactionDate = parseDateTime(getCellValue(dateCell));
                     }
                 }
 
@@ -184,7 +192,7 @@ public class ExcelUploadService {
 
     private LocalDateTime parseDateTime(String raw) {
         if (raw == null || raw.trim().isEmpty()) {
-            return LocalDateTime.now();
+            throw new IllegalArgumentException("날짜를 입력해주세요.");
         }
 
         String normalized = raw.trim();
@@ -200,6 +208,7 @@ public class ExcelUploadService {
             try {
                 return LocalDateTime.parse(normalized, formatter);
             } catch (DateTimeParseException ignored) {
+                // Try the next supported date-time format.
             }
         }
 
@@ -214,9 +223,10 @@ public class ExcelUploadService {
             try {
                 return LocalDate.parse(normalized, formatter).atStartOfDay();
             } catch (DateTimeParseException ignored) {
+                // Try the next supported date-only format.
             }
         }
 
-        return LocalDateTime.now();
+        throw new IllegalArgumentException("날짜 형식이 올바르지 않습니다: " + raw);
     }
 }
