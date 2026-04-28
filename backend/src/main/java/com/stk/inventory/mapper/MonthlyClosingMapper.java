@@ -20,7 +20,7 @@ public class MonthlyClosingMapper {
         dto.monthlyOutboundCount = closing.getMonthlyOutboundCount();
         dto.monthlyInboundQty = closing.getMonthlyInboundQty();
         dto.monthlyOutboundQty = closing.getMonthlyOutboundQty();
-        dto.monthlySoldCount = closing.getMonthlyOutboundCount();
+        dto.monthlySoldCount = closing.getMonthlyOutboundQty();
         if (includeFinancials) {
             dto.totalPurchaseAmount = closing.getTotalPurchaseAmount();
             dto.totalRevenueAmount = closing.getTotalRevenueAmount();
