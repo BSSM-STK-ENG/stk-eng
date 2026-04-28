@@ -10,9 +10,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Iterator;
+import java.util.List;
 
 @Service
 public class ExcelUploadService {
@@ -76,6 +80,9 @@ public class ExcelUploadService {
                 String note = noteIdx != -1 && cols.length > noteIdx ? cols[noteIdx] : "";
                 String manager = managerIdx != -1 && cols.length > managerIdx ? cols[managerIdx] : "";
                 LocalDateTime transactionDate = LocalDateTime.now();
+                if (dateIdx != -1 && cols.length > dateIdx) {
+                    transactionDate = parseDateTime(cols[dateIdx]);
+                }
 
                 saveData(type, materialCode, materialName, quantity, reference, note, manager, transactionDate);
             }
@@ -173,5 +180,43 @@ public class ExcelUploadService {
             case BOOLEAN: return String.valueOf(cell.getBooleanCellValue());
             default: return "";
         }
+    }
+
+    private LocalDateTime parseDateTime(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return LocalDateTime.now();
+        }
+
+        String normalized = raw.trim();
+        List<DateTimeFormatter> dateFormats = List.of(
+                DateTimeFormatter.ISO_LOCAL_DATE_TIME,
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"),
+                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")
+        );
+
+        for (DateTimeFormatter formatter : dateFormats) {
+            try {
+                return LocalDateTime.parse(normalized, formatter);
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+
+        List<DateTimeFormatter> dateOnlyFormats = List.of(
+                DateTimeFormatter.ISO_LOCAL_DATE,
+                DateTimeFormatter.ofPattern("yyyy/MM/dd"),
+                DateTimeFormatter.ofPattern("yyyy.M.d"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        );
+
+        for (DateTimeFormatter formatter : dateOnlyFormats) {
+            try {
+                return LocalDate.parse(normalized, formatter).atStartOfDay();
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+
+        return LocalDateTime.now();
     }
 }
