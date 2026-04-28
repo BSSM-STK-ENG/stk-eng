@@ -9,6 +9,7 @@ import type {
   ModelDescriptor,
   ProviderCredential,
   ProviderDescriptor,
+  QuickSearchResult,
   UpdateAiPreferencesRequest,
   UpdateCredentialRequest,
 } from '../types/chat';
@@ -114,4 +115,9 @@ export async function getChatMessages(sessionId: string): Promise<ChatMessage[]>
 export async function sendChatMessage(payload: ChatRequest, signal?: AbortSignal): Promise<ChatResponse | null> {
   const { data } = await api.post('/ai/chat', payload, { signal });
   return unwrapObject<ChatResponse>(data);
+}
+
+export async function sendQuickSearch(query: string, signal?: AbortSignal): Promise<QuickSearchResult | null> {
+  const { data } = await api.post('/quick-search', { query }, { signal });
+  return unwrapObject<QuickSearchResult>(data);
 }

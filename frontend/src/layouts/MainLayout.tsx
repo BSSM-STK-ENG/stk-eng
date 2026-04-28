@@ -1,5 +1,7 @@
 import {
+  AlertTriangle,
   BarChart3,
+  Bell,
   Building2,
   ClipboardList,
   History,
@@ -20,9 +22,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getMe } from '../api/axios';
 import { getAiPreferences, saveAiPreferences } from '../api/chat';
+import { useMaterials } from '../api/queries';
 import ChatPanel from '../components/chat/ChatPanel';
 import { useChatWorkspace } from '../components/chat/useChatWorkspace';
-import type { PagePermissionKey } from '../types/api';
+import type { MaterialDto, PagePermissionKey } from '../types/api';
 import type { AiPreferences } from '../types/chat';
 import {
   clearAuthSession,
@@ -34,6 +37,13 @@ import {
   updateStoredProfile,
 } from '../utils/auth-session';
 import { clearMaterialWorklist } from '../utils/material-worklist';
+import {
+  hasGrantedLowStockNotificationPermission,
+  isLowStockMaterial,
+  notifyLowStock,
+  requestLowStockNotificationPermission,
+  supportsBrowserNotifications,
+} from '../utils/stock-alerts';
 
 interface NavItem {
   name: string;
@@ -191,6 +201,36 @@ const MainLayout = () => {
       clearMaterialWorklist();
     }
   }, [location.pathname]);
+
+  const { data: allMaterials = [] } = useMaterials();
+  const lowStockMaterials = allMaterials.filter((m: MaterialDto) => isLowStockMaterial(m));
+  const [lowStockDismissed, setLowStockDismissed] = useState<boolean>(false);
+  const alertedLowStockCodesRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!hasGrantedLowStockNotificationPermission()) {
+      alertedLowStockCodesRef.current = new Set(lowStockMaterials.map((material) => material.materialCode));
+      return;
+    }
+
+    const nextCodes = new Set<string>();
+    lowStockMaterials.forEach((material) => {
+      nextCodes.add(material.materialCode);
+      if (!alertedLowStockCodesRef.current.has(material.materialCode)) {
+        notifyLowStock(material);
+      }
+    });
+    alertedLowStockCodesRef.current = nextCodes;
+  }, [lowStockMaterials]);
+
+  const handleEnableLowStockNotifications = async () => {
+    const permission = await requestLowStockNotificationPermission();
+    if (permission === 'granted') {
+      for (const material of lowStockMaterials) {
+        notifyLowStock(material);
+      }
+    }
+  };
 
   const currentPage = navItems.find(
     (item) => location.pathname === item.path || location.pathname.startsWith(item.path + '/'),
@@ -430,6 +470,39 @@ const MainLayout = () => {
         </header>
 
         <main className="flex-1 overflow-hidden bg-[#f3f4f6] p-3 pb-4 md:p-6">
+          {lowStockMaterials.length > 0 && !lowStockDismissed && (
+            <div className="mb-3 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-800">
+              <AlertTriangle size={16} className="shrink-0 text-amber-600" />
+              <span className="flex-1">
+                <span className="font-bold text-amber-900">안전재고 경고:</span> {lowStockMaterials.length}개 자재의
+                재고가 안전재고 이하입니다.
+              </span>
+              <button
+                type="button"
+                onClick={() => navigate('/stock/current?scope=LOW')}
+                className="whitespace-nowrap rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800 hover:bg-amber-200 transition-colors"
+              >
+                확인하기
+              </button>
+              {supportsBrowserNotifications() && !hasGrantedLowStockNotificationPermission() && (
+                <button
+                  type="button"
+                  onClick={() => void handleEnableLowStockNotifications()}
+                  className="whitespace-nowrap rounded-lg border border-amber-200 bg-white px-2.5 py-1 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-colors"
+                >
+                  <Bell size={12} className="mr-1 inline-block" />웹 알림 켜기
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setLowStockDismissed(true)}
+                className="rounded-lg p-1 text-amber-500 hover:bg-amber-100 transition-colors"
+                aria-label="닫기"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
           <div className="mx-auto flex h-full min-w-0 max-w-[1760px] gap-0">
             <div className="chat-scrollbar min-w-0 flex-1 overflow-y-auto">
               <Outlet />

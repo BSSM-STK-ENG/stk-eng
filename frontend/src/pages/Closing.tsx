@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
 import { queryKeys, useClosings } from '../api/queries';
 import type { MonthlyClosing } from '../types/api';
+import { getStoredRole } from '../utils/auth-session';
 import { formatAppDateTime } from '../utils/date-format';
 import { downloadServerExcel } from '../utils/excel';
 
@@ -19,6 +20,8 @@ const Closing = () => {
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
   const [showAll, setShowAll] = useState<boolean>(false);
+  const userRole = getStoredRole();
+  const isAdmin = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -197,8 +200,48 @@ const Closing = () => {
                       </div>
                       {isClosed && c.closedAt && (
                         <p className="text-[11px] text-slate-400 mt-0.5">
-                          {formatAppDateTime(c.closedAt)} · {c.closedBy?.email ?? ''}
+                          {formatAppDateTime(c.closedAt)} · {c.closedBy?.email ?? c.closedByEmail ?? ''}
                         </p>
+                      )}
+                      {isClosed && (c.totalStockQty != null || c.monthlyOutboundCount != null) && (
+                        <div className="mt-1.5 flex flex-wrap gap-2">
+                          {c.totalStockQty != null && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                              보유재고 {c.totalStockQty.toLocaleString()}개
+                            </span>
+                          )}
+                          {(c.monthlySoldCount ?? c.monthlyOutboundCount) != null && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                              판매 {(c.monthlySoldCount ?? c.monthlyOutboundCount)?.toLocaleString()}건
+                            </span>
+                          )}
+                          {c.monthlyInboundQty != null && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                              입고수량 {c.monthlyInboundQty.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {isClosed && isAdmin && (c.totalRevenueAmount != null || c.totalPurchaseAmount != null) && (
+                        <div className="mt-1.5 flex flex-wrap gap-2">
+                          {c.totalRevenueAmount != null && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                              매출 ₩{Math.round(c.totalRevenueAmount).toLocaleString()}
+                            </span>
+                          )}
+                          {c.totalPurchaseAmount != null && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-orange-700">
+                              매입 ₩{Math.round(c.totalPurchaseAmount).toLocaleString()}
+                            </span>
+                          )}
+                          {c.margin != null && (
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${c.margin >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}
+                            >
+                              마진 ₩{Math.round(c.margin).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
                       )}
                       {!isClosed && (
                         <p className="text-[11px] text-slate-500 mt-0.5 font-medium">마감 처리가 필요합니다</p>

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -30,4 +31,25 @@ public class MonthlyClosing {
 
     @Column(name = "closed_at")
     private LocalDateTime closedAt;
+
+    @Column(name = "total_stock_qty")
+    private Integer totalStockQty;
+
+    @Column(name = "monthly_outbound_count")
+    private Integer monthlyOutboundCount;
+
+    @Column(name = "monthly_inbound_qty")
+    private Integer monthlyInboundQty;
+
+    @Column(name = "monthly_outbound_qty")
+    private Integer monthlyOutboundQty;
+
+    @Column(name = "total_purchase_amount", precision = 19, scale = 2)
+    private BigDecimal totalPurchaseAmount;
+
+    @Column(name = "total_revenue_amount", precision = 19, scale = 2)
+    private BigDecimal totalRevenueAmount;
+
+    @Column(name = "margin", precision = 19, scale = 2)
+    private BigDecimal margin;
 }

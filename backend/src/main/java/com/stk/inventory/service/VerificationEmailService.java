@@ -4,6 +4,8 @@ import com.stk.inventory.entity.User;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.MailAuthenticationException;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -47,8 +49,14 @@ public class VerificationEmailService {
 
         try {
             mailSender.send(message);
-        } catch (Exception exception) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "인증 메일을 보내지 못했습니다. 메일 설정을 확인해주세요.");
+        } catch (MailAuthenticationException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "인증 메일 발송 서비스에 연결할 수 없습니다.",
+                    exception
+            );
+        } catch (MailException exception) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "인증 메일을 보내지 못했습니다.", exception);
         }
     }
 }

@@ -4,6 +4,7 @@ import com.stk.inventory.entity.TransactionType;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -21,4 +22,6 @@ public class InventoryTransactionResponse {
     private String reference;
     private UserDto createdBy;
     private LocalDateTime createdAt;
+    private BigDecimal unitPrice;
+    private BigDecimal totalAmount;
 }

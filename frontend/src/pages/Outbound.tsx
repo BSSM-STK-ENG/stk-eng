@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Download,
   FileSpreadsheet,
+  ImagePlus,
   PencilLine,
   Plus,
   RefreshCw,
@@ -20,6 +21,7 @@ import { useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import { queryKeys, useBusinessUnits, useMaterials, usePagedLedger } from '../api/queries';
 import AdminSearchField from '../components/common/AdminSearchField';
+import MaterialImagePickerModal from '../components/inventory/MaterialImagePickerModal';
 import MaterialLookupField from '../components/inventory/MaterialLookupField';
 import { buildMaterialLookupLabel } from '../components/inventory/material-lookup-utils';
 import type { TransactionResponse, UserOption } from '../types/api';
@@ -82,10 +84,12 @@ const Outbound = () => {
   const [materialCode, setMaterialCode] = useState<string>('');
   const [materialQuery, setMaterialQuery] = useState<string>('');
   const [quantity, setQuantity] = useState<string>('');
+  const [unitPrice, setUnitPrice] = useState<string>('');
   const [businessUnit, setBusinessUnit] = useState<string>('');
   const [managerUserId, setManagerUserId] = useState<string>('');
   const [note, setNote] = useState<string>('');
   const [submitLoading, setSubmitLoading] = useState<boolean>(false);
+  const [showImagePicker, setShowImagePicker] = useState<boolean>(false);
 
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
@@ -175,15 +179,23 @@ const Outbound = () => {
     setMaterialCode('');
     setMaterialQuery('');
     setQuantity('');
+    setUnitPrice('');
     setBusinessUnit('');
     setManagerUserId('');
     setNote('');
     setEditingTransaction(null);
+    setShowImagePicker(false);
   };
 
   const closeModal = () => {
     setShowModal(false);
     resetForm();
+  };
+
+  const closeUploadModal = () => {
+    setShowUploadModal(false);
+    setUploadFile(null);
+    setUploadDragActive(false);
   };
 
   const openNew = () => {
@@ -313,6 +325,7 @@ const Outbound = () => {
       const payload = {
         materialCode: selectedMaterial.materialCode,
         quantity: parsedQuantity,
+        unitPrice: unitPrice ? Number(unitPrice) : 0,
         businessUnit: normalizedBusinessUnit,
         managerUserId,
         note: note.trim() || undefined,
@@ -487,7 +500,7 @@ const Outbound = () => {
             return (
               <article
                 key={transaction.id}
-                className="grid items-center gap-4 px-4 py-4 md:grid-cols-[minmax(0,1.45fr)_112px_132px_264px] md:px-5"
+                className="grid items-center gap-4 px-4 py-4 md:grid-cols-[minmax(0,1.45fr)_112px_112px_132px_264px] md:px-5"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-slate-900">
@@ -504,6 +517,14 @@ const Outbound = () => {
                 <div className="rounded-lg bg-slate-50 px-3 py-3 text-center">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">수량</p>
                   <p className="mt-1 text-lg font-semibold text-rose-500">-{transaction.quantity} EA</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 px-3 py-3 text-center">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">금액</p>
+                  <p className="mt-1 text-sm font-medium text-slate-700">
+                    {(transaction.unitPrice ?? 0) > 0
+                      ? '₩' + Math.round(transaction.totalAmount ?? 0).toLocaleString()
+                      : '-'}
+                  </p>
                 </div>
                 <div className="rounded-lg bg-slate-50 px-3 py-3 text-center">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">등록자</p>
@@ -562,6 +583,7 @@ const Outbound = () => {
             </span>
             <div className="flex gap-1">
               <button
+                type="button"
                 onClick={() => setPage((current) => Math.max(0, current - 1))}
                 disabled={page === 0}
                 className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
@@ -569,6 +591,7 @@ const Outbound = () => {
                 <ChevronLeft size={14} />
               </button>
               <button
+                type="button"
                 onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
                 disabled={page >= totalPages - 1}
                 className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
@@ -603,15 +626,35 @@ const Outbound = () => {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">자재</label>
-                  <MaterialLookupField
-                    materials={availableMaterials}
-                    accent="rose"
-                    inputValue={materialQuery}
-                    selectedCode={materialCode}
-                    onInputValueChange={setMaterialQuery}
-                    onSelectionChange={(material) => setMaterialCode(material?.materialCode ?? '')}
-                  />
+                  <p className="mb-2 text-sm font-semibold text-slate-700">자재</p>
+                  <div className="space-y-2">
+                    <MaterialLookupField
+                      materials={availableMaterials}
+                      accent="rose"
+                      inputValue={materialQuery}
+                      selectedCode={materialCode}
+                      onInputValueChange={setMaterialQuery}
+                      onSelectionChange={(material) => setMaterialCode(material?.materialCode ?? '')}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowImagePicker(true)}
+                      className="chat-focus-ring group flex w-full items-center gap-3 rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50 via-white to-slate-50 p-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-rose-300 hover:shadow-md"
+                    >
+                      <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-500 text-white shadow-sm shadow-rose-500/20 transition group-hover:bg-rose-600">
+                        <ImagePlus size={20} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-bold text-slate-900">사진으로 출고 자재 찾기</span>
+                        <span className="mt-0.5 block text-xs leading-5 text-slate-500">
+                          재고 있는 자재만 사진으로 비교해 썸네일 목록에서 선택합니다.
+                        </span>
+                      </span>
+                      <span className="hidden rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-rose-700 ring-1 ring-rose-100 sm:inline-flex">
+                        재고 필터 적용
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
                 {resolvedMaterial && (
@@ -663,8 +706,11 @@ const Outbound = () => {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">수량</label>
+                    <label htmlFor="outbound-quantity" className="mb-2 block text-sm font-semibold text-slate-700">
+                      수량
+                    </label>
                     <input
+                      id="outbound-quantity"
                       type="number"
                       required
                       min="1"
@@ -676,8 +722,27 @@ const Outbound = () => {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">사업장</label>
+                    <label htmlFor="outbound-unit-price" className="mb-1 block text-xs font-semibold text-slate-600">
+                      단가 (원)
+                    </label>
+                    <input
+                      id="outbound-unit-price"
+                      type="number"
+                      value={unitPrice}
+                      onChange={(e) => setUnitPrice(e.target.value)}
+                      min="0"
+                      step="1"
+                      className="admin-control w-full"
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="outbound-business-unit" className="mb-2 block text-sm font-semibold text-slate-700">
+                      사업장
+                    </label>
                     <select
+                      id="outbound-business-unit"
                       required
                       value={businessUnit}
                       onChange={(event) => setBusinessUnit(event.target.value)}
@@ -700,8 +765,11 @@ const Outbound = () => {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">출고 담당자</label>
+                    <label htmlFor="outbound-manager" className="mb-2 block text-sm font-semibold text-slate-700">
+                      출고 담당자
+                    </label>
                     <select
+                      id="outbound-manager"
                       required
                       value={managerUserId}
                       onChange={(event) => setManagerUserId(event.target.value)}
@@ -722,8 +790,11 @@ const Outbound = () => {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">비고</label>
+                    <label htmlFor="outbound-note" className="mb-2 block text-sm font-semibold text-slate-700">
+                      비고
+                    </label>
                     <textarea
+                      id="outbound-note"
                       value={note}
                       onChange={(event) => setNote(event.target.value)}
                       rows={3}
@@ -754,6 +825,17 @@ const Outbound = () => {
                   </button>
                 </div>
               </form>
+              <MaterialImagePickerModal
+                open={showImagePicker}
+                title="출고할 자재를 이미지로 찾기"
+                allowedMaterials={availableMaterials}
+                onClose={() => setShowImagePicker(false)}
+                onSelect={(material) => {
+                  setMaterialCode(material.materialCode);
+                  setMaterialQuery(buildMaterialLookupLabel(material));
+                  setShowImagePicker(false);
+                }}
+              />
             </div>
           </div>,
           document.body,
@@ -771,7 +853,7 @@ const Outbound = () => {
                 <button
                   type="button"
                   aria-label="닫기"
-                  onClick={() => setShowUploadModal(false)}
+                  onClick={closeUploadModal}
                   className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100"
                 >
                   <X size={18} />
@@ -795,7 +877,8 @@ const Outbound = () => {
                 </span>
               </div>
               <form onSubmit={handleFileUpload} className="space-y-4">
-                <div
+                <fieldset
+                  aria-label="출고 파일 업로드 영역"
                   className={`rounded-xl border-2 border-dashed p-6 text-center transition-colors ${
                     uploadDragActive
                       ? 'border-emerald-400 bg-emerald-50/70'
@@ -834,11 +917,11 @@ const Outbound = () => {
                     className="w-full cursor-pointer text-xs text-slate-500 file:mr-3 file:rounded-full file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-emerald-600 hover:file:bg-emerald-100"
                   />
                   {uploadFile && <p className="mt-2 text-xs font-bold text-emerald-600">{uploadFile.name}</p>}
-                </div>
+                </fieldset>
                 <div className="flex justify-end gap-2.5 border-t border-slate-100 pt-3">
                   <button
                     type="button"
-                    onClick={() => setShowUploadModal(false)}
+                    onClick={closeUploadModal}
                     className="inline-flex h-9 items-center rounded-lg px-3.5 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50"
                   >
                     <X size={14} className="mr-1.5" />

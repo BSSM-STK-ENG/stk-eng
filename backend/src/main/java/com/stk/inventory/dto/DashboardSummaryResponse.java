@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -20,6 +21,12 @@ public class DashboardSummaryResponse {
     private int todayOutboundQty;
     private List<DayMetric> recentWeek;
     private List<TransactionResponse> recentTransactions;
+    private BigDecimal currentMonthRevenue;
+    private BigDecimal currentMonthPurchase;
+    private BigDecimal currentMonthMargin;
+    private int currentMonthInboundQty;
+    private int currentMonthOutboundQty;
+    private List<MonthlyClosingDto> recentClosings;
 
     @Data
     @Builder

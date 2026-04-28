@@ -1,10 +1,12 @@
 package com.stk.inventory.service;
 
 import com.stk.inventory.dto.TransactionRequest;
+import com.stk.inventory.entity.ClosingStatus;
 import com.stk.inventory.entity.InventoryTransaction;
 import com.stk.inventory.entity.Material;
 import com.stk.inventory.entity.TransactionType;
 import com.stk.inventory.gateway.InventoryGateway;
+import com.stk.inventory.repository.MonthlyClosingRepository;
 import com.stk.inventory.repository.UserRepository;
 import com.stk.inventory.mapper.TransactionMapper;
 import org.junit.jupiter.api.Test;
@@ -13,6 +15,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,6 +38,9 @@ class InventoryServiceTest {
 
     @Mock
     private UserDirectoryService userDirectoryService;
+
+    @Mock
+    private MonthlyClosingRepository monthlyClosingRepository;
 
     @Test
     void processInboundRequiresRegisteredBusinessUnit() {
@@ -119,5 +126,45 @@ class InventoryServiceTest {
         assertEquals(8, updated.getQuantity());
         assertEquals("QA-T2", updated.getBusinessUnit());
         assertEquals("수정 메모", updated.getNote());
+    }
+
+    @Test
+    void processInboundRejectsNegativeUnitPriceBeforeChangingStock() {
+        InventoryService service = new InventoryService(inventoryGateway, userRepository, masterDataService, userDirectoryService, new TransactionMapper());
+        TransactionRequest request = new TransactionRequest();
+        request.setMaterialCode("MAT-004");
+        request.setQuantity(3);
+        request.setBusinessUnit("QA-T1");
+        request.setUnitPrice(BigDecimal.valueOf(-1));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> service.processInbound(request));
+
+        assertEquals("단가는 0 이상이어야 합니다.", exception.getMessage());
+        verifyNoInteractions(inventoryGateway);
+    }
+
+    @Test
+    void processInboundRejectsWhenLaterMonthIsClosed() {
+        InventoryService service = new InventoryService(
+                inventoryGateway,
+                userRepository,
+                masterDataService,
+                userDirectoryService,
+                new TransactionMapper(),
+                monthlyClosingRepository
+        );
+        TransactionRequest request = new TransactionRequest();
+        request.setMaterialCode("MAT-005");
+        request.setQuantity(1);
+        request.setBusinessUnit("QA-T1");
+        request.setTransactionDate(LocalDateTime.of(2026, 9, 15, 9, 0));
+
+        when(monthlyClosingRepository.findById("2026-09")).thenReturn(Optional.empty());
+        when(monthlyClosingRepository.existsByStatusAndClosingMonthGreaterThan(ClosingStatus.CLOSED, "2026-09")).thenReturn(true);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> service.processInbound(request));
+
+        assertEquals("이후 마감월이 있어 2026-09 데이터는 수정할 수 없습니다.", exception.getMessage());
+        verify(inventoryGateway, never()).findMaterialById(any());
     }
 }

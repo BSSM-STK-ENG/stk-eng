@@ -151,6 +151,13 @@ export interface MaterialDto {
   location: string | null;
   safeStockQty: number | null;
   currentStockQty: number | null;
+  imageUrl?: string | null;
+}
+
+export interface ImageSearchResult {
+  material: MaterialDto;
+  distance: number;
+  similarity: number;
 }
 
 export interface MasterDataItem {
@@ -233,6 +240,7 @@ export interface TransactionRequest {
   managerUserId?: string;
   note?: string;
   reference?: string;
+  unitPrice?: number;
 }
 
 export interface InventoryTransaction {
@@ -248,6 +256,8 @@ export interface InventoryTransaction {
   reference: string | null;
   createdBy: User | null;
   createdAt: string;
+  unitPrice?: number | null;
+  totalAmount?: number | null;
 }
 
 export interface Material {
@@ -263,7 +273,16 @@ export interface MonthlyClosing {
   closingMonth: string;
   status: ClosingStatus;
   closedBy: User | null;
+  closedByEmail?: string | null;
   closedAt: string | null;
+  totalStockQty?: number | null;
+  monthlyOutboundCount?: number | null;
+  monthlyInboundQty?: number | null;
+  monthlyOutboundQty?: number | null;
+  monthlySoldCount?: number | null;
+  totalPurchaseAmount?: number | null;
+  totalRevenueAmount?: number | null;
+  margin?: number | null;
 }
 
 export interface User {
@@ -298,6 +317,8 @@ export interface TransactionResponse {
   revertedByUserId: string | null;
   revertedAt: string | null;
   createdAt: string;
+  unitPrice?: number | null;
+  totalAmount?: number | null;
 }
 
 export interface DashboardSummary {
@@ -310,6 +331,12 @@ export interface DashboardSummary {
   todayOutboundQty: number;
   recentWeek: DashboardDayMetric[];
   recentTransactions: TransactionResponse[];
+  currentMonthRevenue?: number;
+  currentMonthPurchase?: number;
+  currentMonthMargin?: number;
+  currentMonthInboundQty?: number;
+  currentMonthOutboundQty?: number;
+  recentClosings?: MonthlyClosing[];
 }
 
 export interface PagedLedger {

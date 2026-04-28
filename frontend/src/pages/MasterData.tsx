@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { Building2, RefreshCw, PencilLine, Trash2, X } from 'lucide-react';
+import { Building2, PencilLine, RefreshCw, Trash2, X } from 'lucide-react';
 import type React from 'react';
 import { useMemo, useState } from 'react';
 import api from '../api/axios';
@@ -12,8 +12,6 @@ type Notice = {
   tone: 'success' | 'error';
   message: string;
 };
-
-
 
 export default function MasterData() {
   const queryClient = useQueryClient();
@@ -110,7 +108,9 @@ export default function MasterData() {
           <div>
             <p className="admin-kicker">기준 정보</p>
             <h2 className="admin-page-title">사업장 관리</h2>
-            <p className="admin-page-description">입고와 출고에서 선택할 사업장을 등록하고 이름을 수정하거나 삭제합니다.</p>
+            <p className="admin-page-description">
+              입고와 출고에서 선택할 사업장을 등록하고 이름을 수정하거나 삭제합니다.
+            </p>
           </div>
           <button
             type="button"
@@ -159,7 +159,9 @@ export default function MasterData() {
           </div>
           <div>
             <h3 className="text-base font-semibold text-slate-900">사업장 정보 등록</h3>
-            <p className="mt-1 text-sm text-slate-500">입고와 출고에서 선택할 사업장을 등록하고 이름을 수정하거나 삭제합니다.</p>
+            <p className="mt-1 text-sm text-slate-500">
+              입고와 출고에서 선택할 사업장을 등록하고 이름을 수정하거나 삭제합니다.
+            </p>
           </div>
         </div>
 
@@ -189,14 +191,18 @@ export default function MasterData() {
           <div className="flex gap-2">
             <button
               type="submit"
-              disabled={businessUnitSubmitting || (savingBusinessUnitId !== null && savingBusinessUnitId === editingBusinessUnitId)}
+              disabled={
+                businessUnitSubmitting ||
+                (savingBusinessUnitId !== null && savingBusinessUnitId === editingBusinessUnitId)
+              }
               className="admin-btn admin-btn-primary min-w-[112px]"
             >
-              {businessUnitSubmitting || (savingBusinessUnitId !== null && savingBusinessUnitId === editingBusinessUnitId)
+              {businessUnitSubmitting ||
+              (savingBusinessUnitId !== null && savingBusinessUnitId === editingBusinessUnitId)
                 ? '저장 중...'
                 : editingBusinessUnitId !== null
-                ? '수정'
-                : '등록'}
+                  ? '수정'
+                  : '등록'}
             </button>
             {editingBusinessUnitId !== null && (
               <button
@@ -279,25 +285,23 @@ export default function MasterData() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => handleStartEditBusinessUnit(item)}
-                              className="admin-btn inline-flex min-h-9 min-w-[72px] justify-center whitespace-nowrap px-3 text-xs text-slate-600"
-                            >
-                              <PencilLine size={14} />
-                              수정
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteBusinessUnit(item)}
-                              disabled={deletingBusinessUnitId === item.id}
-                              className="admin-btn inline-flex min-h-9 min-w-[108px] justify-center whitespace-nowrap px-3 text-xs text-slate-500"
-                            >
-                              <Trash2 size={14} />
-                              {deletingBusinessUnitId === item.id ? '삭제 중...' : '삭제'}
-                            </button>
-                          </>
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditBusinessUnit(item)}
+                          className="admin-btn inline-flex min-h-9 min-w-[72px] justify-center whitespace-nowrap px-3 text-xs text-slate-600"
+                        >
+                          <PencilLine size={14} />
+                          수정
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteBusinessUnit(item)}
+                          disabled={deletingBusinessUnitId === item.id}
+                          className="admin-btn inline-flex min-h-9 min-w-[108px] justify-center whitespace-nowrap px-3 text-xs text-slate-500"
+                        >
+                          <Trash2 size={14} />
+                          {deletingBusinessUnitId === item.id ? '삭제 중...' : '삭제'}
+                        </button>
                       </div>
                     </td>
                   </tr>

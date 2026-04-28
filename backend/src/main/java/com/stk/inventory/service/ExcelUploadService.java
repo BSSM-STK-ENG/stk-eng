@@ -10,9 +10,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Iterator;
+import java.util.List;
 
 @Service
 public class ExcelUploadService {
@@ -76,6 +80,12 @@ public class ExcelUploadService {
                 String note = noteIdx != -1 && cols.length > noteIdx ? cols[noteIdx] : "";
                 String manager = managerIdx != -1 && cols.length > managerIdx ? cols[managerIdx] : "";
                 LocalDateTime transactionDate = LocalDateTime.now();
+                if (dateIdx != -1) {
+                    if (cols.length <= dateIdx) {
+                        throw new IllegalArgumentException("날짜를 입력해주세요.");
+                    }
+                    transactionDate = parseDateTime(cols[dateIdx]);
+                }
 
                 saveData(type, materialCode, materialName, quantity, reference, note, manager, transactionDate);
             }
@@ -128,10 +138,15 @@ public class ExcelUploadService {
                 String manager = managerIdx != -1 ? getCellValue(row.getCell(managerIdx)) : "";
 
                 LocalDateTime transactionDate = LocalDateTime.now();
-                if (dateIdx != -1 && row.getCell(dateIdx) != null) {
+                if (dateIdx != -1) {
                     Cell dateCell = row.getCell(dateIdx);
+                    if (dateCell == null) {
+                        throw new IllegalArgumentException("날짜를 입력해주세요.");
+                    }
                     if (DateUtil.isCellDateFormatted(dateCell)) {
                         transactionDate = dateCell.getDateCellValue().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+                    } else {
+                        transactionDate = parseDateTime(getCellValue(dateCell));
                     }
                 }
 
@@ -173,5 +188,45 @@ public class ExcelUploadService {
             case BOOLEAN: return String.valueOf(cell.getBooleanCellValue());
             default: return "";
         }
+    }
+
+    private LocalDateTime parseDateTime(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            throw new IllegalArgumentException("날짜를 입력해주세요.");
+        }
+
+        String normalized = raw.trim();
+        List<DateTimeFormatter> dateFormats = List.of(
+                DateTimeFormatter.ISO_LOCAL_DATE_TIME,
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"),
+                DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")
+        );
+
+        for (DateTimeFormatter formatter : dateFormats) {
+            try {
+                return LocalDateTime.parse(normalized, formatter);
+            } catch (DateTimeParseException ignored) {
+                // Try the next supported date-time format.
+            }
+        }
+
+        List<DateTimeFormatter> dateOnlyFormats = List.of(
+                DateTimeFormatter.ISO_LOCAL_DATE,
+                DateTimeFormatter.ofPattern("yyyy/MM/dd"),
+                DateTimeFormatter.ofPattern("yyyy.M.d"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        );
+
+        for (DateTimeFormatter formatter : dateOnlyFormats) {
+            try {
+                return LocalDate.parse(normalized, formatter).atStartOfDay();
+            } catch (DateTimeParseException ignored) {
+                // Try the next supported date-only format.
+            }
+        }
+
+        throw new IllegalArgumentException("날짜 형식이 올바르지 않습니다: " + raw);
     }
 }
