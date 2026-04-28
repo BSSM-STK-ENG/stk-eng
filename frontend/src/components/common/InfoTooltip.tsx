@@ -13,7 +13,7 @@ export default function InfoTooltip({ label }: InfoTooltipProps) {
       <button
         type="button"
         className="chat-focus-ring inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400"
-        aria-label="설명 보기"
+        aria-label={`설명 보기: ${label}`}
         aria-describedby={tooltipId}
       >
         <Info size={12} />

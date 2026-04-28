@@ -3,12 +3,12 @@ import { test, expect } from '@playwright/test';
 test.describe('Key flows', () => {
   test('dashboard cards navigate to filtered current stock views', async ({ page }) => {
     await page.goto('/dashboard');
-    await page.getByRole('button', { name: /재고 없음/ }).click();
+    await page.getByRole('button').filter({ has: page.getByText('재고 없음', { exact: true }) }).click();
     await expect(page).toHaveURL(/\/stock\/current\?scope=ZERO$/);
     await expect(page.getByRole('button', { name: /재고 없음/ })).toHaveClass(/bg-slate-900/);
 
     await page.goto('/dashboard');
-    await page.getByRole('button', { name: /안전재고 이하/ }).click();
+    await page.getByRole('button').filter({ has: page.getByText('안전재고 이하', { exact: true }) }).click();
     await expect(page).toHaveURL(/\/stock\/current\?scope=LOW$/);
     await expect(page.getByRole('button', { name: /안전재고 이하/ })).toHaveClass(/bg-slate-900/);
   });
