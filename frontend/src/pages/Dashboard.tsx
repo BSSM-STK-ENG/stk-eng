@@ -5,11 +5,14 @@ import {
   ArrowUpRight,
   Boxes,
   Clock3,
+  DollarSign,
   Loader2,
   PackageX,
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
+  TrendingDown,
+  TrendingUp,
   TriangleAlert,
   Warehouse,
 } from 'lucide-react';
@@ -17,6 +20,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { queryKeys, useDashboardSummary } from '../api/queries';
 import InfoTooltip from '../components/common/InfoTooltip';
+import { getStoredRole } from '../utils/auth-session';
 import { formatAppDateTime } from '../utils/date-format';
 import { formatBusinessUnit, formatTransactionTypeLabel, isInboundType } from '../utils/inventory-display';
 
@@ -34,6 +38,13 @@ function formatCompactDateLabel(dayKey: string) {
 
 function formatQty(value: number) {
   return `${value.toLocaleString()} EA`;
+}
+
+function formatWon(value?: number | null) {
+  if (value == null) {
+    return '-';
+  }
+  return `₩${Math.round(value).toLocaleString()}`;
 }
 
 function formatSignedQty(value: number) {
@@ -345,6 +356,8 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: summary, isLoading: loading, error: queryError, dataUpdatedAt } = useDashboardSummary();
+  const userRole = getStoredRole();
+  const isAdmin = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
   const error = queryError ? '대시보드 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.' : null;
   const lastUpdatedAt = dataUpdatedAt ? new Date(dataUpdatedAt).toISOString() : '';
 
@@ -449,6 +462,97 @@ const Dashboard = () => {
           onClick={() => moveToCurrentStock('ZERO')}
         />
       </section>
+
+      {isAdmin && (
+        <section className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+              <TrendingUp size={18} />
+            </div>
+            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">이번달 매출</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">
+              ₩{(summary?.currentMonthRevenue ?? 0).toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+              <TrendingDown size={18} />
+            </div>
+            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">이번달 매입</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">
+              ₩{(summary?.currentMonthPurchase ?? 0).toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${(summary?.currentMonthMargin ?? 0) >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}
+            >
+              <DollarSign size={18} />
+            </div>
+            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">이번달 마진</p>
+            <p
+              className={`mt-1 text-2xl font-bold ${(summary?.currentMonthMargin ?? 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}
+            >
+              ₩{(summary?.currentMonthMargin ?? 0).toLocaleString()}
+            </p>
+          </div>
+        </section>
+      )}
+
+      {isAdmin && (summary?.recentClosings?.length ?? 0) > 0 && (
+        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">월별 정산 금액</p>
+              <p className="mt-1 text-xs text-slate-500">최근 마감월 기준으로 매출, 매입, 마진을 빠르게 확인합니다.</p>
+            </div>
+            <span className="text-xs text-slate-500">
+              최근 {(summary?.recentClosings?.length ?? 0).toLocaleString()}개월
+            </span>
+          </div>
+          <div className="grid gap-3 p-5 md:grid-cols-2 xl:grid-cols-3">
+            {summary?.recentClosings?.map((closing) => (
+              <article key={closing.closingMonth} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">{closing.closingMonth}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      보유재고 {closing.totalStockQty == null ? '-' : `${closing.totalStockQty.toLocaleString()}개`} ·
+                      판매{' '}
+                      {closing.monthlySoldCount == null && closing.monthlyOutboundCount == null
+                        ? '-'
+                        : `${(closing.monthlySoldCount ?? closing.monthlyOutboundCount ?? 0).toLocaleString()}건`}
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${closing.status === 'CLOSED' ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-700'}`}
+                  >
+                    {closing.status === 'CLOSED' ? '마감완료' : '미마감'}
+                  </span>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="rounded-xl bg-white px-2 py-3">
+                    <p className="font-semibold text-slate-400">매출</p>
+                    <p className="mt-1 font-bold text-violet-700">{formatWon(closing.totalRevenueAmount)}</p>
+                  </div>
+                  <div className="rounded-xl bg-white px-2 py-3">
+                    <p className="font-semibold text-slate-400">매입</p>
+                    <p className="mt-1 font-bold text-orange-700">{formatWon(closing.totalPurchaseAmount)}</p>
+                  </div>
+                  <div className="rounded-xl bg-white px-2 py-3">
+                    <p className="font-semibold text-slate-400">마진</p>
+                    <p
+                      className={`mt-1 font-bold ${(closing.margin ?? 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}
+                    >
+                      {formatWon(closing.margin)}
+                    </p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         <TrendLineChart days={recentWeekDays} inboundTotal={weekInboundQty} outboundTotal={weekOutboundQty} />

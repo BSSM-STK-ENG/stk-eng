@@ -276,6 +276,14 @@ const Ledger = () => {
                     <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">담당자</p>
                     <p className="mt-1">{transaction.manager || '-'}</p>
                   </div>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">금액</p>
+                    <p className="mt-1">
+                      {transaction.totalAmount != null
+                        ? `₩${Math.round(transaction.totalAmount).toLocaleString()}`
+                        : '-'}
+                    </p>
+                  </div>
                 </div>
                 {(transaction.reference || transaction.note) && (
                   <div>
@@ -328,6 +336,9 @@ const Ledger = () => {
                 <th className="w-[120px] px-4 py-3.5 text-right text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">
                   수량
                 </th>
+                <th className="w-[140px] px-4 py-3.5 text-right text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 md:px-6">
+                  금액
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -375,13 +386,18 @@ const Ledger = () => {
                         {transaction.quantity.toLocaleString()}
                       </span>
                     </td>
+                    <td className="whitespace-nowrap px-4 py-3.5 text-right text-sm font-semibold text-slate-600 md:px-6">
+                      {transaction.totalAmount != null
+                        ? `₩${Math.round(transaction.totalAmount).toLocaleString()}`
+                        : '-'}
+                    </td>
                   </tr>
                 );
               })}
 
               {transactions.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-16 text-center text-sm font-medium text-slate-400">
+                  <td colSpan={6} className="px-5 py-16 text-center text-sm font-medium text-slate-400">
                     <div className="flex flex-col items-center gap-3">
                       <p className="text-base font-semibold text-slate-700">{emptyTitle}</p>
                       {hasActiveFilters && (
