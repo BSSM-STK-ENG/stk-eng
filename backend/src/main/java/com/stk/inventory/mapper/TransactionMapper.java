@@ -4,6 +4,8 @@ import com.stk.inventory.dto.TransactionResponse;
 import com.stk.inventory.entity.InventoryTransaction;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+
 @Component
 public class TransactionMapper {
 
@@ -26,6 +28,10 @@ public class TransactionMapper {
                 .revertedByUserId(tx.getRevertedBy() != null ? tx.getRevertedBy().getId() : null)
                 .revertedAt(tx.getRevertedAt())
                 .createdAt(tx.getCreatedAt())
+                .unitPrice(tx.getUnitPrice() != null ? tx.getUnitPrice() : BigDecimal.ZERO)
+                .totalAmount(tx.getUnitPrice() != null && tx.getQuantity() != null
+                    ? tx.getUnitPrice().multiply(BigDecimal.valueOf(tx.getQuantity()))
+                    : BigDecimal.ZERO)
                 .build();
     }
 }
