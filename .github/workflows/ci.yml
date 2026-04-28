@@ -37,7 +37,7 @@ jobs:
         run: npm run build
 
   backend:
-    name: Backend (Java 17 + Maven)
+    name: Backend (Java 17 + Gradle)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -63,10 +63,18 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-          cache: maven
+          cache: gradle
 
-      - name: Build & Test
-        run: mvn -B package -DskipTests
+      - name: Test
+        run: ./gradlew test --no-daemon
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/inventory_test
+          SPRING_DATASOURCE_USERNAME: test
+          SPRING_DATASOURCE_PASSWORD: test
+          JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+
+      - name: Build
+        run: ./gradlew build -x test --no-daemon
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/inventory_test
           SPRING_DATASOURCE_USERNAME: test

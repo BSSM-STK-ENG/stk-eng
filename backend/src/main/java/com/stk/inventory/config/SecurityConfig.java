@@ -71,6 +71,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/auth/verify-email").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/materials").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_DASHBOARD", "PAGE_CURRENT_STOCK", "PAGE_INBOUND", "PAGE_OUTBOUND", "PAGE_MASTER_DATA", "PAGE_STOCK_LEDGER")
                 .requestMatchers(HttpMethod.POST, "/api/materials").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_MASTER_DATA")
+                .requestMatchers(HttpMethod.POST, "/api/quick-search").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_DASHBOARD", "PAGE_CURRENT_STOCK", "PAGE_INBOUND", "PAGE_OUTBOUND", "PAGE_MASTER_DATA", "PAGE_STOCK_LEDGER", "PAGE_HISTORY", "PAGE_CLOSING")
                 .requestMatchers(HttpMethod.POST, "/api/materials/search/image").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_DASHBOARD", "PAGE_CURRENT_STOCK", "PAGE_INBOUND", "PAGE_OUTBOUND", "PAGE_MASTER_DATA", "PAGE_STOCK_LEDGER")
                 .requestMatchers(HttpMethod.PUT, "/api/materials/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_MASTER_DATA", "PAGE_CURRENT_STOCK", "PAGE_INBOUND")
                 .requestMatchers(HttpMethod.POST, "/api/materials/*/image").hasAnyAuthority("ROLE_SUPER_ADMIN", "PAGE_MASTER_DATA")
