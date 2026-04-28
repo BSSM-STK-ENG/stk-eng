@@ -50,7 +50,7 @@ public class MaterialService {
                 .safeStockQty(normalizeStockValue(dto.getSafeStockQty()))
                 .currentStockQty(Math.max(0, dto.getCurrentStockQty() == null ? 0 : dto.getCurrentStockQty()))
                 .imageUrl(imageUrl)
-                .imageHash(imageUrl != null ? imageHashService.computePHash(imageUrl) : null)
+                .imageHash(computeOptionalImageHash(imageUrl))
                 .build();
         return convertToDto(materialRepository.save(material));
     }
@@ -67,7 +67,7 @@ public class MaterialService {
 
         String imageUrl = normalizeOptional(dto.getImageUrl());
         material.setImageUrl(imageUrl);
-        material.setImageHash(imageUrl != null ? imageHashService.computePHash(imageUrl) : null);
+        material.setImageHash(computeOptionalImageHash(imageUrl));
 
         return convertToDto(materialRepository.save(material));
     }
@@ -98,8 +98,9 @@ public class MaterialService {
     public MaterialDto updateMaterialImage(String materialCode, String imageUrl) {
         Material material = materialRepository.findById(materialCode)
                 .orElseThrow(() -> new IllegalArgumentException("자재를 찾을 수 없습니다."));
-        material.setImageUrl(imageUrl);
-        material.setImageHash(imageUrl != null ? imageHashService.computePHash(imageUrl) : null);
+        String normalizedImageUrl = normalizeOptional(imageUrl);
+        material.setImageUrl(normalizedImageUrl);
+        material.setImageHash(computeOptionalImageHash(normalizedImageUrl));
         return convertToDto(materialRepository.save(material));
     }
 
@@ -136,6 +137,15 @@ public class MaterialService {
         if (value == null) return null;
         String normalized = value.trim();
         return normalized.isEmpty() ? null : normalized;
+    }
+
+    private String computeOptionalImageHash(String imageData) {
+        if (imageData == null) return null;
+        String imageHash = imageHashService.computePHash(imageData);
+        if (imageHash == null) {
+            throw new IllegalArgumentException("이미지를 처리할 수 없습니다.");
+        }
+        return imageHash;
     }
 
     private MaterialDto convertToDto(Material material) {

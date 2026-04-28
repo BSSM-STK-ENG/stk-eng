@@ -15,12 +15,21 @@ public class ImageHashService {
 
     private static final int HASH_SIZE = 8;
     private static final int DCT_SIZE = 32;
+    private static final int MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+    private static final long MAX_IMAGE_PIXELS = 20_000_000L;
 
     public String computePHash(String imageData) {
         try {
             byte[] bytes = decodeImageData(imageData);
+            if (bytes.length > MAX_IMAGE_BYTES) {
+                throw new IllegalArgumentException("Image payload is too large");
+            }
             BufferedImage original = ImageIO.read(new ByteArrayInputStream(bytes));
             if (original == null) return null;
+            long pixelCount = (long) original.getWidth() * original.getHeight();
+            if (pixelCount > MAX_IMAGE_PIXELS) {
+                throw new IllegalArgumentException("Image dimensions are too large");
+            }
 
             BufferedImage resized = new BufferedImage(DCT_SIZE, DCT_SIZE, BufferedImage.TYPE_INT_RGB);
             Graphics2D g2 = resized.createGraphics();
@@ -104,6 +113,10 @@ public class ImageHashService {
     private byte[] decodeImageData(String imageData) {
         if (imageData == null || imageData.isBlank()) throw new IllegalArgumentException("Empty image data");
         String base64 = imageData.contains(",") ? imageData.substring(imageData.indexOf(',') + 1) : imageData;
+        long estimatedBytes = (long) Math.ceil(base64.trim().length() * 3.0 / 4.0);
+        if (estimatedBytes > MAX_IMAGE_BYTES) {
+            throw new IllegalArgumentException("Image payload is too large");
+        }
         return Base64.getDecoder().decode(base64.trim());
     }
 }
