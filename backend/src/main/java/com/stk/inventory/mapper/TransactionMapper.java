@@ -34,4 +34,33 @@ public class TransactionMapper {
                     : BigDecimal.ZERO)
                 .build();
     }
+
+    public TransactionResponse toResponse(InventoryTransaction tx, boolean includeFinancials) {
+        TransactionResponse response = toResponse(tx);
+        return includeFinancials ? response : redactFinancials(response);
+    }
+
+    public TransactionResponse redactFinancials(TransactionResponse response) {
+        return TransactionResponse.builder()
+                .id(response.getId())
+                .transactionType(response.getTransactionType())
+                .materialCode(response.getMaterialCode())
+                .quantity(response.getQuantity())
+                .transactionDate(response.getTransactionDate())
+                .businessUnit(response.getBusinessUnit())
+                .manager(response.getManager())
+                .note(response.getNote())
+                .reference(response.getReference())
+                .createdByUserId(response.getCreatedByUserId())
+                .createdByEmail(response.getCreatedByEmail())
+                .reverted(response.isReverted())
+                .systemGenerated(response.isSystemGenerated())
+                .reversalOfTransactionId(response.getReversalOfTransactionId())
+                .revertedByUserId(response.getRevertedByUserId())
+                .revertedAt(response.getRevertedAt())
+                .createdAt(response.getCreatedAt())
+                .unitPrice(null)
+                .totalAmount(null)
+                .build();
+    }
 }

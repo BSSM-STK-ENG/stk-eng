@@ -351,6 +351,9 @@ export function useChatWorkspace(): ChatWorkspaceState {
       if (!searchTerm) {
         return;
       }
+      if (query !== undefined) {
+        setQuickSearchQuery(searchTerm);
+      }
 
       quickSearchAbortRef.current?.abort();
       const controller = new AbortController();
@@ -361,18 +364,23 @@ export function useChatWorkspace(): ChatWorkspaceState {
 
       try {
         const result = await sendQuickSearch(searchTerm, controller.signal);
+        if (quickSearchAbortRef.current !== controller) {
+          return;
+        }
         if (!result) {
           throw new Error('검색 결과를 불러오지 못했습니다.');
         }
         setQuickSearchResults(result);
       } catch (error) {
-        if (controller.signal.aborted) {
+        if (controller.signal.aborted || quickSearchAbortRef.current !== controller) {
           return;
         }
         setQuickSearchError(error instanceof Error ? error.message : '검색에 실패했습니다.');
       } finally {
-        setQuickSearchLoading(false);
-        quickSearchAbortRef.current = null;
+        if (quickSearchAbortRef.current === controller) {
+          setQuickSearchLoading(false);
+          quickSearchAbortRef.current = null;
+        }
       }
     },
     [quickSearchQuery],

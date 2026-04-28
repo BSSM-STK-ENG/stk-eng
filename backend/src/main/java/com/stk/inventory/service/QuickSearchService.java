@@ -75,8 +75,7 @@ public class QuickSearchService {
                         PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "transactionDate", "id")))
                 .getContent()
                 .stream()
-                .map(transactionMapper::toResponse)
-                .map(response -> includeFinancials ? response : redactFinancials(response))
+                .map(transaction -> transactionMapper.toResponse(transaction, includeFinancials))
                 .toList();
     }
 
@@ -116,27 +115,4 @@ public class QuickSearchService {
         return dto;
     }
 
-    private TransactionResponse redactFinancials(TransactionResponse response) {
-        return TransactionResponse.builder()
-                .id(response.getId())
-                .transactionType(response.getTransactionType())
-                .materialCode(response.getMaterialCode())
-                .quantity(response.getQuantity())
-                .transactionDate(response.getTransactionDate())
-                .businessUnit(response.getBusinessUnit())
-                .manager(response.getManager())
-                .note(response.getNote())
-                .reference(response.getReference())
-                .createdByUserId(response.getCreatedByUserId())
-                .createdByEmail(response.getCreatedByEmail())
-                .reverted(response.isReverted())
-                .systemGenerated(response.isSystemGenerated())
-                .reversalOfTransactionId(response.getReversalOfTransactionId())
-                .revertedByUserId(response.getRevertedByUserId())
-                .revertedAt(response.getRevertedAt())
-                .createdAt(response.getCreatedAt())
-                .unitPrice(null)
-                .totalAmount(null)
-                .build();
-    }
 }
