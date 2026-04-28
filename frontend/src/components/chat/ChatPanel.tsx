@@ -5,15 +5,19 @@ import {
   LoaderCircle,
   MessageCircle,
   MoreHorizontal,
+  Package,
+  Search,
   Send,
   Settings,
+  ShieldCheck,
   Sparkles,
   Square,
   Trash2,
   X,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import type {
   AiPreferences,
   ChatMessage,
@@ -21,6 +25,8 @@ import type {
   ProviderCredential,
   ProviderDescriptor,
   ProviderType,
+  QuickSearchMaterial,
+  QuickSearchResult,
   ToolTrace,
 } from '../../types/chat';
 import { DEFAULT_PROVIDER_CATALOG } from './chatDefaults';
@@ -60,6 +66,58 @@ const PROVIDER_ICONS: Record<string, string> = {
   anthropic: 'C',
   google: 'G',
 };
+
+const QUICK_ACTIONS = [
+  {
+    key: 'search',
+    label: '재고 검색',
+    icon: Search,
+    path: null,
+    focusSearch: true,
+    color: 'bg-blue-50 text-blue-600 border-blue-100',
+  },
+  {
+    key: 'low-stock',
+    label: '안전재고 확인',
+    icon: ShieldCheck,
+    path: '/stock/current?scope=LOW',
+    focusSearch: false,
+    color: 'bg-amber-50 text-amber-600 border-amber-100',
+  },
+  {
+    key: 'inbound',
+    label: '입고 현황',
+    icon: Package,
+    path: '/inbound',
+    focusSearch: false,
+    color: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+  },
+  {
+    key: 'outbound',
+    label: '출고 현황',
+    icon: ChevronRight,
+    path: '/outbound',
+    focusSearch: false,
+    color: 'bg-violet-50 text-violet-600 border-violet-100',
+  },
+  {
+    key: 'closing',
+    label: '월마감 확인',
+    icon: Database,
+    path: '/closing',
+    focusSearch: false,
+    color: 'bg-rose-50 text-rose-600 border-rose-100',
+  },
+] as const;
+
+const SLASH_COMMANDS = [
+  { command: '/search', description: '빠른 검색 — 자재/거래/마감 검색', prefix: '/search ' },
+  { command: '/stock', description: '재고 현황 페이지로 이동', prefix: '/stock' },
+  { command: '/inbound', description: '입고 현황 페이지로 이동', prefix: '/inbound' },
+  { command: '/outbound', description: '출고 현황 페이지로 이동', prefix: '/outbound' },
+  { command: '/close', description: '월마감 확인 페이지로 이동', prefix: '/close' },
+  { command: '/help', description: '사용 가능한 명령어 보기', prefix: '/help' },
+] as const;
 
 function formatTimestamp(value?: string) {
   if (!value) {
@@ -193,6 +251,239 @@ function TraceDisclosure({ trace }: { trace: ToolTrace }) {
         )}
       </div>
     </details>
+  );
+}
+
+function ConsentModal({
+  open,
+  title,
+  description,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  title: string;
+  description: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  if (!open || typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+      <button type="button" className="absolute inset-0" aria-label="확인 취소" onClick={onCancel} />
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="relative z-[10002] w-full max-w-sm overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_28px_80px_rgba(15,23,42,0.22)]"
+      >
+        <div className="px-6 py-6 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
+            <ShieldCheck size={24} className="text-blue-600" />
+          </div>
+          <h3 className="text-lg font-black text-slate-900">{title}</h3>
+          <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
+        </div>
+        <div className="flex gap-3 border-t border-slate-100 px-5 py-4">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="chat-focus-ring flex-1 rounded-[18px] border border-slate-200 px-4 py-3 text-sm font-bold text-slate-500 transition hover:bg-slate-50"
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="chat-focus-ring flex-1 rounded-[18px] bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
+          >
+            실행
+          </button>
+        </div>
+      </section>
+    </div>,
+    document.body,
+  );
+}
+
+function QuickSearchBar({
+  query,
+  onChange,
+  onSearch,
+  onClear,
+  loading,
+  results,
+  error,
+  onMaterialClick,
+  searchInputRef,
+}: {
+  query: string;
+  onChange: (value: string) => void;
+  onSearch: () => void;
+  onClear: () => void;
+  loading: boolean;
+  results: QuickSearchResult | null;
+  error: string | null;
+  onMaterialClick: (material: QuickSearchMaterial) => void;
+  searchInputRef: React.RefObject<HTMLInputElement | null>;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="relative">
+        <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          ref={searchInputRef}
+          type="text"
+          value={query}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && query.trim()) {
+              onSearch();
+            }
+          }}
+          placeholder="자재명, 코드, 거래내역 검색..."
+          className="chat-focus-ring w-full rounded-[18px] border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm font-medium text-slate-700 shadow-sm placeholder:text-slate-300"
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={onClear}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            aria-label="검색 초기화"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
+      {loading && (
+        <div className="flex items-center gap-2 rounded-[16px] border border-blue-100 bg-blue-50/80 px-4 py-3 text-sm font-medium text-blue-700">
+          <LoaderCircle size={14} className="animate-spin" />
+          검색 중...
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-[16px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+          {error}
+        </div>
+      )}
+
+      {results && !loading && (
+        <div className="space-y-2">
+          {results.materials.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="px-1 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+                자재 ({results.materials.length})
+              </p>
+              {results.materials.slice(0, 5).map((material) => (
+                <button
+                  key={material.materialCode}
+                  type="button"
+                  onClick={() => onMaterialClick(material)}
+                  className="chat-focus-ring w-full rounded-[16px] border border-slate-200 bg-white px-3.5 py-2.5 text-left transition hover:border-blue-200 hover:bg-blue-50/50"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-bold text-slate-800">{material.materialName}</p>
+                    <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
+                      {material.materialCode}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-3 text-[11px] font-medium text-slate-500">
+                    {material.location && <span>{material.location}</span>}
+                    {material.currentStockQty !== null && <span>현재 {material.currentStockQty.toLocaleString()}</span>}
+                    {material.safeStockQty !== null && (
+                      <span
+                        className={
+                          material.currentStockQty !== null &&
+                          material.safeStockQty !== null &&
+                          material.currentStockQty < material.safeStockQty
+                            ? 'text-rose-600'
+                            : ''
+                        }
+                      >
+                        안전 {material.safeStockQty.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {results.recentTransactions.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="px-1 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+                최근 거래 ({results.recentTransactions.length})
+              </p>
+              {results.recentTransactions.slice(0, 3).map((tx) => (
+                <div key={tx.id} className="rounded-[16px] border border-slate-200 bg-white px-3.5 py-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-bold text-slate-800">{tx.materialCode}</span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${tx.transactionType === 'IN' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}
+                    >
+                      {tx.transactionType === 'IN'
+                        ? '입고'
+                        : tx.transactionType === 'OUT'
+                          ? '출고'
+                          : tx.transactionType}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] font-medium text-slate-500">
+                    {tx.quantity.toLocaleString()} · {tx.transactionDate}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {results.currentClosing && (
+            <div className="rounded-[16px] border border-slate-200 bg-white px-3.5 py-2.5">
+              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">월마감 상태</p>
+              <div className="mt-1 flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-800">{results.currentClosing.closingMonth}</span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${results.currentClosing.status === 'CLOSED' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}
+                >
+                  {results.currentClosing.status === 'CLOSED' ? '마감 완료' : '미마감'}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {results.materials.length === 0 && results.recentTransactions.length === 0 && !results.currentClosing && (
+            <div className="rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm text-slate-500">
+              검색 결과가 없습니다.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuickActionHub({ onAction }: { onAction: (action: (typeof QUICK_ACTIONS)[number]) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {QUICK_ACTIONS.map((action) => {
+        const Icon = action.icon;
+        return (
+          <button
+            key={action.key}
+            type="button"
+            onClick={() => onAction(action)}
+            className={`chat-focus-ring group flex flex-col items-center gap-2 rounded-[18px] border px-3 py-3 text-center transition hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)] ${action.color}`}
+          >
+            <Icon size={18} className="shrink-0 transition group-hover:scale-110" />
+            <span className="text-[11px] font-bold leading-tight">{action.label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -600,6 +891,7 @@ function Composer({
   disabled,
   loading,
   hasKey,
+  onCommand,
 }: {
   value: string;
   onChange: (next: string) => void;
@@ -608,46 +900,130 @@ function Composer({
   disabled: boolean;
   loading: boolean;
   hasKey: boolean;
+  onCommand: (command: string) => void;
 }) {
+  const [showCommands, setShowCommands] = useState(false);
+  const [commandFilter, setCommandFilter] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const filteredCommands = useMemo(() => {
+    if (!commandFilter) return SLASH_COMMANDS;
+    return SLASH_COMMANDS.filter(
+      (cmd) => cmd.command.startsWith(commandFilter) || cmd.description.includes(commandFilter),
+    );
+  }, [commandFilter]);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      if (value.startsWith('/')) {
+        const trimmed = value.trim();
+        if (
+          trimmed === '/help' ||
+          trimmed === '/stock' ||
+          trimmed === '/inbound' ||
+          trimmed === '/outbound' ||
+          trimmed === '/close'
+        ) {
+          onCommand(trimmed);
+          onChange('');
+          setShowCommands(false);
+          setCommandFilter('');
+          return;
+        }
+        if (trimmed.startsWith('/search ')) {
+          onCommand(trimmed);
+          onChange('');
+          setShowCommands(false);
+          setCommandFilter('');
+          return;
+        }
+      }
+      if (hasKey) {
+        onSend();
+      }
+    }
+  };
+
+  const handleChange = (nextValue: string) => {
+    onChange(nextValue);
+    if (nextValue.startsWith('/')) {
+      setShowCommands(true);
+      setCommandFilter(nextValue.split(' ')[0] ?? '');
+    } else {
+      setShowCommands(false);
+      setCommandFilter('');
+    }
+  };
+
+  const handleCommandSelect = (cmd: (typeof SLASH_COMMANDS)[number]) => {
+    if (cmd.command === '/search') {
+      onChange('/search ');
+      setShowCommands(false);
+      setCommandFilter('');
+      textareaRef.current?.focus();
+    } else {
+      onCommand(cmd.command);
+      onChange('');
+      setShowCommands(false);
+      setCommandFilter('');
+    }
+  };
+
   return (
-    <div className="rounded-[22px] border border-slate-200 bg-slate-50/90 p-3">
-      <div className="flex gap-3">
-        <textarea
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey) {
-              event.preventDefault();
-              if (hasKey) {
-                onSend();
-              }
+    <div className="relative">
+      {showCommands && filteredCommands.length > 0 && (
+        <div className="absolute bottom-full left-0 right-0 z-20 mb-2 overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_14px_40px_rgba(15,23,42,0.12)]">
+          {filteredCommands.map((cmd) => (
+            <button
+              key={cmd.command}
+              type="button"
+              onClick={() => handleCommandSelect(cmd)}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-blue-50"
+            >
+              <span className="text-sm font-bold text-blue-600">{cmd.command}</span>
+              <span className="text-xs text-slate-500">{cmd.description}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="rounded-[22px] border border-slate-200 bg-slate-50/90 p-3">
+        <div className="flex gap-3">
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(event) => handleChange(event.target.value)}
+            onKeyDown={handleKeyDown}
+            rows={2}
+            placeholder={
+              hasKey
+                ? '재고 내용을 질문하세요 ( / 명령어 사용 가능)'
+                : '상단 ... 메뉴의 설정에서 모델과 API 키를 연결하세요'
             }
-          }}
-          rows={2}
-          placeholder={hasKey ? '재고 내용을 질문하세요' : '상단 ... 메뉴의 설정에서 모델과 API 키를 연결하세요'}
-          className="chat-focus-ring chat-scrollbar min-h-[72px] flex-1 resize-none rounded-[18px] border border-transparent bg-white px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm"
-        />
-        <div className="flex flex-col justify-end gap-2">
-          {loading ? (
-            <button
-              type="button"
-              onClick={onStop}
-              className="chat-focus-ring inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-900 text-white transition hover:bg-slate-800"
-              aria-label="응답 중단"
-            >
-              <Square size={16} fill="currentColor" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onSend}
-              disabled={disabled || !hasKey}
-              className="chat-focus-ring inline-flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-              aria-label="메시지 전송"
-            >
-              <Send size={16} />
-            </button>
-          )}
+            className="chat-focus-ring chat-scrollbar min-h-[72px] flex-1 resize-none rounded-[18px] border border-transparent bg-white px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm placeholder:text-slate-300"
+          />
+          <div className="flex flex-col justify-end gap-2">
+            {loading ? (
+              <button
+                type="button"
+                onClick={onStop}
+                className="chat-focus-ring inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-900 text-white transition hover:bg-slate-800"
+                aria-label="응답 중단"
+              >
+                <Square size={16} fill="currentColor" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onSend}
+                disabled={disabled || !hasKey}
+                className="chat-focus-ring inline-flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                aria-label="메시지 전송"
+              >
+                <Send size={16} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -663,10 +1039,25 @@ function ChatPanelView({
   onPreferencesChange,
   workspace,
 }: ChatPanelViewProps) {
+  const navigate = useNavigate();
   const listRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [consentModal, setConsentModal] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+    onCancel: () => {},
+  });
   const [settings, setSettings] = useState<SettingsState>({
     provider: workspace.draft.provider,
     model: workspace.draft.model,
@@ -764,6 +1155,70 @@ function ChatPanelView({
     setMenuOpen(false);
   };
 
+  const requestConsent = useCallback((title: string, description: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setConsentModal({
+        open: true,
+        title,
+        description,
+        onConfirm: () => {
+          setConsentModal((prev) => ({ ...prev, open: false }));
+          resolve(true);
+        },
+        onCancel: () => {
+          setConsentModal((prev) => ({ ...prev, open: false }));
+          resolve(false);
+        },
+      });
+    });
+  }, []);
+
+  const handleQuickAction = useCallback(
+    async (action: (typeof QUICK_ACTIONS)[number]) => {
+      if (action.focusSearch) {
+        searchInputRef.current?.focus();
+        return;
+      }
+      if (action.path) {
+        const confirmed = await requestConsent('페이지 이동', `${action.label} 페이지로 이동하시겠습니까?`);
+        if (!confirmed) return;
+        navigate(action.path);
+      }
+    },
+    [navigate, requestConsent],
+  );
+
+  const handleCommand = useCallback(
+    (command: string) => {
+      if (command === '/stock') {
+        navigate('/stock/current');
+      } else if (command === '/inbound') {
+        navigate('/inbound');
+      } else if (command === '/outbound') {
+        navigate('/outbound');
+      } else if (command === '/close') {
+        navigate('/closing');
+      } else if (command === '/help') {
+        workspace.setComposerValue(
+          '/help — 사용 가능한 명령어:\n/search <검색어> — 빠른 검색\n/stock — 재고 현황\n/inbound — 입고 현황\n/outbound — 출고 현황\n/close — 월마감 확인',
+        );
+      } else if (command.startsWith('/search ')) {
+        const query = command.replace('/search ', '').trim();
+        if (query) {
+          workspace.executeQuickSearch(query);
+        }
+      }
+    },
+    [navigate, workspace],
+  );
+
+  const handleMaterialClick = useCallback(
+    (material: QuickSearchMaterial) => {
+      navigate(`/stock/current?q=${encodeURIComponent(material.materialCode)}`);
+    },
+    [navigate],
+  );
+
   const handlePanelAction = () => {
     setMenuOpen(false);
     if (mobileOpen) {
@@ -840,6 +1295,27 @@ function ChatPanelView({
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col px-4 py-4">
+        {/* Quick Search Bar */}
+        <div className="mb-3">
+          <QuickSearchBar
+            query={workspace.quickSearchQuery}
+            onChange={workspace.setQuickSearchQuery}
+            onSearch={() => workspace.executeQuickSearch()}
+            onClear={workspace.clearQuickSearch}
+            loading={workspace.quickSearchLoading}
+            results={workspace.quickSearchResults}
+            error={workspace.quickSearchError}
+            onMaterialClick={handleMaterialClick}
+            searchInputRef={searchInputRef}
+          />
+        </div>
+
+        {/* Quick Action Hub */}
+        <div className="mb-3">
+          <p className="mb-2 px-1 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">빠른 실행</p>
+          <QuickActionHub onAction={handleQuickAction} />
+        </div>
+
         <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] border border-blue-100 bg-white shadow-[0_10px_32px_rgba(15,23,42,0.05)]">
           <div className="border-b border-slate-100 px-4 py-3">
             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">현재 대화</p>
@@ -886,6 +1362,7 @@ function ChatPanelView({
               disabled={!workspace.composerValue.trim() || workspace.requestState.sendingMessage}
               loading={workspace.requestState.sendingMessage}
               hasKey={hasActiveKey}
+              onCommand={handleCommand}
             />
           </div>
         </section>
@@ -907,6 +1384,14 @@ function ChatPanelView({
         testing={workspace.requestState.testingCredential}
         saving={workspace.requestState.savingSettings}
         deleting={workspace.requestState.deletingCredential}
+      />
+
+      <ConsentModal
+        open={consentModal.open}
+        title={consentModal.title}
+        description={consentModal.description}
+        onConfirm={consentModal.onConfirm}
+        onCancel={consentModal.onCancel}
       />
     </div>
   );
