@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 @Service
@@ -43,21 +44,22 @@ public class MonthlyClosingService {
 
     @Transactional
     public MonthlyClosing closeMonth(String month) {
+        YearMonth ym = parseClosingMonth(month);
         MonthlyClosing closing = closingRepository.findById(month)
                 .orElse(MonthlyClosing.builder().closingMonth(month).build());
+        if (closing.getStatus() == ClosingStatus.CLOSED) {
+            return closing;
+        }
 
         // Calculate monthly stats
-        YearMonth ym = YearMonth.parse(month);
         LocalDateTime from = ym.atDay(1).atStartOfDay();
-        LocalDateTime to = ym.atEndOfMonth().atTime(23, 59, 59);
+        LocalDateTime toExclusive = ym.plusMonths(1).atDay(1).atStartOfDay();
 
         List<InventoryTransaction> monthTx = transactionRepository
                 .findByTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateAsc(
-                        from, to.plusSeconds(1));
+                        from, toExclusive);
 
-        int totalStockQty = materialRepository.findAll().stream()
-                .mapToInt(m -> m.getCurrentStockQty() != null ? m.getCurrentStockQty() : 0)
-                .sum();
+        int totalStockQty = calculateTotalStockQtyAt(toExclusive);
 
         int monthlyInboundQty = 0;
         int monthlyOutboundQty = 0;
@@ -96,6 +98,7 @@ public class MonthlyClosingService {
 
     @Transactional
     public MonthlyClosing uncloseMonth(String month) {
+        parseClosingMonth(month);
         MonthlyClosing closing = closingRepository.findById(month)
                 .orElseThrow(() -> new IllegalArgumentException("Month not found"));
         if (closingRepository.existsByStatusAndClosingMonthGreaterThan(ClosingStatus.CLOSED, month)) {
@@ -114,7 +117,44 @@ public class MonthlyClosingService {
         return closingRepository.save(closing);
     }
 
+    private YearMonth parseClosingMonth(String month) {
+        if (month == null || month.isBlank()) {
+            throw new IllegalArgumentException("마감월은 YYYY-MM 형식이어야 합니다.");
+        }
+        try {
+            return YearMonth.parse(month);
+        } catch (DateTimeParseException exception) {
+            throw new IllegalArgumentException("마감월은 YYYY-MM 형식이어야 합니다.");
+        }
+    }
+
+    private int calculateTotalStockQtyAt(LocalDateTime exclusiveEnd) {
+        int currentStockQty = materialRepository.findAll().stream()
+                .mapToInt(material -> material.getCurrentStockQty() != null ? material.getCurrentStockQty() : 0)
+                .sum();
+        int stockDeltaAfterEnd = transactionRepository
+                .findByTransactionDateGreaterThanEqualAndRevertedFalseAndSystemGeneratedFalseOrderByTransactionDateDesc(exclusiveEnd)
+                .stream()
+                .mapToInt(this::stockDelta)
+                .sum();
+        return currentStockQty - stockDeltaAfterEnd;
+    }
+
+    private int stockDelta(InventoryTransaction transaction) {
+        int quantity = transaction.getQuantity() != null ? transaction.getQuantity() : 0;
+        if (transaction.getTransactionType() == TransactionType.IN || transaction.getTransactionType() == TransactionType.RETURN) {
+            return quantity;
+        }
+        if (transaction.getTransactionType() == TransactionType.OUT || transaction.getTransactionType() == TransactionType.EXCHANGE) {
+            return -quantity;
+        }
+        return 0;
+    }
+
     private User getCurrentUser() {
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            return null;
+        }
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (principal instanceof UserDetails) {
             String email = ((UserDetails) principal).getUsername();
