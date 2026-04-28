@@ -82,8 +82,11 @@ export function PermissionPresetsPanel({
             {presetFormOpen && (
               <div className="mt-3 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px]">
                 <div>
-                  <label className="mb-2 block text-xs font-semibold text-slate-600">프리셋 이름</label>
+                  <label htmlFor="permission-preset-label" className="mb-2 block text-xs font-semibold text-slate-600">
+                    프리셋 이름
+                  </label>
                   <input
+                    id="permission-preset-label"
                     type="text"
                     value={presetForm.label}
                     onChange={(event) => onPresetFormChange({ ...presetForm, label: event.target.value })}
@@ -92,8 +95,14 @@ export function PermissionPresetsPanel({
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-xs font-semibold text-slate-600">설명</label>
+                  <label
+                    htmlFor="permission-preset-description"
+                    className="mb-2 block text-xs font-semibold text-slate-600"
+                  >
+                    설명
+                  </label>
                   <input
+                    id="permission-preset-description"
                     type="text"
                     value={presetForm.description}
                     onChange={(event) => onPresetFormChange({ ...presetForm, description: event.target.value })}

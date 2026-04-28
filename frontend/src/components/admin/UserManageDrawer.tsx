@@ -94,9 +94,15 @@ export function UserManageDrawer({
         <div className="flex-1 space-y-5 overflow-y-auto px-4 py-5 md:px-5">
           <section className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <label className="mb-2 block text-xs font-semibold text-slate-600">이름</label>
+              <label
+                htmlFor={`admin-manage-user-name-${managingUser.id}`}
+                className="mb-2 block text-xs font-semibold text-slate-600"
+              >
+                이름
+              </label>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <input
+                  id={`admin-manage-user-name-${managingUser.id}`}
                   type="text"
                   value={nameDrafts[managingUser.id] ?? ''}
                   onChange={(event) => onNameDraftChange(managingUser.id, event.target.value)}
@@ -131,13 +137,19 @@ export function UserManageDrawer({
 
           <section className="grid gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <label className="mb-2 block text-xs font-semibold text-slate-600">권한 역할</label>
+              <label
+                htmlFor={`admin-manage-user-role-${managingUser.id}`}
+                className="mb-2 block text-xs font-semibold text-slate-600"
+              >
+                권한 역할
+              </label>
               {managingUser.role === 'SUPER_ADMIN' ? (
                 <div className="inline-flex min-h-10 items-center rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white">
                   {managingUser.roleLabel ?? ROLE_LABELS[managingUser.role]}
                 </div>
               ) : (
                 <select
+                  id={`admin-manage-user-role-${managingUser.id}`}
                   value={managingUser.roleProfileKey ?? managingUser.role}
                   onChange={(event) => onRoleChange(managingUser, event.target.value)}
                   disabled={isProcessing}
