@@ -28,10 +28,8 @@ public class TransactionMapper {
                 .revertedByUserId(tx.getRevertedBy() != null ? tx.getRevertedBy().getId() : null)
                 .revertedAt(tx.getRevertedAt())
                 .createdAt(tx.getCreatedAt())
-                .unitPrice(tx.getUnitPrice() != null ? tx.getUnitPrice() : BigDecimal.ZERO)
-                .totalAmount(tx.getUnitPrice() != null && tx.getQuantity() != null
-                    ? tx.getUnitPrice().multiply(BigDecimal.valueOf(tx.getQuantity()))
-                    : BigDecimal.ZERO)
+                .unitPrice(financialUnitPrice(tx, true))
+                .totalAmount(financialTotalAmount(tx, true))
                 .build();
     }
 
@@ -62,5 +60,21 @@ public class TransactionMapper {
                 .unitPrice(null)
                 .totalAmount(null)
                 .build();
+    }
+
+    public BigDecimal financialUnitPrice(InventoryTransaction tx, boolean includeFinancials) {
+        if (!includeFinancials) {
+            return null;
+        }
+        return tx.getUnitPrice() != null ? tx.getUnitPrice() : BigDecimal.ZERO;
+    }
+
+    public BigDecimal financialTotalAmount(InventoryTransaction tx, boolean includeFinancials) {
+        if (!includeFinancials) {
+            return null;
+        }
+        return tx.getUnitPrice() != null && tx.getQuantity() != null
+                ? tx.getUnitPrice().multiply(BigDecimal.valueOf(tx.getQuantity()))
+                : BigDecimal.ZERO;
     }
 }

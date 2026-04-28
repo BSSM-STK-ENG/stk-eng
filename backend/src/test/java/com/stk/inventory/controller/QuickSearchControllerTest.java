@@ -77,6 +77,6 @@ class QuickSearchControllerTest {
                         .content(objectMapper.writeValueAsString(java.util.Map.of("query", "   "))))
                 .andExpect(status().isBadRequest());
 
-        Mockito.verify(quickSearchService, Mockito.never()).search(Mockito.anyString());
+        Mockito.verify(quickSearchService, Mockito.never()).search(Mockito.any());
     }
 }

@@ -80,6 +80,10 @@ async function normalizeE2eMaterial(request: APIRequestContext, headers: { Autho
     data: e2eMaterialSeed,
   });
   if (!updateMaterialResponse.ok()) {
-    throw new Error(`Failed to normalize E2E material: ${updateMaterialResponse.status()}`);
+    const responseBody = await updateMaterialResponse.text();
+    const details = responseBody.trim().slice(0, 500);
+    throw new Error(
+      `Failed to normalize E2E material: ${updateMaterialResponse.status()}${details ? ` - ${details}` : ''}`,
+    );
   }
 }
