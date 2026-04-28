@@ -1,13 +1,15 @@
 package com.stk.inventory.controller;
 
 import com.stk.inventory.dto.ImageSearchResult;
+import com.stk.inventory.dto.ImageSearchRequest;
 import com.stk.inventory.dto.MaterialDto;
+import com.stk.inventory.dto.MaterialImageRequest;
 import com.stk.inventory.service.MaterialService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/materials")
@@ -43,13 +45,12 @@ public class MaterialController {
     @PostMapping("/{code}/image")
     public ResponseEntity<MaterialDto> uploadMaterialImage(
             @PathVariable String code,
-            @RequestBody Map<String, String> body) {
-        String imageUrl = body.get("imageUrl");
-        return ResponseEntity.ok(materialService.updateMaterialImage(code, imageUrl));
+            @Valid @RequestBody MaterialImageRequest request) {
+        return ResponseEntity.ok(materialService.updateMaterialImage(code, request.getImageUrl()));
     }
 
     @PostMapping("/search/image")
-    public ResponseEntity<List<ImageSearchResult>> searchByImage(@RequestBody Map<String, String> body) {
-        return ResponseEntity.ok(materialService.searchByImage(body.get("imageData")));
+    public ResponseEntity<List<ImageSearchResult>> searchByImage(@Valid @RequestBody ImageSearchRequest request) {
+        return ResponseEntity.ok(materialService.searchByImage(request.getImageData()));
     }
 }

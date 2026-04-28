@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -66,5 +67,16 @@ class MaterialControllerTest {
                 .andExpect(status().isNoContent());
 
         Mockito.verify(materialService).deleteMaterial("AA03340001110/AAS1000001987");
+    }
+
+    @Test
+    void searchByImageRejectsBlankImagePayload() throws Exception {
+        mockMvc.perform(post("/api/materials/search/image")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"imageData\":\"   \"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("검색할 이미지를 입력해주세요."));
+
+        Mockito.verifyNoInteractions(materialService);
     }
 }
