@@ -1,8 +1,8 @@
 import React from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
-import MainLayout from './layouts/MainLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import Skeleton from './components/Skeleton';
+import MainLayout from './layouts/MainLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
@@ -81,137 +81,135 @@ function PermissionRoute({ children, permission }: PrivateRouteProps & { permiss
 function App() {
   return (
     <Router>
-      <React.Suspense
-        fallback={<Skeleton />}
-      >
+      <React.Suspense fallback={<Skeleton />}>
         <ErrorBoundary>
           <Routes>
-          <Route
-            path="/login"
-            element={
-              <GuestRoute>
-                <Login />
-              </GuestRoute>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <GuestRoute>
-                <Register />
-              </GuestRoute>
-            }
-          />
-          <Route
-            path="/verify-email"
-            element={
-              <GuestRoute>
-                <VerifyEmail />
-              </GuestRoute>
-            }
-          />
-          <Route
-            path="/setup-password"
-            element={
-              <PasswordSetupRoute>
-                <SetupPassword />
-              </PasswordSetupRoute>
-            }
-          />
+            <Route
+              path="/login"
+              element={
+                <GuestRoute>
+                  <Login />
+                </GuestRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <GuestRoute>
+                  <Register />
+                </GuestRoute>
+              }
+            />
+            <Route
+              path="/verify-email"
+              element={
+                <GuestRoute>
+                  <VerifyEmail />
+                </GuestRoute>
+              }
+            />
+            <Route
+              path="/setup-password"
+              element={
+                <PasswordSetupRoute>
+                  <SetupPassword />
+                </PasswordSetupRoute>
+              }
+            />
 
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <MainLayout />
-              </PrivateRoute>
-            }
-          >
-            <Route index element={<Navigate to={getDefaultRouteForRole(getStoredRole())} replace />} />
             <Route
-              path="dashboard"
+              path="/"
               element={
-                <PermissionRoute permission="DASHBOARD">
-                  <Dashboard />
-                </PermissionRoute>
+                <PrivateRoute>
+                  <MainLayout />
+                </PrivateRoute>
               }
-            />
-            <Route
-              path="inbound"
-              element={
-                <PermissionRoute permission="INBOUND">
-                  <Inbound />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="outbound"
-              element={
-                <PermissionRoute permission="OUTBOUND">
-                  <Outbound />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="stock/current"
-              element={
-                <PermissionRoute permission="CURRENT_STOCK">
-                  <CurrentStock />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="stock/ledger"
-              element={
-                <PermissionRoute permission="STOCK_LEDGER">
-                  <Ledger />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="closing"
-              element={
-                <PermissionRoute permission="CLOSING">
-                  <Closing />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="history"
-              element={
-                <PermissionRoute permission="HISTORY">
-                  <History />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="master-data"
-              element={
-                <PermissionRoute permission="MASTER_DATA">
-                  <MasterData />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="materials"
-              element={
-                <PermissionRoute permission="MASTER_DATA">
-                  <Materials />
-                </PermissionRoute>
-              }
-            />
-            <Route path="account/password" element={<ChangePassword />} />
-            <Route
-              path="admin/accounts"
-              element={
-                <SuperAdminRoute>
-                  <AdminAccounts />
-                </SuperAdminRoute>
-              }
-            />
-          </Route>
-        </Routes>
-      </ErrorBoundary>
+            >
+              <Route index element={<Navigate to={getDefaultRouteForRole(getStoredRole())} replace />} />
+              <Route
+                path="dashboard"
+                element={
+                  <PermissionRoute permission="DASHBOARD">
+                    <Dashboard />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="inbound"
+                element={
+                  <PermissionRoute permission="INBOUND">
+                    <Inbound />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="outbound"
+                element={
+                  <PermissionRoute permission="OUTBOUND">
+                    <Outbound />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="stock/current"
+                element={
+                  <PermissionRoute permission="CURRENT_STOCK">
+                    <CurrentStock />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="stock/ledger"
+                element={
+                  <PermissionRoute permission="STOCK_LEDGER">
+                    <Ledger />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="closing"
+                element={
+                  <PermissionRoute permission="CLOSING">
+                    <Closing />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="history"
+                element={
+                  <PermissionRoute permission="HISTORY">
+                    <History />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="master-data"
+                element={
+                  <PermissionRoute permission="MASTER_DATA">
+                    <MasterData />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="materials"
+                element={
+                  <PermissionRoute permission="MASTER_DATA">
+                    <Materials />
+                  </PermissionRoute>
+                }
+              />
+              <Route path="account/password" element={<ChangePassword />} />
+              <Route
+                path="admin/accounts"
+                element={
+                  <SuperAdminRoute>
+                    <AdminAccounts />
+                  </SuperAdminRoute>
+                }
+              />
+            </Route>
+          </Routes>
+        </ErrorBoundary>
       </React.Suspense>
     </Router>
   );
