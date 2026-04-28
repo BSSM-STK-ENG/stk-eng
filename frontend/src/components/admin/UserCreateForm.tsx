@@ -39,8 +39,11 @@ export function UserCreateForm({
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
       <form onSubmit={onSubmit} className="grid gap-3 md:grid-cols-2 xl:grid-cols-[180px_minmax(0,1fr)_200px_140px]">
         <div className="min-w-0">
-          <label className="mb-2 block text-sm font-medium text-slate-700">이름</label>
+          <label htmlFor="admin-create-user-name" className="mb-2 block text-sm font-medium text-slate-700">
+            이름
+          </label>
           <input
+            id="admin-create-user-name"
             type="text"
             value={form.name ?? ''}
             onChange={(event) => onFormChange({ ...form, name: event.target.value })}
@@ -51,10 +54,13 @@ export function UserCreateForm({
         </div>
 
         <div className="min-w-0">
-          <label className="mb-2 block text-sm font-medium text-slate-700">이메일</label>
+          <label htmlFor="admin-create-user-email" className="mb-2 block text-sm font-medium text-slate-700">
+            이메일
+          </label>
           <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-200">
             <UserPlus size={16} className="shrink-0 text-slate-400" />
             <input
+              id="admin-create-user-email"
               ref={emailInputRef}
               type="email"
               value={form.email}
@@ -67,8 +73,11 @@ export function UserCreateForm({
         </div>
 
         <div className="min-w-0">
-          <label className="mb-2 block text-sm font-medium text-slate-700">권한 역할</label>
+          <label htmlFor="admin-create-user-role" className="mb-2 block text-sm font-medium text-slate-700">
+            권한 역할
+          </label>
           <select
+            id="admin-create-user-role"
             value={form.roleProfileKey ?? 'USER'}
             onChange={(event) => {
               const roleProfileKey = event.target.value;
@@ -121,8 +130,11 @@ export function UserCreateForm({
       {showAdvancedSetup && (
         <div className="mt-3 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[minmax(0,1fr)_200px_180px]">
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">발급 기본 프리셋</label>
+            <label htmlFor="admin-create-user-preset" className="mb-2 block text-sm font-medium text-slate-700">
+              발급 기본 프리셋
+            </label>
             <select
+              id="admin-create-user-preset"
               value={form.permissionPreset ?? 'VIEWER'}
               onChange={(event) => onFormChange({ ...form, permissionPreset: event.target.value })}
               className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
