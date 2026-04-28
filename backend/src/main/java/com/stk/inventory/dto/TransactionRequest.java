@@ -1,6 +1,7 @@
 package com.stk.inventory.dto;
 
 import lombok.Data;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -14,4 +15,5 @@ public class TransactionRequest {
     private UUID managerUserId;
     private String note;
     private String reference;
+    private BigDecimal unitPrice;
 }

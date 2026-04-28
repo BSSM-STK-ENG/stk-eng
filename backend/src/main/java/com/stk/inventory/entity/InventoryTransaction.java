@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -74,4 +75,8 @@ public class InventoryTransaction {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "unit_price", precision = 19, scale = 2)
+    @Builder.Default
+    private BigDecimal unitPrice = BigDecimal.ZERO;
 }
