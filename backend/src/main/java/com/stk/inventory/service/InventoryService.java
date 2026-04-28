@@ -2,6 +2,7 @@ package com.stk.inventory.service;
 
 import com.stk.inventory.dto.PagedLedgerResponse;
 import com.stk.inventory.dto.TransactionRequest;
+import com.stk.inventory.entity.ClosingStatus;
 import com.stk.inventory.entity.InventoryTransaction;
 import com.stk.inventory.entity.Material;
 import com.stk.inventory.entity.TransactionType;
@@ -74,6 +75,7 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
     }
 
     private InventoryTransaction processTransaction(TransactionRequest request, TransactionType type) {
+        validateTransactionRequest(request);
         LocalDateTime transactionDate = request.getTransactionDate() != null ? request.getTransactionDate() : LocalDateTime.now();
         ensureMonthOpen(transactionDate);
 
@@ -86,12 +88,12 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
                 : null;
 
         if (type == TransactionType.IN) {
-            material.setCurrentStockQty(material.getCurrentStockQty() + request.getQuantity());
+            material.setCurrentStockQty(currentStock(material) + request.getQuantity());
         } else if (type == TransactionType.OUT) {
-            if (material.getCurrentStockQty() < request.getQuantity()) {
+            if (currentStock(material) < request.getQuantity()) {
                 throw new IllegalArgumentException("현재 재고가 부족해 출고할 수 없습니다.");
             }
-            material.setCurrentStockQty(material.getCurrentStockQty() - request.getQuantity());
+            material.setCurrentStockQty(currentStock(material) - request.getQuantity());
         }
 
         inventoryGateway.saveMaterial(material);
@@ -106,7 +108,7 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
                 .note(request.getNote())
                 .reference(request.getReference())
                 .createdBy(getCurrentUser())
-                .unitPrice(request.getUnitPrice() != null ? request.getUnitPrice() : BigDecimal.ZERO)
+                .unitPrice(normalizeUnitPrice(request.getUnitPrice()))
                 .build();
 
         if (request.getManagerUserId() != null) {
@@ -269,6 +271,7 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
 
     @Transactional
     public TransactionResponse updateTransaction(Long id, TransactionRequest request) {
+        validateTransactionRequest(request);
         InventoryTransaction tx = inventoryGateway.findTransactionById(id)
                 .orElseThrow(() -> new IllegalArgumentException("거래 내역을 찾을 수 없습니다."));
         ensureMonthOpen(tx.getTransactionDate());
@@ -288,9 +291,9 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
 
         // Reverse stock impact on old material
         if (tx.getTransactionType() == TransactionType.IN) {
-            oldMaterial.setCurrentStockQty(Math.max(0, oldMaterial.getCurrentStockQty() - tx.getQuantity()));
+            oldMaterial.setCurrentStockQty(Math.max(0, currentStock(oldMaterial) - tx.getQuantity()));
         } else if (tx.getTransactionType() == TransactionType.OUT) {
-            oldMaterial.setCurrentStockQty(oldMaterial.getCurrentStockQty() + tx.getQuantity());
+            oldMaterial.setCurrentStockQty(currentStock(oldMaterial) + tx.getQuantity());
         }
 
         if (!oldMaterial.getMaterialCode().equals(newMaterial.getMaterialCode())) {
@@ -299,12 +302,12 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
 
         // Apply stock impact on new material
         if (tx.getTransactionType() == TransactionType.IN) {
-            newMaterial.setCurrentStockQty(newMaterial.getCurrentStockQty() + request.getQuantity());
+            newMaterial.setCurrentStockQty(currentStock(newMaterial) + request.getQuantity());
         } else if (tx.getTransactionType() == TransactionType.OUT) {
-            if (newMaterial.getCurrentStockQty() < request.getQuantity()) {
+            if (currentStock(newMaterial) < request.getQuantity()) {
                 throw new IllegalArgumentException("현재 재고가 부족해 수정할 수 없습니다.");
             }
-            newMaterial.setCurrentStockQty(newMaterial.getCurrentStockQty() - request.getQuantity());
+            newMaterial.setCurrentStockQty(currentStock(newMaterial) - request.getQuantity());
         }
         inventoryGateway.saveMaterial(newMaterial);
 
@@ -320,7 +323,7 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
         }
         tx.setNote(request.getNote());
         tx.setReference(request.getReference());
-        tx.setUnitPrice(request.getUnitPrice() != null ? request.getUnitPrice() : BigDecimal.ZERO);
+        tx.setUnitPrice(normalizeUnitPrice(request.getUnitPrice()));
 
         InventoryTransaction saved = inventoryGateway.saveTransaction(tx);
         return transactionMapper.toResponse(saved);
@@ -351,15 +354,45 @@ public class InventoryService implements com.stk.inventory.usecase.InventoryUseC
         return "되돌리기 처리 · 원거래 #" + transaction.getId() + " " + originalType + originalNote;
     }
 
+    private void validateTransactionRequest(TransactionRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("거래 요청을 입력해주세요.");
+        }
+        if (request.getMaterialCode() == null || request.getMaterialCode().isBlank()) {
+            throw new IllegalArgumentException("자재코드를 입력해주세요.");
+        }
+        if (request.getQuantity() == null || request.getQuantity() <= 0) {
+            throw new IllegalArgumentException("수량은 1 이상이어야 합니다.");
+        }
+        normalizeUnitPrice(request.getUnitPrice());
+    }
+
+    private BigDecimal normalizeUnitPrice(BigDecimal unitPrice) {
+        if (unitPrice == null) {
+            return BigDecimal.ZERO;
+        }
+        if (unitPrice.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("단가는 0 이상이어야 합니다.");
+        }
+        return unitPrice;
+    }
+
+    private int currentStock(Material material) {
+        return material.getCurrentStockQty() != null ? material.getCurrentStockQty() : 0;
+    }
+
     private void ensureMonthOpen(LocalDateTime transactionDate) {
         if (transactionDate == null || monthlyClosingRepository == null) {
             return;
         }
         String closingMonth = transactionDate.toLocalDate().withDayOfMonth(1).toString().substring(0, 7);
         monthlyClosingRepository.findById(closingMonth).ifPresent(closing -> {
-            if (closing.getStatus() == com.stk.inventory.entity.ClosingStatus.CLOSED) {
+            if (closing.getStatus() == ClosingStatus.CLOSED) {
                 throw new IllegalArgumentException(closingMonth + " 마감월 데이터는 수정할 수 없습니다.");
             }
         });
+        if (monthlyClosingRepository.existsByStatusAndClosingMonthGreaterThan(ClosingStatus.CLOSED, closingMonth)) {
+            throw new IllegalArgumentException("이후 마감월이 있어 " + closingMonth + " 데이터는 수정할 수 없습니다.");
+        }
     }
 }

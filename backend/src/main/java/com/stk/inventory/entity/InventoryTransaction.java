@@ -76,7 +76,7 @@ public class InventoryTransaction {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "unit_price", precision = 19, scale = 2)
+    @Column(name = "unit_price", precision = 19, scale = 2, nullable = false)
     @Builder.Default
     private BigDecimal unitPrice = BigDecimal.ZERO;
 }
