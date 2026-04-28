@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: bssm-oss/CodeAgora@v2.3.4
+      - uses: bssm-oss/CodeAgora@b8a4bb68c6eaf609bfaa27a43f5c6477ee7b1182
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
         env:
