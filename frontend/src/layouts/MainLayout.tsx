@@ -21,12 +21,10 @@ import type React from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getMe } from '../api/axios';
-import { getAiPreferences, saveAiPreferences } from '../api/chat';
 import { useMaterials } from '../api/queries';
 import ChatPanel from '../components/chat/ChatPanel';
 import { useChatWorkspace } from '../components/chat/useChatWorkspace';
 import type { MaterialDto, PagePermissionKey } from '../types/api';
-import type { AiPreferences } from '../types/chat';
 import {
   clearAuthSession,
   getStoredEmail,
@@ -75,7 +73,6 @@ const superAdminNavItems: NavItem[] = [
 const STORAGE_KEYS = {
   width: 'stk-chat-width',
   collapsed: 'stk-chat-collapsed',
-  visibilityPrefix: 'stk-chat-visible',
 };
 
 const CHAT_WIDTH_BOUNDS = {
@@ -85,10 +82,6 @@ const CHAT_WIDTH_BOUNDS = {
 
 const CHAT_COLLAPSED_WIDTH = 64;
 
-function getChatVisibilityStorageKey(email: string) {
-  return `${STORAGE_KEYS.visibilityPrefix}:${email || 'anonymous'}`;
-}
-
 const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -96,22 +89,15 @@ const MainLayout = () => {
   const userName = getStoredName();
   const userEmail = getStoredEmail();
   const userRole = getStoredRole();
-  const chatVisibilityStorageKey = getChatVisibilityStorageKey(userEmail);
   const navItems = [...viewerNavItems, ...managerNavItems, ...superAdminNavItems].filter(
     (item) => !item.permission || hasStoredPagePermission(item.permission),
   );
   const [permissionDenied, setPermissionDenied] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [chatMobileOpen, setChatMobileOpen] = useState<boolean>(false);
-  const [chatPreferences, setChatPreferences] = useState<AiPreferences | null>(null);
-  const [chatPanelEnabled, setChatPanelEnabled] = useState<boolean>(() => {
-    const stored = localStorage.getItem(getChatVisibilityStorageKey(getStoredEmail()));
-    return stored == null ? false : stored === 'true';
-  });
-  const [chatPreferencesSaving, setChatPreferencesSaving] = useState<boolean>(false);
   const [chatCollapsed, setChatCollapsed] = useState<boolean>(() => {
     const stored = localStorage.getItem(STORAGE_KEYS.collapsed);
-    return stored == null ? true : stored === 'true';
+    return stored == null ? false : stored === 'true';
   });
   const [chatWidth, setChatWidth] = useState<number>(() => {
     const parsed = Number(localStorage.getItem(STORAGE_KEYS.width));
@@ -165,37 +151,6 @@ const MainLayout = () => {
     localStorage.setItem(STORAGE_KEYS.width, String(chatWidth));
   }, [chatWidth]);
 
-  useEffect(() => {
-    localStorage.setItem(chatVisibilityStorageKey, String(chatPanelEnabled));
-  }, [chatPanelEnabled, chatVisibilityStorageKey]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const syncPreferences = async () => {
-      try {
-        const preferences = await getAiPreferences();
-        if (!mounted || !preferences) {
-          return;
-        }
-        setChatPreferences(preferences);
-        setChatPanelEnabled(preferences.chatPanelEnabled);
-        if (!preferences.chatPanelEnabled) {
-          setChatMobileOpen(false);
-          setChatCollapsed(true);
-        }
-      } catch {
-        // Keep the last known local preference when the API is unavailable.
-      }
-    };
-
-    void syncPreferences();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
   useLayoutEffect(() => {
     if (!location.pathname.startsWith('/stock/current')) {
       clearMaterialWorklist();
@@ -237,7 +192,7 @@ const MainLayout = () => {
   );
 
   const handleChatResizePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!chatPanelEnabled || chatCollapsed || event.button !== 0) {
+    if (chatCollapsed || event.button !== 0) {
       return;
     }
 
@@ -273,35 +228,6 @@ const MainLayout = () => {
 
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
-  };
-
-  const handleChatPreferencesChange = (next: AiPreferences) => {
-    setChatPreferences(next);
-    setChatPanelEnabled(next.chatPanelEnabled);
-    if (!next.chatPanelEnabled) {
-      setChatMobileOpen(false);
-      setChatCollapsed(true);
-    }
-  };
-
-  const handleEnableChatPanel = async () => {
-    const currentPreferences = chatPreferences ??
-      (await getAiPreferences().catch(() => null)) ?? { provider: 'openai', model: 'gpt-5', chatPanelEnabled: false };
-
-    setChatPreferencesSaving(true);
-    try {
-      const saved = await saveAiPreferences({
-        provider: currentPreferences.provider,
-        model: currentPreferences.model,
-        chatPanelEnabled: true,
-      });
-      if (saved) {
-        setChatPreferences(saved);
-        setChatPanelEnabled(saved.chatPanelEnabled);
-      }
-    } finally {
-      setChatPreferencesSaving(false);
-    }
   };
 
   const renderSidebarContent = () => (
@@ -429,43 +355,20 @@ const MainLayout = () => {
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            {!chatPanelEnabled && (
-              <button
-                type="button"
-                onClick={() => void handleEnableChatPanel()}
-                disabled={chatPreferencesSaving}
-                className="chat-focus-ring flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <MessageCircle size={14} />
-                {chatPreferencesSaving ? 'AI 켜는 중...' : 'AI 패널 켜기'}
-              </button>
-            )}
             <span className="max-w-[220px] truncate rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
               {userName ? `${userName} · ${userEmail}` : userEmail}
             </span>
           </div>
 
           <div className="flex items-center gap-2 md:hidden">
-            {chatPanelEnabled ? (
-              <button
-                type="button"
-                onClick={() => setChatMobileOpen(true)}
-                className="chat-focus-ring inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition-colors hover:bg-slate-50"
-                aria-label="AI 채팅 열기"
-              >
-                <MessageCircle size={16} />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void handleEnableChatPanel()}
-                disabled={chatPreferencesSaving}
-                className="chat-focus-ring inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <MessageCircle size={14} />
-                {chatPreferencesSaving ? 'AI 켜는 중...' : 'AI 켜기'}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setChatMobileOpen(true)}
+              className="chat-focus-ring inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition-colors hover:bg-slate-50"
+              aria-label="AI 채팅 열기"
+            >
+              <MessageCircle size={16} />
+            </button>
           </div>
         </header>
 
@@ -508,27 +411,22 @@ const MainLayout = () => {
               <Outlet />
             </div>
 
-            {chatPanelEnabled && (
-              <>
-                <div
-                  className={`hidden w-2 shrink-0 cursor-col-resize lg:block ${chatCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
-                  onPointerDown={handleChatResizePointerDown}
-                  aria-hidden="true"
-                >
-                  <div className="mx-auto h-full w-px rounded-full bg-slate-200 transition-colors hover:bg-blue-400" />
-                </div>
+            <div
+              className={`hidden w-2 shrink-0 cursor-col-resize lg:block ${chatCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
+              onPointerDown={handleChatResizePointerDown}
+              aria-hidden="true"
+            >
+              <div className="mx-auto h-full w-px rounded-full bg-slate-200 transition-colors hover:bg-blue-400" />
+            </div>
 
-                <ChatPanel
-                  workspace={chatWorkspace}
-                  mobileOpen={chatMobileOpen}
-                  onCloseMobile={() => setChatMobileOpen(false)}
-                  collapsed={chatCollapsed}
-                  onToggleCollapse={() => setChatCollapsed((current) => !current)}
-                  width={chatCollapsed ? CHAT_COLLAPSED_WIDTH : chatWidth}
-                  onPreferencesChange={handleChatPreferencesChange}
-                />
-              </>
-            )}
+            <ChatPanel
+              workspace={chatWorkspace}
+              mobileOpen={chatMobileOpen}
+              onCloseMobile={() => setChatMobileOpen(false)}
+              collapsed={chatCollapsed}
+              onToggleCollapse={() => setChatCollapsed((current) => !current)}
+              width={chatCollapsed ? CHAT_COLLAPSED_WIDTH : chatWidth}
+            />
           </div>
         </main>
       </div>
