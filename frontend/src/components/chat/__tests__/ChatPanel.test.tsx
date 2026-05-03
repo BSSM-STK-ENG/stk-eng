@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChatMessage, ProviderDescriptor } from '../../../types/chat';
 import ChatPanel from '../ChatPanel';
+import { DEFAULT_PROVIDER_CATALOG } from '../chatDefaults';
 import { useChatWorkspace } from '../useChatWorkspace';
 
 vi.mock('../useChatWorkspace', () => ({
@@ -12,43 +13,30 @@ vi.mock('../useChatWorkspace', () => ({
 
 const mockedUseChatWorkspace = vi.mocked(useChatWorkspace);
 
-const providers: ProviderDescriptor[] = [
-  {
-    provider: 'openai',
-    label: 'ChatGPT',
-    description: '기본',
-    models: [
-      {
-        id: 'gpt-5',
-        name: 'GPT-5',
-        provider: 'openai',
-      },
-    ],
-  },
-];
+const providers: ProviderDescriptor[] = DEFAULT_PROVIDER_CATALOG;
 
 function createWorkspace(messages: ChatMessage[] = []) {
   return {
     providers,
     credentials: {
-      openai: {
-        provider: 'openai',
+      gemma: {
+        provider: 'gemma',
         hasKey: true,
-        maskedKey: '****...7890',
+        maskedKey: '브라우저 내장',
         status: 'verified' as const,
         validationStatus: 'success' as const,
-        validationMessage: '연결 확인에 성공했습니다.',
+        validationMessage: '브라우저에서 Gemma 4를 실행합니다.',
         validatedAt: '2026-03-22T10:00:00.000Z',
       },
     },
     preferences: {
-      provider: 'openai',
-      model: 'gpt-5',
+      provider: 'gemma',
+      model: 'gemma4',
       chatPanelEnabled: true,
     },
     draft: {
-      provider: 'openai',
-      model: 'gpt-5',
+      provider: 'gemma',
+      model: 'gemma4',
     },
     messages,
     composerValue: '',
@@ -72,14 +60,14 @@ function createWorkspace(messages: ChatMessage[] = []) {
     sendMessage: vi.fn().mockResolvedValue(null),
     testCredential: vi.fn().mockResolvedValue({
       success: true,
-      provider: 'openai',
-      model: 'gpt-5',
-      message: '연결 확인에 성공했습니다.',
+      provider: 'gemma',
+      model: 'gemma4',
+      message: '브라우저에서 Gemma 4를 실행할 수 있습니다.',
       checkedAt: '2026-03-22T10:00:00.000Z',
     }),
     stopResponse: vi.fn(),
     resetConversation: vi.fn(),
-    applySettings: vi.fn().mockResolvedValue({ provider: 'openai', model: 'gpt-5', chatPanelEnabled: true }),
+    applySettings: vi.fn().mockResolvedValue({ provider: 'gemma', model: 'gemma4', chatPanelEnabled: true }),
     removeCredential: vi.fn().mockResolvedValue(undefined),
     clearNotices: vi.fn(),
     refreshMetadata: vi.fn(),
@@ -105,13 +93,13 @@ describe('ChatPanel', () => {
       <ChatPanel mobileOpen={false} onCloseMobile={vi.fn()} collapsed={false} onToggleCollapse={vi.fn()} width={400} />,
     );
 
-    expect(screen.queryByText('모델과 API 키 설정')).not.toBeInTheDocument();
+    expect(screen.queryByText('내장 Gemma 설정')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '채팅 메뉴' }));
     await user.click(screen.getByRole('button', { name: '설정' }));
 
-    expect(screen.getByText('모델과 API 키 설정')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '연결 확인' })).toBeInTheDocument();
+    expect(screen.getByText('내장 Gemma 설정')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '실행 확인' })).toBeInTheDocument();
   });
 
   it('renders user messages on the right and assistant messages on the left', () => {
