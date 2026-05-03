@@ -1,4 +1,4 @@
-export type ProviderType = 'openai' | 'anthropic' | 'google' | string;
+export type ProviderType = 'gemma' | 'openai' | 'anthropic' | 'google' | string;
 
 export type ChatContextMode = 'inventory' | 'sql' | 'general';
 
