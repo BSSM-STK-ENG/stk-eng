@@ -105,8 +105,8 @@ describe('App', () => {
       expect(screen.getAllByText('STK-ENG').length).toBeGreaterThan(0);
     });
     expect(screen.getByRole('heading', { name: '재고 현황' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'AI 패널 켜기' })).toBeInTheDocument();
-    expect(screen.queryByLabelText('채팅 패널')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'AI 패널 켜기' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('채팅 패널')).toBeInTheDocument();
   });
 
   it('redirects authenticated users who must change password', async () => {
@@ -247,7 +247,7 @@ describe('App', () => {
     expect(screen.queryByRole('heading', { name: '사용자 관리' })).not.toBeInTheDocument();
   });
 
-  it('hides the chat panel when account preferences disable it', async () => {
+  it('shows the chat panel even when old account preferences disable it', async () => {
     setSession({
       email: 'user@test.com',
       role: 'USER',
@@ -273,8 +273,8 @@ describe('App', () => {
     renderApp();
 
     await waitFor(() => {
-      expect(screen.queryByLabelText('채팅 패널')).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'AI 패널 켜기' })).toBeInTheDocument();
+      expect(screen.getByLabelText('채팅 패널')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'AI 패널 켜기' })).not.toBeInTheDocument();
     });
   });
 
