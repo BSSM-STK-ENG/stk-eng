@@ -12,6 +12,10 @@ const browserGemmaMocks = vi.hoisted(() => ({
   getBrowserGemmaStatus: vi.fn(),
 }));
 
+const inventoryContextMocks = vi.hoisted(() => ({
+  buildInventoryChatContext: vi.fn(),
+}));
+
 vi.mock('../../../api/chat', () => ({
   sendQuickSearch: apiMocks.sendQuickSearch,
 }));
@@ -19,6 +23,10 @@ vi.mock('../../../api/chat', () => ({
 vi.mock('../browserGemma', () => ({
   generateBrowserGemmaResponse: browserGemmaMocks.generateBrowserGemmaResponse,
   getBrowserGemmaStatus: browserGemmaMocks.getBrowserGemmaStatus,
+}));
+
+vi.mock('../inventoryContext', () => ({
+  buildInventoryChatContext: inventoryContextMocks.buildInventoryChatContext,
 }));
 
 describe('useChatWorkspace', () => {
@@ -33,6 +41,10 @@ describe('useChatWorkspace', () => {
     });
     browserGemmaMocks.generateBrowserGemmaResponse.mockResolvedValue('브라우저 Gemma 응답');
     browserGemmaMocks.getBrowserGemmaStatus.mockReturnValue(true);
+    inventoryContextMocks.buildInventoryChatContext.mockResolvedValue({
+      promptContext: null,
+      toolTrace: [],
+    });
   });
 
   it('starts every user on browser Gemma with chat enabled', async () => {
@@ -62,8 +74,51 @@ describe('useChatWorkspace', () => {
       await result.current.sendMessage();
     });
 
-    expect(browserGemmaMocks.generateBrowserGemmaResponse).toHaveBeenCalledWith('Gemma로 답해줘');
+    expect(inventoryContextMocks.buildInventoryChatContext).toHaveBeenCalledWith(
+      'Gemma로 답해줘',
+      expect.any(AbortSignal),
+    );
+    expect(browserGemmaMocks.generateBrowserGemmaResponse).toHaveBeenCalledWith('Gemma로 답해줘', null);
     expect(result.current.messages.at(-1)?.content).toBe('브라우저 Gemma 응답');
+  });
+
+  it('passes inventory DB context into Gemma and keeps the evidence trace', async () => {
+    inventoryContextMocks.buildInventoryChatContext.mockResolvedValueOnce({
+      promptContext: '[DB_CONTEXT]\n직접답: 어제(2026-05-11) 들어온 재고는 0개입니다.\n[/DB_CONTEXT]',
+      directAnswer: '어제(2026-05-11) 들어온 재고는 0개입니다.',
+      toolTrace: [
+        {
+          kind: 'inventory',
+          title: '어제 입고 조회',
+          summary: '2026-05-11~2026-05-11 입고 0개, 거래 0건',
+          sourceViews: ['GET /inventory/ledger?type=IN&from=2026-05-11&to=2026-05-11&size=100'],
+          rowCount: 0,
+          durationMs: 12,
+        },
+      ],
+    });
+    browserGemmaMocks.generateBrowserGemmaResponse.mockResolvedValueOnce(
+      'DB 기준 숫자를 알려주시면 확인해 드릴 수 있습니다.',
+    );
+    const { result } = renderHook(() => useChatWorkspace());
+
+    await waitFor(() => {
+      expect(result.current.requestState.bootstrapping).toBe(false);
+    });
+
+    act(() => {
+      result.current.setComposerValue('어제 들어온 재고가 몇 개야?');
+    });
+    await act(async () => {
+      await result.current.sendMessage();
+    });
+
+    expect(browserGemmaMocks.generateBrowserGemmaResponse).toHaveBeenCalledWith(
+      '어제 들어온 재고가 몇 개야?',
+      expect.stringContaining('직접답: 어제(2026-05-11) 들어온 재고는 0개입니다.'),
+    );
+    expect(result.current.messages.at(-1)?.content).toBe('어제(2026-05-11) 들어온 재고는 0개입니다.');
+    expect(result.current.messages.at(-1)?.toolTrace?.[0]?.title).toBe('어제 입고 조회');
   });
 
   it('keeps the browser runtime session until conversation reset', async () => {
@@ -99,9 +154,9 @@ describe('useChatWorkspace', () => {
     });
 
     expect(result.current.runtimeSessionId).not.toBe(firstSessionId);
-    expect(browserGemmaMocks.generateBrowserGemmaResponse).toHaveBeenNthCalledWith(1, '첫 질문');
-    expect(browserGemmaMocks.generateBrowserGemmaResponse).toHaveBeenNthCalledWith(2, '둘째 질문');
-    expect(browserGemmaMocks.generateBrowserGemmaResponse).toHaveBeenNthCalledWith(3, '셋째 질문');
+    expect(browserGemmaMocks.generateBrowserGemmaResponse).toHaveBeenNthCalledWith(1, '첫 질문', null);
+    expect(browserGemmaMocks.generateBrowserGemmaResponse).toHaveBeenNthCalledWith(2, '둘째 질문', null);
+    expect(browserGemmaMocks.generateBrowserGemmaResponse).toHaveBeenNthCalledWith(3, '셋째 질문', null);
   });
 
   it('applies Gemma settings without saving API credentials', async () => {

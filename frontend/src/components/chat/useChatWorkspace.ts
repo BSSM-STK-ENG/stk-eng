@@ -11,6 +11,7 @@ import type {
 } from '../../types/chat';
 import { generateBrowserGemmaResponse, getBrowserGemmaStatus } from './browserGemma';
 import { DEFAULT_PROVIDER_CATALOG } from './chatDefaults';
+import { buildInventoryChatContext } from './inventoryContext';
 
 type ChatDraft = {
   provider: ProviderType;
@@ -91,6 +92,12 @@ function createGemmaCredential(): ProviderCredential {
   };
 }
 
+function looksLikeMissingDbAnswer(answer: string) {
+  return /(DB|데이터|자료|숫자|정보).*(알려주|제공|입력|없|필요)|접근할 수 없|조회할 수 없|확인할 수 없|어떤 재고/i.test(
+    answer,
+  );
+}
+
 export type ChatWorkspaceState = {
   providers: ProviderDescriptor[];
   credentials: Record<string, ProviderCredential>;
@@ -164,7 +171,7 @@ export function useChatWorkspace(): ChatWorkspaceState {
     const selectedModel = getGemmaModel(payload.model);
     setRequestState((current) => ({ ...current, testingCredential: true, error: null, info: null }));
     try {
-      if (!getBrowserGemmaStatus()) {
+      if (!(await getBrowserGemmaStatus())) {
         throw new Error('Gemma 4 브라우저 실행은 WebGPU를 지원하는 Chrome/Edge 데스크톱 브라우저가 필요합니다.');
       }
       const result = {
@@ -339,7 +346,14 @@ export function useChatWorkspace(): ChatWorkspaceState {
       abortRef.current = controller;
 
       try {
-        const browserAnswer = await generateBrowserGemmaResponse(messageText);
+        const inventoryContext = await buildInventoryChatContext(messageText, controller.signal);
+        if (controller.signal.aborted) {
+          setMessages((current) => current.filter((item) => item.id !== optimisticAssistantMessage.id));
+          setRequestState((current) => ({ ...current, sendingMessage: false }));
+          return null;
+        }
+
+        const browserAnswer = await generateBrowserGemmaResponse(messageText, inventoryContext.promptContext);
         if (controller.signal.aborted) {
           setMessages((current) => current.filter((item) => item.id !== optimisticAssistantMessage.id));
           setRequestState((current) => ({ ...current, sendingMessage: false }));
@@ -350,8 +364,12 @@ export function useChatWorkspace(): ChatWorkspaceState {
         const assistantMessage: ChatMessage = {
           ...optimisticAssistantMessage,
           sessionId: nextSessionId,
-          content: browserAnswer,
+          content:
+            inventoryContext.directAnswer && looksLikeMissingDbAnswer(browserAnswer)
+              ? inventoryContext.directAnswer
+              : browserAnswer,
           status: 'sent',
+          toolTrace: inventoryContext.toolTrace.length > 0 ? inventoryContext.toolTrace : undefined,
         };
 
         setRuntimeSessionId(nextSessionId);
