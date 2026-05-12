@@ -25,16 +25,17 @@ public class ImageHashService {
     private static final int DCT_SIZE = 32;
     private static final int CONTENT_SAMPLE_SIZE = 128;
     private static final int EDGE_SIZE = 48;
-    private static final int MAX_SHAPE_HASHES = 3;
+    private static final int MAX_SHAPE_HASHES = 2;
     private static final int HUE_BINS = 12;
     private static final int GRAYSCALE_BINS = 4;
     private static final int COLOR_BINS = HUE_BINS + GRAYSCALE_BINS;
     private static final int EDGE_BINS = 8;
     private static final double V2_SHAPE_WEIGHT = 0.55;
     private static final double V2_COLOR_WEIGHT = 0.45;
-    private static final double V3_SHAPE_WEIGHT = 0.40;
-    private static final double V3_EDGE_WEIGHT = 0.30;
-    private static final double V3_COLOR_WEIGHT = 0.30;
+    private static final double V3_SHAPE_WEIGHT = 0.25;
+    private static final double V3_EDGE_WEIGHT = 0.20;
+    private static final double V3_COLOR_WEIGHT = 0.20;
+    private static final double V3_ACCENT_COLOR_WEIGHT = 0.35;
     private static final int MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     private static final long MAX_IMAGE_PIXELS = 20_000_000L;
 
@@ -49,13 +50,16 @@ public class ImageHashService {
 
             String colorHistogram = computeColorHistogramHex(resize(contentCrop, DCT_SIZE, DCT_SIZE));
             String edgeHistogram = computeEdgeHistogramHex(resize(contentCrop, EDGE_SIZE, EDGE_SIZE));
+            String accentColorHistogram = computeAccentColorHistogramHex(resize(contentCrop, DCT_SIZE, DCT_SIZE));
             return SIGNATURE_VERSION
                     + ":"
                     + String.join(",", shapeHashes)
                     + ":"
                     + colorHistogram
                     + ":"
-                    + edgeHistogram;
+                    + edgeHistogram
+                    + ":"
+                    + accentColorHistogram;
         } catch (Exception e) {
             log.warn("pHash computation failed: {}", e.getMessage());
             return null;
@@ -73,13 +77,23 @@ public class ImageHashService {
         double shapeSimilarity = 1.0 - (shapeDistance / 64.0);
         double weightedSimilarity = shapeSimilarity;
 
-        if (query.hasEdgeHistogram() && candidate.hasEdgeHistogram()
+        if (query.hasAccentColorHistogram() && candidate.hasAccentColorHistogram()
+                && query.hasEdgeHistogram() && candidate.hasEdgeHistogram()
                 && query.hasColorHistogram() && candidate.hasColorHistogram()) {
+            double accentColorSimilarity = histogramSimilarity(query.accentColorHistogram(), candidate.accentColorHistogram());
             double edgeSimilarity = histogramSimilarity(query.edgeHistogram(), candidate.edgeHistogram());
             double colorSimilarity = histogramSimilarity(query.colorHistogram(), candidate.colorHistogram());
             weightedSimilarity = (shapeSimilarity * V3_SHAPE_WEIGHT)
                     + (edgeSimilarity * V3_EDGE_WEIGHT)
-                    + (colorSimilarity * V3_COLOR_WEIGHT);
+                    + (colorSimilarity * V3_COLOR_WEIGHT)
+                    + (accentColorSimilarity * V3_ACCENT_COLOR_WEIGHT);
+        } else if (query.hasEdgeHistogram() && candidate.hasEdgeHistogram()
+                && query.hasColorHistogram() && candidate.hasColorHistogram()) {
+            double edgeSimilarity = histogramSimilarity(query.edgeHistogram(), candidate.edgeHistogram());
+            double colorSimilarity = histogramSimilarity(query.colorHistogram(), candidate.colorHistogram());
+            weightedSimilarity = (shapeSimilarity * 0.40)
+                    + (edgeSimilarity * 0.30)
+                    + (colorSimilarity * 0.30);
         } else if (query.hasColorHistogram() && candidate.hasColorHistogram()) {
             double colorSimilarity = histogramSimilarity(query.colorHistogram(), candidate.colorHistogram());
             weightedSimilarity = (shapeSimilarity * V2_SHAPE_WEIGHT) + (colorSimilarity * V2_COLOR_WEIGHT);
@@ -286,6 +300,33 @@ public class ImageHashService {
         return histogramToHex(normalized, 255);
     }
 
+    private String computeAccentColorHistogramHex(BufferedImage resized) {
+        int[] bins = new int[HUE_BINS];
+        int selectedPixels = 0;
+
+        for (int y = 0; y < resized.getHeight(); y++) {
+            for (int x = 0; x < resized.getWidth(); x++) {
+                int rgb = resized.getRGB(x, y);
+                int r = (rgb >> 16) & 0xFF;
+                int g = (rgb >> 8) & 0xFF;
+                int b = rgb & 0xFF;
+                float[] hsb = Color.RGBtoHSB(r, g, b, null);
+                if (hsb[1] < 0.28f || hsb[2] < 0.12f) {
+                    continue;
+                }
+
+                int bin = Math.min(HUE_BINS - 1, (int) (hsb[0] * HUE_BINS));
+                bins[bin]++;
+                selectedPixels++;
+            }
+        }
+
+        if (selectedPixels == 0) {
+            return histogramToHex(bins, 255);
+        }
+        return histogramToHex(bins, selectedPixels);
+    }
+
     private String histogramToHex(int[] bins, int total) {
         StringBuilder histogram = new StringBuilder(bins.length * 2);
         for (int bin : bins) {
@@ -423,7 +464,7 @@ public class ImageHashService {
     public record ImageSimilarity(int distance, int similarity) {
     }
 
-    private record ImageSignature(List<String> shapeHashes, int[] colorHistogram, int[] edgeHistogram) {
+    private record ImageSignature(List<String> shapeHashes, int[] colorHistogram, int[] edgeHistogram, int[] accentColorHistogram) {
         private String primaryShapeHash() {
             return shapeHashes.isEmpty() ? null : shapeHashes.get(0);
         }
@@ -436,20 +477,24 @@ public class ImageHashService {
             return edgeHistogram != null && edgeHistogram.length == EDGE_BINS;
         }
 
+        private boolean hasAccentColorHistogram() {
+            return accentColorHistogram != null && accentColorHistogram.length == HUE_BINS;
+        }
+
         private static ImageSignature parse(String rawSignature) {
             if (rawSignature == null || rawSignature.isBlank()) {
                 return null;
             }
             String trimmed = rawSignature.trim();
             if (isLegacyShapeHash(trimmed)) {
-                return new ImageSignature(List.of(trimmed), null, null);
+                return new ImageSignature(List.of(trimmed), null, null, null);
             }
 
             String[] parts = trimmed.split(":", -1);
             if (parts.length == 3 && COLOR_SIGNATURE_VERSION.equals(parts[0]) && isLegacyShapeHash(parts[1])) {
-                return new ImageSignature(List.of(parts[1]), parseHistogram(parts[2], COLOR_BINS), null);
+                return new ImageSignature(List.of(parts[1]), parseHistogram(parts[2], COLOR_BINS), null, null);
             }
-            if (parts.length != 4 || !SIGNATURE_VERSION.equals(parts[0])) {
+            if ((parts.length != 4 && parts.length != 5) || !SIGNATURE_VERSION.equals(parts[0])) {
                 return null;
             }
 
@@ -460,7 +505,8 @@ public class ImageHashService {
             return new ImageSignature(
                     hashes,
                     parseHistogram(parts[2], COLOR_BINS),
-                    parseHistogram(parts[3], EDGE_BINS)
+                    parseHistogram(parts[3], EDGE_BINS),
+                    parts.length == 5 ? parseHistogram(parts[4], HUE_BINS) : null
             );
         }
 
