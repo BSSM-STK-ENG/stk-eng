@@ -41,6 +41,7 @@ postgres_data/
 .omc/
 
 # === Test Artifacts ===
+frontend/e2e/.auth/
 frontend/playwright-report/
 frontend/test-results/
 
