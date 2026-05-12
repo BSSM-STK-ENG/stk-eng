@@ -113,7 +113,6 @@ class QuickSearchServiceTest {
 
     @Test
     void searchDefaultsCurrentClosingToUnclosedWhenMissing() {
-        when(materialRepository.findAllByOrderByMaterialCodeAsc()).thenReturn(List.of());
         when(inventoryTransactionRepository.findByRevertedFalseAndSystemGeneratedFalse(any(PageRequest.class)))
                 .thenReturn(new PageImpl<>(List.of()));
         when(monthlyClosingRepository.findById(any(String.class))).thenReturn(Optional.empty());

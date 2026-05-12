@@ -38,8 +38,7 @@ class AdminUserManagementServiceTest {
 
     private UserPermissionService userPermissionService;
 
-    @Mock
-    private UserMapper userMapper;
+    private final UserMapper userMapper = new UserMapper();
 
     @Mock
     private UserGateway userGateway;
@@ -297,6 +296,7 @@ class AdminUserManagementServiceTest {
                 .password("encoded-user")
                 .passwordChangeRequired(false)
                 .build()));
+        when(temporaryPasswordGenerator.generate()).thenReturn("tmp-pass");
         when(passwordEncoder.encode("tmp-pass")).thenReturn("reset-encoded");
         when(userGateway.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

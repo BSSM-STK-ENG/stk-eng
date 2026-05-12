@@ -99,7 +99,7 @@ function MetricCard({
       <div className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${toneClasses.icon}`}>{icon}</div>
       <div className="mt-3 flex items-center gap-1.5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-        {helpText ? <InfoTooltip label={helpText} /> : null}
+        {helpText ? <InfoTooltip label={helpText} interactive={!onClick} /> : null}
       </div>
       <p className={`mt-1 text-2xl font-bold tracking-tight ${toneClasses.value}`}>{value}</p>
     </>

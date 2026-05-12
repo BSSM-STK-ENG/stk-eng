@@ -110,15 +110,29 @@ public class MaterialService {
         if (queryHash == null) throw new IllegalArgumentException("이미지를 처리할 수 없습니다.");
 
         return materialRepository.findAll().stream()
-                .filter(m -> m.getImageHash() != null)
-                .map(m -> {
-                    int dist = imageHashService.hammingDistance(queryHash, m.getImageHash());
-                    int similarity = (64 - dist) * 100 / 64;
-                    return new ImageSearchResult(convertToDto(m), dist, similarity);
+                .map(material -> {
+                    String candidateHash = resolveCandidateImageHash(material);
+                    if (candidateHash == null) {
+                        return null;
+                    }
+                    ImageHashService.ImageSimilarity similarity = imageHashService.compare(queryHash, candidateHash);
+                    return new ImageSearchResult(convertToDto(material), similarity.distance(), similarity.similarity());
                 })
-                .sorted(Comparator.comparingInt(ImageSearchResult::getDistance))
+                .filter(result -> result != null)
+                .sorted(Comparator.comparingInt(ImageSearchResult::getSimilarity).reversed()
+                        .thenComparing(result -> result.getMaterial().getMaterialCode()))
                 .limit(20)
                 .collect(Collectors.toList());
+    }
+
+    private String resolveCandidateImageHash(Material material) {
+        if (material.getImageUrl() != null && !material.getImageUrl().isBlank()) {
+            String currentSignature = imageHashService.computePHash(material.getImageUrl());
+            if (currentSignature != null) {
+                return currentSignature;
+            }
+        }
+        return normalizeOptional(material.getImageHash());
     }
 
     private Integer normalizeStockValue(Integer value) {

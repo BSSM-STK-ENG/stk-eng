@@ -23,6 +23,7 @@
     ]
   },
   "dependencies": {
+    "@mediapipe/tasks-genai": "^0.10.27",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/react-query": "^5.96.2",
     "axios": "^1.13.6",
