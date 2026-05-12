@@ -1,6 +1,7 @@
 package com.stk.inventory.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stk.inventory.config.SecurityConfig;
 import com.stk.inventory.security.JwtAuthenticationFilter;
 import com.stk.inventory.security.PasswordChangeRequiredFilter;
 import com.stk.inventory.service.QuickSearchService;
@@ -13,6 +14,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -22,6 +24,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(QuickSearchController.class)
+@Import(SecurityConfig.class)
 class QuickSearchControllerSecurityTest {
 
     @Autowired
