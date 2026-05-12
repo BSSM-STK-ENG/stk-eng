@@ -22,7 +22,6 @@ import type {
   AiPreferences,
   ChatMessage,
   CredentialConnectionTestResponse,
-  ProviderCredential,
   ProviderDescriptor,
   ProviderType,
   QuickSearchMaterial,
@@ -50,8 +49,6 @@ type ChatPanelViewProps = ChatPanelProps & {
 interface SettingsState {
   provider: ProviderType;
   model: string;
-  apiKey: string;
-  chatPanelEnabled: boolean;
 }
 
 const QUICK_PROMPTS = [
@@ -62,9 +59,7 @@ const QUICK_PROMPTS = [
 ];
 
 const PROVIDER_ICONS: Record<string, string> = {
-  openai: 'O',
-  anthropic: 'C',
-  google: 'G',
+  gemma: 'G',
 };
 
 const QUICK_ACTIONS = [
@@ -170,35 +165,11 @@ function toolLabel(tool: ToolTrace) {
   return tool.title;
 }
 
-function getCredentialPresentation(credential?: ProviderCredential) {
-  if (!credential?.hasKey) {
-    return {
-      label: '키 필요',
-      tone: 'bg-amber-50 text-amber-700',
-      detail: 'API 키를 저장하고 연결 확인이 필요합니다.',
-    };
-  }
-
-  if (credential.validationStatus === 'success') {
-    return {
-      label: '연결 확인됨',
-      tone: 'bg-emerald-50 text-emerald-700',
-      detail: credential.validationMessage ?? '최근 연결 확인이 성공했습니다.',
-    };
-  }
-
-  if (credential.validationStatus === 'failed') {
-    return {
-      label: '재연결 필요',
-      tone: 'bg-rose-50 text-rose-700',
-      detail: credential.validationMessage ?? '저장된 키의 연결 확인이 실패했습니다.',
-    };
-  }
-
+function getProviderCredentialPresentation(_provider: ProviderType) {
   return {
-    label: '키 저장됨',
-    tone: 'bg-blue-50 text-blue-700',
-    detail: '키는 저장되어 있지만 최근 연결 확인 기록이 없습니다.',
+    label: '내장 모델',
+    tone: 'bg-emerald-50 text-emerald-700',
+    detail: '별도 키 없이 브라우저에서 Gemma 4를 실행합니다.',
   };
 }
 
@@ -534,40 +505,32 @@ function SettingsModal({
   providers,
   settings,
   setSettings,
-  credentials,
   testResult,
   onSave,
   onTest,
-  onDelete,
   error,
   info,
   testing,
   saving,
-  deleting,
 }: {
   open: boolean;
   onClose: () => void;
   providers: ProviderDescriptor[];
   settings: SettingsState;
   setSettings: (next: SettingsState) => void;
-  credentials: Record<string, ProviderCredential>;
   testResult: CredentialConnectionTestResponse | null;
   onSave: () => void;
   onTest: () => void;
-  onDelete: () => void;
   error: string | null;
   info: string | null;
   testing: boolean;
   saving: boolean;
-  deleting: boolean;
 }) {
   const activeProvider =
     providers.find((item) => item.provider === settings.provider) ?? getProviderFallback(settings.provider);
   const activeModels =
     activeProvider.models.length > 0 ? activeProvider.models : getProviderFallback(activeProvider.provider).models;
-  const activeCredential = credentials[settings.provider];
-  const credentialMeta = getCredentialPresentation(activeCredential);
-  const canSave = Boolean(settings.apiKey.trim() || activeCredential?.hasKey || settings.chatPanelEnabled === false);
+  const credentialMeta = getProviderCredentialPresentation(settings.provider);
   const isCurrentTestResult = testResult?.provider === settings.provider && testResult?.model === settings.model;
 
   useEffect(() => {
@@ -598,8 +561,8 @@ function SettingsModal({
         <header className="flex items-start justify-between border-b border-slate-200/80 bg-slate-50/80 px-5 py-4">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-500">AI settings</p>
-            <h3 className="mt-1 text-xl font-black text-slate-900">모델과 API 키 설정</h3>
-            <p className="mt-1 text-sm text-slate-500">한 번 저장하면 이후 채팅은 이 기본값을 자동으로 사용합니다.</p>
+            <h3 className="mt-1 text-xl font-black text-slate-900">내장 Gemma 설정</h3>
+            <p className="mt-1 text-sm text-slate-500">모든 사용자는 API 키 없이 이 기본 모델을 바로 사용합니다.</p>
           </div>
           <button
             type="button"
@@ -616,7 +579,6 @@ function SettingsModal({
             <div className="space-y-2">
               {providers.map((provider) => {
                 const active = provider.provider === settings.provider;
-                const credential = credentials[provider.provider];
                 return (
                   <button
                     key={provider.provider}
@@ -642,7 +604,7 @@ function SettingsModal({
                       </div>
                     </div>
                     <div className="mt-3 flex items-center justify-between text-[11px] font-semibold text-slate-400">
-                      <span>{credential?.hasKey ? '연결됨' : '키 필요'}</span>
+                      <span>브라우저 내장</span>
                       <span>{provider.models.length} models</span>
                     </div>
                   </button>
@@ -692,52 +654,35 @@ function SettingsModal({
               </label>
             </div>
 
-            <label className="grid gap-2">
-              <span className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">API Key</span>
-              <input
-                type="password"
-                value={settings.apiKey}
-                onChange={(event) => setSettings({ ...settings, apiKey: event.target.value })}
-                placeholder="비워두면 기존 키를 유지합니다"
-                className="chat-focus-ring rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 placeholder:text-slate-300"
-              />
-            </label>
-
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">저장된 자격증명</p>
-                <p className="mt-1 text-sm font-bold text-slate-700">
-                  {activeCredential?.hasKey ? (activeCredential?.maskedKey ?? '등록됨') : '미등록'}
-                </p>
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">실행 방식</p>
+                <p className="mt-1 text-sm font-bold text-slate-700">브라우저 내장</p>
                 <p className="mt-2 text-xs leading-5 text-slate-500">{credentialMeta.detail}</p>
               </div>
               <div className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">연결 상태</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">브라우저 지원</p>
                 <p className="mt-1 text-sm font-bold text-slate-700">
                   {isCurrentTestResult
                     ? testResult?.success
-                      ? '방금 연결 확인 완료'
-                      : '연결 확인 실패'
+                      ? '방금 실행 확인 완료'
+                      : '실행 확인 실패'
                     : credentialMeta.label}
                 </p>
                 <p className="mt-2 text-xs leading-5 text-slate-500">
                   {isCurrentTestResult
                     ? `${testResult?.message} · ${formatDateTime(testResult?.checkedAt)}`
-                    : activeCredential?.validatedAt
-                      ? `${formatDateTime(activeCredential.validatedAt)} 기준`
-                      : '아직 연결 확인 기록이 없습니다.'}
+                    : 'WebGPU 지원 브라우저에서 바로 실행됩니다.'}
                 </p>
               </div>
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-[20px] border border-slate-200 bg-white px-4 py-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">저장 동작</p>
-                <p className="mt-1 text-sm font-bold text-slate-700">
-                  {settings.apiKey.trim() ? '연결 확인 후 저장' : '기존 키 유지 + 기본 모델 저장'}
-                </p>
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">기본 동작</p>
+                <p className="mt-1 text-sm font-bold text-slate-700">진입 즉시 사용</p>
                 <p className="mt-2 text-xs leading-5 text-slate-500">
-                  새 키를 입력하면 저장 시 서버가 실제 provider 연결을 검증합니다.
+                  브라우저가 Gemma 4 모델을 로드해 로컬에서 답변합니다.
                 </p>
               </div>
               <div className="rounded-[20px] border border-slate-200 bg-white px-4 py-3">
@@ -745,33 +690,7 @@ function SettingsModal({
                 <p className="mt-1 text-sm font-bold text-slate-700">
                   {activeModels.find((model) => model.id === settings.model)?.name ?? settings.model}
                 </p>
-                <p className="mt-2 text-xs leading-5 text-slate-500">provider별 접근 가능한 모델만 저장됩니다.</p>
-              </div>
-            </div>
-
-            <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">패널 표시</p>
-                  <p className="text-sm font-bold text-slate-800">AI 채팅 패널 표시</p>
-                  <p className="text-xs leading-5 text-slate-500">
-                    필요 없는 사용자는 채팅 패널과 모바일 버튼을 완전히 숨길 수 있습니다.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={settings.chatPanelEnabled}
-                  aria-label="AI 채팅 패널 표시"
-                  onClick={() => setSettings({ ...settings, chatPanelEnabled: !settings.chatPanelEnabled })}
-                  className={`chat-focus-ring inline-flex h-8 w-14 items-center rounded-full border px-1 transition ${
-                    settings.chatPanelEnabled
-                      ? 'border-blue-200 bg-blue-600 justify-end'
-                      : 'border-slate-200 bg-slate-300 justify-start'
-                  }`}
-                >
-                  <span className="h-6 w-6 rounded-full bg-white shadow-sm" />
-                </button>
+                <p className="mt-2 text-xs leading-5 text-slate-500">API 키 없이 사용할 기본 모델입니다.</p>
               </div>
             </div>
 
@@ -797,25 +716,16 @@ function SettingsModal({
               </div>
             )}
 
-            <footer className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                type="button"
-                onClick={onDelete}
-                disabled={deleting || !activeCredential?.hasKey}
-                className="chat-focus-ring rounded-[18px] border border-rose-200 px-4 py-3 text-sm font-bold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {deleting ? '삭제 중...' : '현재 provider 키 삭제'}
-              </button>
-
+            <footer className="flex justify-end gap-3 border-t border-slate-200 pt-4">
               <div className="flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={onTest}
-                  disabled={testing || !settings.apiKey.trim()}
+                  disabled={testing}
                   className="chat-focus-ring inline-flex items-center justify-center gap-2 rounded-[18px] border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {testing && <LoaderCircle size={15} className="animate-spin" />}
-                  연결 확인
+                  실행 확인
                 </button>
                 <button
                   type="button"
@@ -827,7 +737,7 @@ function SettingsModal({
                 <button
                   type="button"
                   onClick={onSave}
-                  disabled={saving || testing || !canSave}
+                  disabled={saving || testing}
                   className="chat-focus-ring inline-flex items-center justify-center gap-2 rounded-[18px] bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
                 >
                   {saving && <LoaderCircle size={15} className="animate-spin" />}
@@ -843,15 +753,7 @@ function SettingsModal({
   );
 }
 
-function EmptyPromptState({
-  missingKey,
-  providerLabel,
-  onPromptClick,
-}: {
-  missingKey: boolean;
-  providerLabel: string;
-  onPromptClick: (prompt: string) => void;
-}) {
+function EmptyPromptState({ onPromptClick }: { onPromptClick: (prompt: string) => void }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-5 px-5 py-10 text-center">
       <div className="flex h-16 w-16 items-center justify-center rounded-[24px] bg-blue-600 text-white shadow-[0_14px_40px_rgba(37,99,235,0.22)]">
@@ -859,11 +761,7 @@ function EmptyPromptState({
       </div>
       <div className="space-y-2">
         <h3 className="text-lg font-black text-slate-900">재고 내용을 바로 물어보세요</h3>
-        <p className="text-sm leading-6 text-slate-500">
-          {missingKey
-            ? `${providerLabel} API 키를 연결하면 바로 재고 질의를 시작할 수 있습니다. 상단 메뉴의 설정에서 연결하세요.`
-            : '입고량, 재고 부족, 월마감 상태 같은 질문을 한 번에 답합니다.'}
-        </p>
+        <p className="text-sm leading-6 text-slate-500">입고량, 재고 부족, 월마감 상태 같은 질문을 한 번에 답합니다.</p>
       </div>
 
       <div className="grid w-full gap-2">
@@ -872,8 +770,7 @@ function EmptyPromptState({
             key={prompt}
             type="button"
             onClick={() => onPromptClick(prompt)}
-            disabled={missingKey}
-            className="chat-focus-ring rounded-[18px] border border-blue-100 bg-blue-50/80 px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-45"
+            className="chat-focus-ring rounded-[18px] border border-blue-100 bg-blue-50/80 px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-white"
           >
             {prompt}
           </button>
@@ -890,7 +787,6 @@ function Composer({
   onStop,
   disabled,
   loading,
-  hasKey,
   onCommand,
 }: {
   value: string;
@@ -899,7 +795,6 @@ function Composer({
   onStop: () => void;
   disabled: boolean;
   loading: boolean;
-  hasKey: boolean;
   onCommand: (command: string) => void;
 }) {
   const [showCommands, setShowCommands] = useState(false);
@@ -945,9 +840,7 @@ function Composer({
           return;
         }
       }
-      if (hasKey) {
-        onSend();
-      }
+      onSend();
     }
   };
 
@@ -1001,11 +894,7 @@ function Composer({
             onChange={(event) => handleChange(event.target.value)}
             onKeyDown={handleKeyDown}
             rows={2}
-            placeholder={
-              hasKey
-                ? '재고 내용을 질문하세요 ( / 명령어 사용 가능)'
-                : '상단 ... 메뉴의 설정에서 모델과 API 키를 연결하세요'
-            }
+            placeholder="재고 내용을 질문하세요 ( / 명령어 사용 가능)"
             className="chat-focus-ring chat-scrollbar min-h-[72px] flex-1 resize-none rounded-[18px] border border-transparent bg-white px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm placeholder:text-slate-300"
           />
           <div className="flex flex-col justify-end gap-2">
@@ -1022,7 +911,7 @@ function Composer({
               <button
                 type="button"
                 onClick={onSend}
-                disabled={disabled || !hasKey}
+                disabled={disabled}
                 className="chat-focus-ring inline-flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                 aria-label="메시지 전송"
               >
@@ -1067,17 +956,14 @@ function ChatPanelView({
   const [settings, setSettings] = useState<SettingsState>({
     provider: workspace.draft.provider,
     model: workspace.draft.model,
-    apiKey: '',
-    chatPanelEnabled: workspace.preferences?.chatPanelEnabled ?? false,
   });
 
-  const activeCredential = workspace.credentials[workspace.draft.provider];
   const activeProviderLabel = useMemo(
     () => getProviderLabel(workspace.draft.provider, workspace.providers),
     [workspace.draft.provider, workspace.providers],
   );
-  const activeCredentialMeta = getCredentialPresentation(activeCredential);
-  const hasActiveKey = Boolean(activeCredential?.hasKey);
+  const activeCredentialMeta = getProviderCredentialPresentation(workspace.draft.provider);
+  const hasActiveKey = true;
   const messageCount = workspace.messages.length;
 
   const updateSettings = (next: SettingsState) => {
@@ -1122,8 +1008,6 @@ function ChatPanelView({
     updateSettings({
       provider: workspace.draft.provider,
       model: workspace.draft.model,
-      apiKey: '',
-      chatPanelEnabled: workspace.preferences?.chatPanelEnabled ?? false,
     });
   };
 
@@ -1144,19 +1028,11 @@ function ChatPanelView({
       return;
     }
     onPreferencesChange?.(saved);
-    updateSettings({ ...settings, apiKey: '' });
+    updateSettings(settings);
     setSettingsOpen(false);
   };
 
-  const handleDeleteCredential = async () => {
-    await workspace.removeCredential(settings.provider);
-    updateSettings({ ...settings, apiKey: '' });
-  };
-
   const handleSend = async (prompt?: string) => {
-    if (!hasActiveKey) {
-      return;
-    }
     await workspace.sendMessage(prompt);
   };
 
@@ -1348,11 +1224,7 @@ function ChatPanelView({
             ) : workspace.messages.length > 0 ? (
               workspace.messages.map((message) => <ChatMessageBubble key={message.id} message={message} />)
             ) : (
-              <EmptyPromptState
-                missingKey={!hasActiveKey}
-                providerLabel={activeProviderLabel}
-                onPromptClick={(prompt) => void handleSend(prompt)}
-              />
+              <EmptyPromptState onPromptClick={(prompt) => void handleSend(prompt)} />
             )}
           </div>
 
@@ -1374,7 +1246,6 @@ function ChatPanelView({
               onStop={workspace.stopResponse}
               disabled={!workspace.composerValue.trim() || workspace.requestState.sendingMessage}
               loading={workspace.requestState.sendingMessage}
-              hasKey={hasActiveKey}
               onCommand={handleCommand}
             />
           </div>
@@ -1387,16 +1258,13 @@ function ChatPanelView({
         providers={workspace.providers}
         settings={settings}
         setSettings={updateSettings}
-        credentials={workspace.credentials}
         testResult={workspace.credentialTestResult}
         onSave={() => void handleSaveSettings()}
         onTest={() => void handleTestCredential()}
-        onDelete={() => void handleDeleteCredential()}
         error={workspace.requestState.error}
         info={workspace.requestState.info}
         testing={workspace.requestState.testingCredential}
         saving={workspace.requestState.savingSettings}
-        deleting={workspace.requestState.deletingCredential}
       />
 
       <ConsentModal
