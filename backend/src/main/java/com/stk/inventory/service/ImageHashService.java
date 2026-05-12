@@ -4,23 +4,37 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
 public class ImageHashService {
 
-    private static final String SIGNATURE_VERSION = "v2";
+    private static final String SIGNATURE_VERSION = "v3";
+    private static final String COLOR_SIGNATURE_VERSION = "v2";
     private static final int HASH_SIZE = 8;
     private static final int DCT_SIZE = 32;
+    private static final int CONTENT_SAMPLE_SIZE = 128;
+    private static final int EDGE_SIZE = 48;
+    private static final int MAX_SHAPE_HASHES = 3;
     private static final int HUE_BINS = 12;
     private static final int GRAYSCALE_BINS = 4;
     private static final int COLOR_BINS = HUE_BINS + GRAYSCALE_BINS;
-    private static final double SHAPE_WEIGHT = 0.55;
-    private static final double COLOR_WEIGHT = 0.45;
+    private static final int EDGE_BINS = 8;
+    private static final double V2_SHAPE_WEIGHT = 0.55;
+    private static final double V2_COLOR_WEIGHT = 0.45;
+    private static final double V3_SHAPE_WEIGHT = 0.40;
+    private static final double V3_EDGE_WEIGHT = 0.30;
+    private static final double V3_COLOR_WEIGHT = 0.30;
     private static final int MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     private static final long MAX_IMAGE_PIXELS = 20_000_000L;
 
@@ -29,13 +43,19 @@ public class ImageHashService {
             BufferedImage original = readImage(imageData);
             if (original == null) return null;
 
-            BufferedImage resized = new BufferedImage(DCT_SIZE, DCT_SIZE, BufferedImage.TYPE_INT_RGB);
-            Graphics2D g2 = resized.createGraphics();
-            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-            g2.drawImage(original, 0, 0, DCT_SIZE, DCT_SIZE, null);
-            g2.dispose();
+            BufferedImage contentCrop = cropToContent(original);
+            List<String> shapeHashes = computeShapeHashes(original, contentCrop);
+            if (shapeHashes.isEmpty()) return null;
 
-            return SIGNATURE_VERSION + ":" + computeShapeHash(resized) + ":" + computeColorHistogramHex(resized);
+            String colorHistogram = computeColorHistogramHex(resize(contentCrop, DCT_SIZE, DCT_SIZE));
+            String edgeHistogram = computeEdgeHistogramHex(resize(contentCrop, EDGE_SIZE, EDGE_SIZE));
+            return SIGNATURE_VERSION
+                    + ":"
+                    + String.join(",", shapeHashes)
+                    + ":"
+                    + colorHistogram
+                    + ":"
+                    + edgeHistogram;
         } catch (Exception e) {
             log.warn("pHash computation failed: {}", e.getMessage());
             return null;
@@ -49,13 +69,22 @@ public class ImageHashService {
             return new ImageSimilarity(HASH_SIZE * HASH_SIZE, 0);
         }
 
-        int shapeDistance = hammingDistance(query.shapeHash(), candidate.shapeHash());
+        int shapeDistance = bestShapeDistance(query.shapeHashes(), candidate.shapeHashes());
         double shapeSimilarity = 1.0 - (shapeDistance / 64.0);
         double weightedSimilarity = shapeSimilarity;
-        if (query.hasColorHistogram() && candidate.hasColorHistogram()) {
-            double colorSimilarity = colorSimilarity(query.colorHistogram(), candidate.colorHistogram());
-            weightedSimilarity = (shapeSimilarity * SHAPE_WEIGHT) + (colorSimilarity * COLOR_WEIGHT);
+
+        if (query.hasEdgeHistogram() && candidate.hasEdgeHistogram()
+                && query.hasColorHistogram() && candidate.hasColorHistogram()) {
+            double edgeSimilarity = histogramSimilarity(query.edgeHistogram(), candidate.edgeHistogram());
+            double colorSimilarity = histogramSimilarity(query.colorHistogram(), candidate.colorHistogram());
+            weightedSimilarity = (shapeSimilarity * V3_SHAPE_WEIGHT)
+                    + (edgeSimilarity * V3_EDGE_WEIGHT)
+                    + (colorSimilarity * V3_COLOR_WEIGHT);
+        } else if (query.hasColorHistogram() && candidate.hasColorHistogram()) {
+            double colorSimilarity = histogramSimilarity(query.colorHistogram(), candidate.colorHistogram());
+            weightedSimilarity = (shapeSimilarity * V2_SHAPE_WEIGHT) + (colorSimilarity * V2_COLOR_WEIGHT);
         }
+
         int similarity = clamp((int) Math.round(weightedSimilarity * 100), 0, 100);
         int distance = clamp((int) Math.round((1.0 - weightedSimilarity) * 64), 0, 64);
         return new ImageSimilarity(distance, similarity);
@@ -64,16 +93,31 @@ public class ImageHashService {
     public int hammingDistance(String h1, String h2) {
         ImageSignature left = ImageSignature.parse(h1);
         ImageSignature right = ImageSignature.parse(h2);
-        String leftShape = left == null ? h1 : left.shapeHash();
-        String rightShape = right == null ? h2 : right.shapeHash();
+        String leftShape = left == null ? h1 : left.primaryShapeHash();
+        String rightShape = right == null ? h2 : right.primaryShapeHash();
         if (!isLegacyShapeHash(leftShape) || !isLegacyShapeHash(rightShape)) {
             return HASH_SIZE * HASH_SIZE;
         }
-        int dist = 0;
-        for (int i = 0; i < leftShape.length(); i++) {
-            if (leftShape.charAt(i) != rightShape.charAt(i)) dist++;
+        return hammingDistanceForShape(leftShape, rightShape);
+    }
+
+    private List<String> computeShapeHashes(BufferedImage original, BufferedImage contentCrop) {
+        Set<String> hashes = new LinkedHashSet<>();
+        addShapeHash(hashes, original);
+        addShapeHash(hashes, contentCrop);
+        addShapeHash(hashes, centerCrop(original, 0.72));
+
+        List<String> result = new ArrayList<>(MAX_SHAPE_HASHES);
+        for (String hash : hashes) {
+            result.add(hash);
+            if (result.size() == MAX_SHAPE_HASHES) break;
         }
-        return dist;
+        return result;
+    }
+
+    private void addShapeHash(Set<String> hashes, BufferedImage image) {
+        if (hashes.size() >= MAX_SHAPE_HASHES) return;
+        hashes.add(computeShapeHash(resize(image, DCT_SIZE, DCT_SIZE)));
     }
 
     private String computeShapeHash(BufferedImage resized) {
@@ -81,9 +125,7 @@ public class ImageHashService {
         for (int y = 0; y < DCT_SIZE; y++) {
             for (int x = 0; x < DCT_SIZE; x++) {
                 int rgb = resized.getRGB(x, y);
-                pixels[y][x] = 0.299 * ((rgb >> 16) & 0xFF)
-                        + 0.587 * ((rgb >> 8) & 0xFF)
-                        + 0.114 * (rgb & 0xFF);
+                pixels[y][x] = luminance(rgb);
             }
         }
 
@@ -96,14 +138,90 @@ public class ImageHashService {
             }
         }
 
-        // Mean excluding DC component [0,0]
         double sum = 0;
         for (int i = 1; i < lowFreq.length; i++) sum += lowFreq[i];
         double mean = sum / (lowFreq.length - 1);
 
-        StringBuilder hash = new StringBuilder();
+        StringBuilder hash = new StringBuilder(HASH_SIZE * HASH_SIZE);
         for (double v : lowFreq) hash.append(v >= mean ? '1' : '0');
         return hash.toString();
+    }
+
+    private BufferedImage cropToContent(BufferedImage original) {
+        BufferedImage sample = resize(original, CONTENT_SAMPLE_SIZE, CONTENT_SAMPLE_SIZE);
+        Color background = estimateBorderColor(sample);
+        int minX = CONTENT_SAMPLE_SIZE;
+        int minY = CONTENT_SAMPLE_SIZE;
+        int maxX = -1;
+        int maxY = -1;
+
+        for (int y = 1; y < CONTENT_SAMPLE_SIZE - 1; y++) {
+            for (int x = 1; x < CONTENT_SAMPLE_SIZE - 1; x++) {
+                int rgb = sample.getRGB(x, y);
+                int distance = colorDistance(rgb, background);
+                double edge = simpleEdgeMagnitude(sample, x, y);
+                float[] hsb = Color.RGBtoHSB((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, null);
+                boolean saturatedObject = hsb[1] > 0.28f && distance > 18;
+
+                if (distance > 34 || edge > 42 || saturatedObject) {
+                    minX = Math.min(minX, x);
+                    minY = Math.min(minY, y);
+                    maxX = Math.max(maxX, x);
+                    maxY = Math.max(maxY, y);
+                }
+            }
+        }
+
+        if (maxX < minX || maxY < minY) return original;
+
+        int boxWidth = maxX - minX + 1;
+        int boxHeight = maxY - minY + 1;
+        double boxRatio = (boxWidth * boxHeight) / (double) (CONTENT_SAMPLE_SIZE * CONTENT_SAMPLE_SIZE);
+        if (boxRatio < 0.02 || boxRatio > 0.94) {
+            return original;
+        }
+
+        double scaleX = original.getWidth() / (double) CONTENT_SAMPLE_SIZE;
+        double scaleY = original.getHeight() / (double) CONTENT_SAMPLE_SIZE;
+        int padX = Math.max(2, (int) Math.round(boxWidth * scaleX * 0.08));
+        int padY = Math.max(2, (int) Math.round(boxHeight * scaleY * 0.08));
+        int cropX = clamp((int) Math.floor(minX * scaleX) - padX, 0, original.getWidth() - 1);
+        int cropY = clamp((int) Math.floor(minY * scaleY) - padY, 0, original.getHeight() - 1);
+        int cropRight = clamp((int) Math.ceil((maxX + 1) * scaleX) + padX, cropX + 1, original.getWidth());
+        int cropBottom = clamp((int) Math.ceil((maxY + 1) * scaleY) + padY, cropY + 1, original.getHeight());
+
+        return original.getSubimage(cropX, cropY, cropRight - cropX, cropBottom - cropY);
+    }
+
+    private BufferedImage centerCrop(BufferedImage original, double ratio) {
+        int cropWidth = Math.max(1, (int) Math.round(original.getWidth() * ratio));
+        int cropHeight = Math.max(1, (int) Math.round(original.getHeight() * ratio));
+        int cropX = Math.max(0, (original.getWidth() - cropWidth) / 2);
+        int cropY = Math.max(0, (original.getHeight() - cropHeight) / 2);
+        return original.getSubimage(cropX, cropY, cropWidth, cropHeight);
+    }
+
+    private Color estimateBorderColor(BufferedImage image) {
+        int border = Math.max(1, image.getWidth() / 16);
+        long red = 0;
+        long green = 0;
+        long blue = 0;
+        long count = 0;
+        for (int y = 0; y < image.getHeight(); y++) {
+            for (int x = 0; x < image.getWidth(); x++) {
+                if (x >= border && x < image.getWidth() - border
+                        && y >= border && y < image.getHeight() - border) {
+                    continue;
+                }
+                int rgb = image.getRGB(x, y);
+                red += (rgb >> 16) & 0xFF;
+                green += (rgb >> 8) & 0xFF;
+                blue += rgb & 0xFF;
+                count++;
+            }
+        }
+        if (count == 0) return Color.WHITE;
+        return new Color((int) (red / count), (int) (green / count), (int) (blue / count));
     }
 
     private String computeColorHistogramHex(BufferedImage resized) {
@@ -126,23 +244,90 @@ public class ImageHashService {
         }
 
         int pixelCount = resized.getWidth() * resized.getHeight();
-        StringBuilder histogram = new StringBuilder(COLOR_BINS * 2);
+        return histogramToHex(bins, pixelCount);
+    }
+
+    private String computeEdgeHistogramHex(BufferedImage resized) {
+        double[] bins = new double[EDGE_BINS];
+        double total = 0;
+
+        for (int y = 1; y < resized.getHeight() - 1; y++) {
+            for (int x = 1; x < resized.getWidth() - 1; x++) {
+                double gx = -luminance(resized.getRGB(x - 1, y - 1))
+                        - (2 * luminance(resized.getRGB(x - 1, y)))
+                        - luminance(resized.getRGB(x - 1, y + 1))
+                        + luminance(resized.getRGB(x + 1, y - 1))
+                        + (2 * luminance(resized.getRGB(x + 1, y)))
+                        + luminance(resized.getRGB(x + 1, y + 1));
+                double gy = -luminance(resized.getRGB(x - 1, y - 1))
+                        - (2 * luminance(resized.getRGB(x, y - 1)))
+                        - luminance(resized.getRGB(x + 1, y - 1))
+                        + luminance(resized.getRGB(x - 1, y + 1))
+                        + (2 * luminance(resized.getRGB(x, y + 1)))
+                        + luminance(resized.getRGB(x + 1, y + 1));
+                double magnitude = Math.hypot(gx, gy);
+                if (magnitude < 8) continue;
+
+                double angle = Math.atan2(gy, gx);
+                if (angle < 0) angle += Math.PI;
+                if (angle >= Math.PI) angle -= Math.PI;
+                int bin = Math.min(EDGE_BINS - 1, (int) Math.floor((angle / Math.PI) * EDGE_BINS));
+                bins[bin] += magnitude;
+                total += magnitude;
+            }
+        }
+
+        int[] normalized = new int[EDGE_BINS];
+        if (total > 0) {
+            for (int i = 0; i < EDGE_BINS; i++) {
+                normalized[i] = clamp((int) Math.round(bins[i] * 255.0 / total), 0, 255);
+            }
+        }
+        return histogramToHex(normalized, 255);
+    }
+
+    private String histogramToHex(int[] bins, int total) {
+        StringBuilder histogram = new StringBuilder(bins.length * 2);
         for (int bin : bins) {
-            int normalized = clamp((int) Math.round(bin * 255.0 / pixelCount), 0, 255);
+            int normalized = total == 255 ? bin : clamp((int) Math.round(bin * 255.0 / total), 0, 255);
             histogram.append(String.format("%02x", normalized));
         }
         return histogram.toString();
     }
 
-    private double colorSimilarity(int[] left, int[] right) {
-        if (left == null || right == null || left.length != COLOR_BINS || right.length != COLOR_BINS) {
+    private double histogramSimilarity(int[] left, int[] right) {
+        if (left == null || right == null || left.length != right.length) {
             return 1.0;
         }
         int distance = 0;
-        for (int i = 0; i < COLOR_BINS; i++) {
+        for (int i = 0; i < left.length; i++) {
             distance += Math.abs(left[i] - right[i]);
         }
         return 1.0 - Math.min(1.0, distance / 510.0);
+    }
+
+    private int bestShapeDistance(List<String> leftHashes, List<String> rightHashes) {
+        if (leftHashes.isEmpty() || rightHashes.isEmpty()) return HASH_SIZE * HASH_SIZE;
+
+        int bestDistance = HASH_SIZE * HASH_SIZE;
+        for (String leftHash : leftHashes) {
+            for (String rightHash : rightHashes) {
+                bestDistance = Math.min(bestDistance, hammingDistanceForShape(leftHash, rightHash));
+            }
+        }
+        return bestDistance;
+    }
+
+    private int hammingDistanceForShape(String leftShape, String rightShape) {
+        if (!isLegacyShapeHash(leftShape) || !isLegacyShapeHash(rightShape)) {
+            return HASH_SIZE * HASH_SIZE;
+        }
+
+        int dist = 0;
+        for (int i = 0; i < leftShape.length(); i++) {
+            if (leftShape.charAt(i) != rightShape.charAt(i)) dist++;
+        }
+        return dist;
     }
 
     private double[][] applyDCT2D(double[][] pixels) {
@@ -171,6 +356,36 @@ public class ImageHashService {
             output[k] = s;
         }
         return output;
+    }
+
+    private BufferedImage resize(BufferedImage source, int width, int height) {
+        BufferedImage resized = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2 = resized.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g2.drawImage(source, 0, 0, width, height, null);
+        g2.dispose();
+        return resized;
+    }
+
+    private double simpleEdgeMagnitude(BufferedImage image, int x, int y) {
+        double horizontal = luminance(image.getRGB(x + 1, y)) - luminance(image.getRGB(x - 1, y));
+        double vertical = luminance(image.getRGB(x, y + 1)) - luminance(image.getRGB(x, y - 1));
+        return Math.hypot(horizontal, vertical);
+    }
+
+    private int colorDistance(int rgb, Color color) {
+        int redDistance = ((rgb >> 16) & 0xFF) - color.getRed();
+        int greenDistance = ((rgb >> 8) & 0xFF) - color.getGreen();
+        int blueDistance = (rgb & 0xFF) - color.getBlue();
+        return (int) Math.round(Math.sqrt(
+                (redDistance * redDistance) + (greenDistance * greenDistance) + (blueDistance * blueDistance)
+        ));
+    }
+
+    private double luminance(int rgb) {
+        return 0.299 * ((rgb >> 16) & 0xFF)
+                + 0.587 * ((rgb >> 8) & 0xFF)
+                + 0.114 * (rgb & 0xFF);
     }
 
     private BufferedImage readImage(String imageData) throws Exception {
@@ -208,9 +423,17 @@ public class ImageHashService {
     public record ImageSimilarity(int distance, int similarity) {
     }
 
-    private record ImageSignature(String shapeHash, int[] colorHistogram) {
+    private record ImageSignature(List<String> shapeHashes, int[] colorHistogram, int[] edgeHistogram) {
+        private String primaryShapeHash() {
+            return shapeHashes.isEmpty() ? null : shapeHashes.get(0);
+        }
+
         private boolean hasColorHistogram() {
             return colorHistogram != null && colorHistogram.length == COLOR_BINS;
+        }
+
+        private boolean hasEdgeHistogram() {
+            return edgeHistogram != null && edgeHistogram.length == EDGE_BINS;
         }
 
         private static ImageSignature parse(String rawSignature) {
@@ -219,22 +442,52 @@ public class ImageHashService {
             }
             String trimmed = rawSignature.trim();
             if (isLegacyShapeHash(trimmed)) {
-                return new ImageSignature(trimmed, null);
+                return new ImageSignature(List.of(trimmed), null, null);
             }
 
             String[] parts = trimmed.split(":", -1);
-            if (parts.length != 3 || !SIGNATURE_VERSION.equals(parts[0]) || !isLegacyShapeHash(parts[1])) {
+            if (parts.length == 3 && COLOR_SIGNATURE_VERSION.equals(parts[0]) && isLegacyShapeHash(parts[1])) {
+                return new ImageSignature(List.of(parts[1]), parseHistogram(parts[2], COLOR_BINS), null);
+            }
+            if (parts.length != 4 || !SIGNATURE_VERSION.equals(parts[0])) {
                 return null;
             }
-            return new ImageSignature(parts[1], parseHistogram(parts[2]));
+
+            List<String> hashes = parseShapeHashes(parts[1]);
+            if (hashes.isEmpty()) {
+                return null;
+            }
+            return new ImageSignature(
+                    hashes,
+                    parseHistogram(parts[2], COLOR_BINS),
+                    parseHistogram(parts[3], EDGE_BINS)
+            );
         }
 
-        private static int[] parseHistogram(String histogramHex) {
-            if (histogramHex == null || histogramHex.length() != COLOR_BINS * 2 || !histogramHex.matches("[0-9a-fA-F]+")) {
+        private static List<String> parseShapeHashes(String rawShapeHashes) {
+            if (rawShapeHashes == null || rawShapeHashes.isBlank()) {
+                return List.of();
+            }
+
+            List<String> hashes = new ArrayList<>();
+            String[] parts = rawShapeHashes.split(",", -1);
+            for (String part : parts) {
+                if (!isLegacyShapeHash(part)) {
+                    return List.of();
+                }
+                hashes.add(part);
+            }
+            return hashes;
+        }
+
+        private static int[] parseHistogram(String histogramHex, int expectedBins) {
+            if (histogramHex == null
+                    || histogramHex.length() != expectedBins * 2
+                    || !histogramHex.matches("[0-9a-fA-F]+")) {
                 return null;
             }
-            int[] histogram = new int[COLOR_BINS];
-            for (int i = 0; i < COLOR_BINS; i++) {
+            int[] histogram = new int[expectedBins];
+            for (int i = 0; i < expectedBins; i++) {
                 histogram[i] = Integer.parseInt(histogramHex.substring(i * 2, i * 2 + 2), 16);
             }
             return histogram;
